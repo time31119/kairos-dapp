@@ -22,7 +22,7 @@ export default function RootLayout() {
           headerShown: false
         }}
       >
-        <Stack.Screen name="index" options={{ title: "" }} />
+        <Stack.Screen name="(tabs)" options={{ title: "" }} />
         <Stack.Screen name="screener/[scenario]" options={{ title: "筛选结果" }} />
       </Stack>
       <Toast />

@@ -117,6 +117,95 @@ function ScenarioCard({ scenario }: { scenario: Scenario }) {
   );
 }
 
+// VIP 功能数据
+interface VipFeature {
+  id: string;
+  title: string;
+  subtitle: string;
+  icon: string;
+  route: string;
+}
+
+const vipFeatures: VipFeature[] = [
+  {
+    id: 'radar',
+    title: '异动雷达',
+    subtitle: '15分钟内成交量突增',
+    icon: 'flame',
+    route: '/screener/radar'
+  },
+  {
+    id: 'institutional',
+    title: '机构动向',
+    subtitle: '大户建仓信号预警',
+    icon: 'trending-up',
+    route: '/screener/institutional'
+  },
+  {
+    id: 'multi-cycle',
+    title: '跨周期共振',
+    subtitle: '多周期强势信号',
+    icon: 'layers',
+    route: '/screener/multi-cycle'
+  },
+  {
+    id: 'precision',
+    title: '精准狙击',
+    subtitle: '多指标买卖点',
+    icon: 'target',
+    route: '/screener/precision'
+  }
+];
+
+function VipSection() {
+  return (
+    <View style={styles.vipContainer}>
+      {/* Section Header */}
+      <View style={styles.vipHeader}>
+        <View style={styles.vipTitleRow}>
+          <Text style={styles.vipCrown}>👑</Text>
+          <Text style={styles.vipTitle}>会员速递</Text>
+        </View>
+        <Pressable>
+          <Text style={styles.vipMore}>全部 →</Text>
+        </Pressable>
+      </View>
+      
+      {/* VIP Feature Grid */}
+      <View style={styles.vipGrid}>
+        {vipFeatures.map((feature, index) => (
+          <Pressable 
+            key={feature.id} 
+            style={({ pressed }) => [
+              styles.vipCard,
+              {
+                backgroundColor: pressed ? '#1A1A24' : '#12121A',
+                opacity: pressed ? 0.8 : 1,
+              }
+            ]}
+          >
+            <View style={styles.vipCardIcon}>
+              <Ionicons 
+                name={feature.icon as any} 
+                size={22} 
+                color="#FFD700" 
+              />
+            </View>
+            <Text style={styles.vipCardTitle}>{feature.title}</Text>
+            <Text style={styles.vipCardSubtitle}>{feature.subtitle}</Text>
+          </Pressable>
+        ))}
+      </View>
+      
+      {/* VIP Badge */}
+      <View style={styles.vipBadge}>
+        <Ionicons name="diamond" size={12} color="#FFD700" />
+        <Text style={styles.vipBadgeText}>开通会员解锁全部高级功能</Text>
+      </View>
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   return (
     <Screen>
@@ -143,6 +232,9 @@ export default function HomeScreen() {
             基于动量指标、资金流向、跨周期验证
           </Text>
         </View>
+        
+        {/* VIP Section */}
+        <VipSection />
         
         {/* Scenarios */}
         <View style={styles.scenariosContainer}>
@@ -314,6 +406,87 @@ const styles = StyleSheet.create({
     right: 20,
     height: 2,
     borderRadius: 1,
+  },
+  
+  // VIP Section
+  vipContainer: {
+    backgroundColor: '#12121A',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.2)',
+  },
+  vipHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  vipTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  vipCrown: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  vipTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFD700',
+    letterSpacing: 1,
+  },
+  vipMore: {
+    fontSize: 12,
+    color: '#FFD700',
+  },
+  vipGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  vipCard: {
+    width: '47%',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.15)',
+  },
+  vipCardIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  vipCardTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  vipCardSubtitle: {
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  vipBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 14,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(255, 215, 0, 0.05)',
+    borderRadius: 10,
+    gap: 6,
+  },
+  vipBadgeText: {
+    fontSize: 11,
+    color: '#FFD700',
+    letterSpacing: 0.5,
   },
   
   // Footer

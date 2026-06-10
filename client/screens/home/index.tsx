@@ -4,7 +4,7 @@
  */
 
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Platform, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Platform, RefreshControl, Modal, TouchableWithoutFeedback } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { Link } from 'expo-router';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
@@ -309,7 +309,14 @@ function MyTradingSection() {
         {/* Position Preview */}
         <View style={styles.positionPreview}>
           {myPositions.slice(0, 2).map((pos) => (
-            <View key={pos.symbol} style={styles.positionItem}>
+            <Pressable
+              key={pos.symbol}
+              style={styles.positionItem}
+              onPress={() => {
+                setSelectedPosition(pos);
+                setShowPositionModal(true);
+              }}
+            >
               <View style={styles.positionLeft}>
                 <View style={[styles.positionSideBadge, { backgroundColor: pos.side === 'long' ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255, 51, 102, 0.2)' }]}>
                   <Text style={[styles.positionSideText, { color: pos.side === 'long' ? '#00FF88' : '#FF3366' }]}>
@@ -327,7 +334,7 @@ function MyTradingSection() {
                   ({pos.pnlPercent >= 0 ? '+' : ''}{pos.pnlPercent.toFixed(2)}%)
                 </Text>
               </View>
-            </View>
+            </Pressable>
           ))}
         </View>
       </Pressable>
@@ -440,6 +447,17 @@ function CopyTradingSection() {
 
 export default function HomeScreen() {
   const [refreshing, setRefreshing] = React.useState(false);
+  const [showPositionModal, setShowPositionModal] = React.useState(false);
+  const [selectedPosition, setSelectedPosition] = React.useState<{
+    symbol: string;
+    side: 'long' | 'short';
+    leverage: number;
+    entryPrice: number;
+    currentPrice: number;
+    amount: number;
+    pnl: number;
+    pnlPercent: number;
+  } | null>(null);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -447,6 +465,13 @@ export default function HomeScreen() {
     setTimeout(() => {
       setRefreshing(false);
     }, 1000);
+  }, []);
+
+  const handleClosePosition = useCallback(() => {
+    setShowPositionModal(false);
+    setSelectedPosition(null);
+    // Simulate close position
+    alert('平仓请求已提交');
   }, []);
 
   return (
@@ -473,12 +498,26 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.subtitle}>行情筛选器</Text>
           </View>
+          {/* Search Icon */}
+          <Link href="/search" asChild>
+            <Pressable style={styles.notificationButton}>
+              <Ionicons name="search" size={24} color="#00F0FF" />
+            </Pressable>
+          </Link>
           {/* Notification Icon */}
           <Pressable style={styles.notificationButton}>
             <Ionicons name="notifications-outline" size={24} color="#00F0FF" />
             <View style={styles.notificationBadge} />
           </Pressable>
         </View>
+        
+        {/* Search Bar */}
+        <Link href="/search" asChild>
+          <Pressable style={styles.searchBar}>
+            <Ionicons name="search" size={20} color="#64748B" />
+            <Text style={styles.searchPlaceholder}>搜索代币、交易员、资讯...</Text>
+          </Pressable>
+        </Link>
         
         {/* Intro */}
         <View style={styles.introContainer}>
@@ -517,6 +556,85 @@ export default function HomeScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Position Detail Modal */}
+      <Modal
+        visible={showPositionModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPositionModal(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowPositionModal(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>
+                    {selectedPosition?.symbol} {selectedPosition?.side === 'long' ? '多单' : '空单'}
+                  </Text>
+                  <Pressable onPress={() => setShowPositionModal(false)}>
+                    <Ionicons name="close" size={24} color="#8892A0" />
+                  </Pressable>
+                </View>
+                
+                {selectedPosition && (
+                  <View style={styles.modalBody}>
+                    <View style={styles.positionDetailRow}>
+                      <Text style={styles.positionDetailLabel}>杠杆</Text>
+                      <View style={[styles.leverageBadge, { backgroundColor: '#1A1A2E' }]}>
+                        <Text style={[styles.leverageText, { color: '#FFD700' }]}>
+                          {selectedPosition.leverage}x
+                        </Text>
+                      </View>
+                    </View>
+                    
+                    <View style={styles.positionDetailRow}>
+                      <Text style={styles.positionDetailLabel}>入场价</Text>
+                      <Text style={styles.positionDetailValue}>
+                        ${selectedPosition.entryPrice.toLocaleString()}
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.positionDetailRow}>
+                      <Text style={styles.positionDetailLabel}>当前价</Text>
+                      <Text style={styles.positionDetailValue}>
+                        ${selectedPosition.currentPrice.toLocaleString()}
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.positionDetailRow}>
+                      <Text style={styles.positionDetailLabel}>数量</Text>
+                      <Text style={styles.positionDetailValue}>
+                        {selectedPosition.amount} USDT
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.positionDetailRow}>
+                      <Text style={styles.positionDetailLabel}>浮动盈亏</Text>
+                      <Text style={[
+                        styles.positionDetailValue,
+                        { color: selectedPosition.pnl >= 0 ? '#00FF88' : '#FF3366' }
+                      ]}>
+                        {selectedPosition.pnl >= 0 ? '+' : ''}{selectedPosition.pnl.toFixed(2)} U
+                        ({selectedPosition.pnlPercent >= 0 ? '+' : ''}{selectedPosition.pnlPercent.toFixed(2)}%)
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.modalActions}>
+                      <Pressable style={styles.modalSecondaryButton} onPress={() => setShowPositionModal(false)}>
+                        <Text style={styles.modalSecondaryButtonText}>取消</Text>
+                      </Pressable>
+                      <Pressable style={styles.modalPrimaryButton} onPress={handleClosePosition}>
+                        <Text style={styles.modalPrimaryButtonText}>确认平仓</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </Screen>
   );
 }
@@ -1096,5 +1214,89 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 11,
     color: '#4B5563',
+  },
+  
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#1A1A2E',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 20,
+    paddingBottom: 40,
+    maxHeight: '70%',
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#4B5563',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  modalClose: {
+    padding: 8,
+  },
+  modalCloseText: {
+    fontSize: 24,
+    color: '#6B7280',
+  },
+  modalSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  modalSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    marginBottom: 12,
+  },
+  modalStatRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  modalStatLabel: {
+    fontSize: 14,
+    color: '#9CA3AF',
+  },
+  modalStatValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  modalButton: {
+    backgroundColor: '#00F0FF',
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginHorizontal: 20,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0A0A0F',
   },
 });

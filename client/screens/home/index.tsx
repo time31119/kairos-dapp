@@ -3,8 +3,8 @@
  * KAIROS 行情筛选器
  */
 
-import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Platform } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, Platform, RefreshControl } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { Link } from 'expo-router';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
@@ -178,7 +178,7 @@ function VipSection() {
         {vipFeatures.map((feature, index) => (
           <Link 
             key={feature.id} 
-            href="/vip"
+            href={feature.route}
             asChild
           >
             <Pressable 
@@ -336,8 +336,15 @@ function MyTradingSection() {
 }
 
 function CopyTradingSection() {
+  const router = useSafeRouter();
+
+  const handleFollow = (traderId: string, traderName: string, e: any) => {
+    e.stopPropagation();
+    e.preventDefault();
+    router.push('/copytrading/settings', { traderId, traderName });
+  };
+
   return (
-    <Link href="/copytrading" asChild>
     <Pressable style={styles.copyContainer}>
       {/* Section Header */}
       <View style={styles.copyHeader}>
@@ -410,9 +417,12 @@ function CopyTradingSection() {
               <Text style={styles.traderYieldValue}>+{trader.yield}%</Text>
               <Text style={styles.traderYieldLabel}>收益率</Text>
             </View>
-            
+
             {/* Follow Button */}
-            <Pressable style={styles.followButton}>
+            <Pressable 
+              style={styles.followButton}
+              onPress={(e) => handleFollow(trader.id, trader.name, e)}
+            >
               <Text style={styles.followButtonText}>跟单</Text>
             </Pressable>
           </View>
@@ -425,25 +435,49 @@ function CopyTradingSection() {
         <Text style={styles.copyDisclaimerText}>跟单有风险，投资需谨慎</Text>
       </View>
     </Pressable>
-    </Link>
   );
 }
 
 export default function HomeScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    // Simulate refresh
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  }, []);
+
   return (
     <Screen>
       <ScrollView 
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#00F0FF"
+            colors={['#00F0FF']}
+          />
+        }
       >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Ionicons name="flash" size={32} color="#00F0FF" style={styles.logoIcon} />
-            <Text style={styles.logoText}>KAIROS</Text>
+          <View style={styles.headerLeft}>
+            <View style={styles.logoContainer}>
+              <Ionicons name="flash" size={32} color="#00F0FF" style={styles.logoIcon} />
+              <Text style={styles.logoText}>KAIROS</Text>
+            </View>
+            <Text style={styles.subtitle}>行情筛选器</Text>
           </View>
-          <Text style={styles.subtitle}>行情筛选器</Text>
+          {/* Notification Icon */}
+          <Pressable style={styles.notificationButton}>
+            <Ionicons name="notifications-outline" size={24} color="#00F0FF" />
+            <View style={styles.notificationBadge} />
+          </Pressable>
         </View>
         
         {/* Intro */}
@@ -499,9 +533,14 @@ const styles = StyleSheet.create({
   
   // Header
   header: {
-    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 24,
     paddingTop: 20,
+  },
+  headerLeft: {
+    alignItems: 'flex-start',
   },
   logoContainer: {
     flexDirection: 'row',
@@ -521,6 +560,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     letterSpacing: 2,
+  },
+  // Notification
+  notificationButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#12121A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#1F1F2E',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF3366',
   },
   
   // Intro

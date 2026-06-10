@@ -255,7 +255,8 @@ const topTraders: Trader[] = [
 
 function CopyTradingSection() {
   return (
-    <View style={styles.copyContainer}>
+    <Link href="/copytrading" asChild>
+    <Pressable style={styles.copyContainer}>
       {/* Section Header */}
       <View style={styles.copyHeader}>
         <View style={styles.copyTitleRow}>
@@ -267,9 +268,9 @@ function CopyTradingSection() {
             <Text style={styles.copyBadgeText}>HOT</Text>
           </View>
         </View>
-        <Pressable>
+        <View>
           <Text style={styles.copyMore}>更多交易员 →</Text>
-        </Pressable>
+        </View>
       </View>
       
       {/* Trader List */}
@@ -341,7 +342,8 @@ function CopyTradingSection() {
         <Ionicons name="warning-outline" size={12} color="#6B7280" />
         <Text style={styles.copyDisclaimerText}>跟单有风险，投资需谨慎</Text>
       </View>
-    </View>
+    </Pressable>
+    </Link>
   );
 }
 

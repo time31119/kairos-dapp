@@ -83,25 +83,28 @@
     }
 
     @variant dark {
-      /* Base Colors */
-      --background: #09090b;
-      --foreground: var(--snow);
+      /* KAIROS 暗黑科技风 - Cyber Tech Theme */
+      --background: #0A0A0F;
+      --foreground: #FFFFFF;
 
       /* Surface: Used for non-overlay components (cards, accordions, disclosure groups) */
-      --surface: oklch(0.2103 0.0059 285.89);
+      --surface: #12121A;
       --surface-foreground: var(--foreground);
 
       /* Overlay: Used for floating/overlay components (dialogs, popovers, modals, menus) - lighter for contrast */
-      --overlay: oklch(0.2103 0.0059 285.89);
+      --overlay: #1A1A24;
       --overlay-foreground: var(--foreground);
 
-      --muted: oklch(70.5% 0.015 286.067);
+      --muted: #6B7280;
 
-      --default: oklch(27.4% 0.006 286.033);
+      --default: #1F1F2E;
       --default-foreground: var(--snow);
 
-      --accent: oklch(0.6204 0.195 253.83);
-      --accent-foreground: var(--snow);
+      /* Cyber Neon Colors */
+      --accent: #00F0FF;        /* Neon Cyan - 上涨信号 */
+      --accent-foreground: #0A0A0F;
+      --neon-purple: #BF00FF;   /* Neon Purple - 下跌信号 */
+      --neon-gold: #FFD700;     /* Neon Gold - 强调 */
 
       /* Form Field Defaults - Colors (only the ones that are different from light theme) */
       --field-background: oklch(0.2103 0.0059 285.89);
@@ -123,9 +126,9 @@
       --segment: oklch(0.3964 0.01 285.93);
       --segment-foreground: var(--foreground);
 
-      /* Misc Colors */
-      --border: oklch(28% 0.006 286.033);
-      --separator: oklch(40% 0.006 286.033);
+      /* Border */
+      --border: #1F1F2E;
+      --separator: #2A2A3E;
       --focus: var(--accent);
       --link: var(--foreground);
 
@@ -152,6 +155,11 @@
 
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+
+  /* Cyber Neon Colors */
+  --color-neon-cyan: #00F0FF;
+  --color-neon-purple: #BF00FF;
+  --color-neon-gold: #FFD700;
 
   --color-segment: var(--segment);
   --color-segment-foreground: var(--segment-foreground);

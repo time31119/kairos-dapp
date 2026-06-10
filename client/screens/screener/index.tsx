@@ -109,9 +109,14 @@ function IndicatorBadge({
 
 // Token Card Component
 function TokenCard({ token, direction, index }: { token: ScreenedToken; direction: string; index: number }) {
+  const router = useSafeRouter();
   const isUp = direction === 'up';
   const priceColor = token.price_change_24h >= 0 ? '#00F0FF' : '#BF00FF';
   const pricePrefix = token.price_change_24h >= 0 ? '+' : '';
+  
+  const handlePress = () => {
+    router.push('/coin', { id: token.id });
+  };
   
   const formatPrice = (price: number) => {
     if (price >= 1000) return `$${price.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
@@ -127,6 +132,7 @@ function TokenCard({ token, direction, index }: { token: ScreenedToken; directio
   };
   
   return (
+    <Pressable onPress={handlePress} style={({ pressed }) => [{ opacity: pressed ? 0.8 : 1 }]}>
     <View style={[
       styles.tokenCard,
       { borderLeftColor: isUp ? '#00F0FF' : '#BF00FF' }
@@ -192,6 +198,7 @@ function TokenCard({ token, direction, index }: { token: ScreenedToken; directio
         <Text style={styles.rank}>#{index + 1}</Text>
       </View>
     </View>
+    </Pressable>
   );
 }
 

@@ -106,7 +106,7 @@ export default function FollowScreen() {
       <TouchableOpacity
         key={item.id}
         className="bg-gray-900 rounded-2xl p-4 border border-gray-800 mb-2"
-        onPress={() => router.push('/screener/1h_up', { coinId: item.id })}
+        onPress={() => router.push('/coin', { id: item.id })}
         activeOpacity={0.7}
       >
         <View className="flex-row items-center justify-between">

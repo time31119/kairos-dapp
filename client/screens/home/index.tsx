@@ -208,6 +208,11 @@ function VipSection() {
       <View style={styles.vipBadge}>
         <Ionicons name="diamond" size={12} color="#FFD700" />
         <Text style={styles.vipBadgeText}>开通会员解锁全部高级功能</Text>
+        <Link href="/vip/membership" asChild>
+          <Pressable style={styles.vipButton}>
+            <Text style={styles.vipButtonText}>开通</Text>
+          </Pressable>
+        </Link>
       </View>
     </View>
   );
@@ -265,7 +270,7 @@ const myPositions = [
   { symbol: 'SOL', name: 'Solana', side: 'short', pnl: 280, pnlPercent: 3.57, leverage: 10 },
 ];
 
-function MyTradingSection() {
+function MyTradingSection({ onPositionClick }: { onPositionClick?: (position: typeof myPositions[0]) => void }) {
   const totalPnl = myPositions.reduce((sum, p) => sum + p.pnl, 0);
   const isProfit = totalPnl >= 0;
   
@@ -312,10 +317,7 @@ function MyTradingSection() {
             <Pressable
               key={pos.symbol}
               style={styles.positionItem}
-              onPress={() => {
-                setSelectedPosition(pos);
-                setShowPositionModal(true);
-              }}
+              onPress={() => onPositionClick?.(pos)}
             >
               <View style={styles.positionLeft}>
                 <View style={[styles.positionSideBadge, { backgroundColor: pos.side === 'long' ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255, 51, 102, 0.2)' }]}>
@@ -533,7 +535,7 @@ export default function HomeScreen() {
         <VipSection />
         
         {/* My Trading Section */}
-        <MyTradingSection />
+        <MyTradingSection onPositionClick={setSelectedPosition} />
         
         {/* Copy Trading Section */}
         <CopyTradingSection />
@@ -898,6 +900,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#FFD700',
     letterSpacing: 0.5,
+    flex: 1,
+  },
+  vipButton: {
+    backgroundColor: '#FFD700',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  vipButtonText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0A0A0F',
   },
   
   // My Trading Section

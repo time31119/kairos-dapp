@@ -16,6 +16,10 @@ const popularCoins = [
   { id: '8', symbol: 'DOT', name: 'Polkadot', price: 7.89, change: 2.11 },
 ];
 
+// 搜索历史数据
+const searchHistory = ['BTC', 'ETH', 'SOL', 'BNB', 'DOGE', 'XRP'];
+
+// 热门关键词
 const hotKeywords = ['BTC突破68000', 'ETH升级', 'SOL生态', 'DeFi新项目', 'NFT市场', 'RWA叙事'];
 
 export default function SearchScreen() {
@@ -103,6 +107,30 @@ export default function SearchScreen() {
           />
         ) : (
           <View style={styles.suggestionsContainer}>
+            {/* Search History */}
+            {searchHistory.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>🕒 搜索历史</Text>
+                  <Pressable onPress={() => {}}>
+                    <Text style={styles.clearText}>清除</Text>
+                  </Pressable>
+                </View>
+                <View style={styles.keywordsContainer}>
+                  {searchHistory.map((keyword, index) => (
+                    <Pressable
+                      key={index}
+                      style={styles.historyTag}
+                      onPress={() => setSearchQuery(keyword)}
+                    >
+                      <Ionicons name="time-outline" size={12} color="#64748B" style={{ marginRight: 4 }} />
+                      <Text style={styles.historyText}>{keyword}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+
             {/* Hot Keywords */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>🔥 热门搜索</Text>
@@ -220,6 +248,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+  },
+  historyTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1A1A24',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  historyText: {
+    fontSize: 13,
+    color: '#94A3B8',
   },
   keywordTag: {
     backgroundColor: '#1A1A24',

@@ -82,12 +82,12 @@ export default function CoinDetailScreen() {
       case 'bullish':
       case 'above':
       case 'strong':
-        return 'trend-up';
+        return 'trending-up' as const;
       case 'bearish':
       case 'below':
-        return 'trend-down';
+        return 'trending-down' as const;
       default:
-        return 'remove';
+        return 'remove-circle' as const;
     }
   };
 

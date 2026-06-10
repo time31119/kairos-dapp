@@ -258,6 +258,83 @@ const topTraders: Trader[] = [
   }
 ];
 
+// My Positions Mock Data
+const myPositions = [
+  { symbol: 'BTC', name: 'Bitcoin', side: 'long', pnl: 793.45, pnlPercent: 1.99, leverage: 5 },
+  { symbol: 'ETH', name: 'Ethereum', side: 'long', pnl: 310, pnlPercent: 1.80, leverage: 3 },
+  { symbol: 'SOL', name: 'Solana', side: 'short', pnl: 280, pnlPercent: 3.57, leverage: 10 },
+];
+
+function MyTradingSection() {
+  const totalPnl = myPositions.reduce((sum, p) => sum + p.pnl, 0);
+  const isProfit = totalPnl >= 0;
+  
+  return (
+    <Link href="/trading" asChild>
+      <Pressable style={styles.tradingContainer}>
+        {/* Section Header */}
+        <View style={styles.tradingHeader}>
+          <View style={styles.tradingTitleRow}>
+            <View style={[styles.tradingIconContainer, { backgroundColor: 'rgba(0, 240, 255, 0.15)' }]}>
+              <Ionicons name="analytics" size={18} color="#00F0FF" />
+            </View>
+            <Text style={styles.tradingTitle}>我的实盘交易</Text>
+          </View>
+          <View>
+            <Text style={styles.tradingMore}>查看全部 →</Text>
+          </View>
+        </View>
+        
+        {/* Summary Card */}
+        <View style={styles.tradingSummary}>
+          <View style={styles.tradingPnlBox}>
+            <Text style={styles.tradingPnlLabel}>总收益</Text>
+            <Text style={[styles.tradingPnlValue, { color: isProfit ? '#00FF88' : '#FF3366' }]}>
+              {isProfit ? '+' : ''}{totalPnl.toFixed(2)} U
+            </Text>
+          </View>
+          <View style={styles.tradingStats}>
+            <View style={styles.tradingStat}>
+              <Text style={styles.tradingStatValue}>{myPositions.length}</Text>
+              <Text style={styles.tradingStatLabel}>持仓</Text>
+            </View>
+            <View style={styles.tradingStatDivider} />
+            <View style={styles.tradingStat}>
+              <Text style={styles.tradingStatValue}>3</Text>
+              <Text style={styles.tradingStatLabel}>订单</Text>
+            </View>
+          </View>
+        </View>
+        
+        {/* Position Preview */}
+        <View style={styles.positionPreview}>
+          {myPositions.slice(0, 2).map((pos) => (
+            <View key={pos.symbol} style={styles.positionItem}>
+              <View style={styles.positionLeft}>
+                <View style={[styles.positionSideBadge, { backgroundColor: pos.side === 'long' ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255, 51, 102, 0.2)' }]}>
+                  <Text style={[styles.positionSideText, { color: pos.side === 'long' ? '#00FF88' : '#FF3366' }]}>
+                    {pos.side === 'long' ? '多' : '空'}
+                  </Text>
+                </View>
+                <Text style={styles.positionSymbol}>{pos.symbol}</Text>
+                <Text style={styles.positionLeverage}>{pos.leverage}x</Text>
+              </View>
+              <View style={styles.positionRight}>
+                <Text style={[styles.positionPnl, { color: pos.pnl >= 0 ? '#00FF88' : '#FF3366' }]}>
+                  {pos.pnl >= 0 ? '+' : ''}{pos.pnl.toFixed(2)} U
+                </Text>
+                <Text style={[styles.positionPnlPercent, { color: pos.pnlPercent >= 0 ? '#00FF88' : '#FF3366' }]}>
+                  ({pos.pnlPercent >= 0 ? '+' : ''}{pos.pnlPercent.toFixed(2)}%)
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </Pressable>
+    </Link>
+  );
+}
+
 function CopyTradingSection() {
   return (
     <Link href="/copytrading" asChild>
@@ -381,6 +458,9 @@ export default function HomeScreen() {
         
         {/* VIP Section */}
         <VipSection />
+        
+        {/* My Trading Section */}
+        <MyTradingSection />
         
         {/* Copy Trading Section */}
         <CopyTradingSection />
@@ -641,6 +721,139 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#FFD700',
     letterSpacing: 0.5,
+  },
+  
+  // My Trading Section
+  tradingContainer: {
+    backgroundColor: '#12121A',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 240, 255, 0.15)',
+  },
+  tradingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  tradingTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  tradingIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tradingTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  tradingMore: {
+    fontSize: 13,
+    color: '#8B8B9E',
+  },
+  tradingSummary: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#0A0A0F',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  tradingPnlBox: {
+    flex: 1,
+  },
+  tradingPnlLabel: {
+    fontSize: 12,
+    color: '#8B8B9E',
+    marginBottom: 4,
+  },
+  tradingPnlValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
+  tradingStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  tradingStat: {
+    alignItems: 'center',
+  },
+  tradingStatValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#00F0FF',
+    fontVariant: ['tabular-nums'],
+  },
+  tradingStatLabel: {
+    fontSize: 11,
+    color: '#8B8B9E',
+    marginTop: 2,
+  },
+  tradingStatDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#1E1E2E',
+  },
+  positionPreview: {
+    gap: 10,
+  },
+  positionItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#0A0A0F',
+    borderRadius: 10,
+    padding: 12,
+  },
+  positionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  positionSideBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  positionSideText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  positionSymbol: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  positionLeverage: {
+    fontSize: 11,
+    color: '#FFD700',
+    fontWeight: '600',
+  },
+  positionRight: {
+    alignItems: 'flex-end',
+  },
+  positionPnl: {
+    fontSize: 14,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
+  positionPnlPercent: {
+    fontSize: 11,
+    fontVariant: ['tabular-nums'],
+    marginTop: 1,
   },
   
   // Copy Trading Section

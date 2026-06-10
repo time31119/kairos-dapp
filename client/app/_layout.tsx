@@ -28,6 +28,7 @@ export default function RootLayout() {
         <Stack.Screen name="copytrading/settings" options={{ title: "跟单设置" }} />
         <Stack.Screen name="vip" options={{ title: "会员速递" }} />
         <Stack.Screen name="coin/[id]" options={{ title: "代币详情" }} />
+        <Stack.Screen name="trading" options={{ title: "我的实盘交易" }} />
       </Stack>
       <Toast />
     </Provider>

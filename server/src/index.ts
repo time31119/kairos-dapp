@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import screenerRouter from "./routes/screener";
 import apiRouter from "./routes/api";
+import authRouter from "./routes/auth";
 
 const app = express();
 const port = process.env.PORT || 9091;
@@ -19,6 +20,7 @@ app.get('/api/v1/health', (req, res) => {
 // API routes
 app.use('/api/v1/screener', screenerRouter);
 app.use('/api/v1', apiRouter);
+app.use('/api/v1', authRouter);
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}/`);

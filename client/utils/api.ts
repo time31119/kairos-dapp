@@ -258,17 +258,9 @@ export async function getTradingHistory() {
   }>>('/trading/history');
 }
 
-// 获取交易员列表
+// Get traders list
 export async function getTraders() {
-  return request<Array<{
-    id: string;
-    name: string;
-    avatar: string;
-    tags: string[];
-    yield: string;
-    winRate: string;
-    followers: number;
-  }>('/copytrading/traders');
+  return request<{ id: string; name: string; avatar: string; tags: string[]; yield: string; winRate: string; followers: number }[]>('/copytrading/traders');
 }
 
 // 跟单设置
@@ -297,6 +289,9 @@ export async function getCopyTrades() {
     startDate: string;
   }>>('/copytrading/positions');
 }
+
+// 导出通用请求方法
+export const apiRequest = request;
 
 export default {
   getMarketOverview,

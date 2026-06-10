@@ -46,7 +46,7 @@ const levelColors: Record<string, string> = {
   low: '#2ED573',
 };
 
-const trendIcons: Record<string, JSX.Element> = {
+const trendIcons: Record<string, React.ReactNode> = {
   up: <Ionicons name="trending-up" size={16} color="#00FF88" />,
   down: <Ionicons name="trending-down" size={16} color="#FF4757" />,
   neutral: <Ionicons name="remove" size={16} color="#888" />,

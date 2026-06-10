@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
+import { useState, useCallback, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { Ionicons } from '@expo/vector-icons';
+import { apiRequest } from '@/utils/api';
 
 interface Position {
   id: string;
@@ -26,7 +27,7 @@ interface Order {
   id: string;
   symbol: string;
   side: 'long' | 'short';
-  type: 'limit' | 'market';
+  type: 'limit' | 'market' | 'stop';
   price: number;
   triggerPrice?: number;
   amount: number;
@@ -59,96 +60,163 @@ interface AccountStats {
   avgLoss: number;
 }
 
+// 默认数据
+const defaultAccountStats: AccountStats = {
+  totalProfit: 4582.34,
+  totalLoss: -1587.56,
+  winRate: 68.5,
+  maxDrawdown: -892.45,
+  totalTrades: 156,
+  profitableTrades: 107,
+  avgProfit: 42.82,
+  avgLoss: -14.83,
+};
+
+const defaultPositions: Position[] = [
+  {
+    id: '1',
+    symbol: 'BTC',
+    name: 'Bitcoin',
+    side: 'long',
+    entryPrice: 66500,
+    currentPrice: 67823,
+    pnl: 793.45,
+    pnlPercent: 1.99,
+    amount: 0.5,
+    leverage: 5,
+    margin: 6650,
+    liquidationPrice: 53200,
+    stopLoss: 64000,
+    takeProfit: 72000,
+    openTime: '2024-01-15 14:30',
+  },
+  {
+    id: '2',
+    symbol: 'ETH',
+    name: 'Ethereum',
+    side: 'long',
+    entryPrice: 3450,
+    currentPrice: 3512,
+    pnl: 310,
+    pnlPercent: 1.80,
+    amount: 2,
+    leverage: 3,
+    margin: 2300,
+    liquidationPrice: 2760,
+    openTime: '2024-01-15 16:45',
+  },
+  {
+    id: '3',
+    symbol: 'SOL',
+    name: 'Solana',
+    side: 'short',
+    entryPrice: 112,
+    currentPrice: 108,
+    pnl: 280,
+    pnlPercent: 3.57,
+    amount: 100,
+    leverage: 10,
+    margin: 1120,
+    liquidationPrice: 123.2,
+    openTime: '2024-01-14 09:20',
+  },
+];
+
+const defaultOrders: Order[] = [
+  { id: '1', symbol: 'BNB', side: 'long', type: 'limit', price: 320, amount: 5, filled: 0, status: 'pending', time: '2024-01-16 10:30' },
+  { id: '2', symbol: 'AVAX', side: 'short', type: 'limit', price: 38.5, amount: 50, filled: 25, status: 'partial', time: '2024-01-16 09:15' },
+  { id: '3', symbol: 'LINK', side: 'long', type: 'stop', price: 0, triggerPrice: 18.5, amount: 100, filled: 0, status: 'pending', time: '2024-01-16 08:00' },
+];
+
+const defaultTrades: Trade[] = [
+  { id: '1', symbol: 'BTC', side: 'long', price: 66500, amount: 0.5, pnl: 793.45, fee: 33.25, closeReason: 'manual', time: '2024-01-15 14:30', status: 'completed' },
+  { id: '2', symbol: 'ETH', side: 'long', price: 3450, amount: 2, pnl: 310, fee: 6.9, closeReason: 'manual', time: '2024-01-15 16:45', status: 'completed' },
+  { id: '3', symbol: 'SOL', side: 'short', price: 112, amount: 100, pnl: 280, fee: 11.2, closeReason: 'tp', time: '2024-01-14 09:20', status: 'completed' },
+  { id: '4', symbol: 'BNB', side: 'long', price: 312, amount: 5, pnl: -85, fee: 1.56, closeReason: 'sl', time: '2024-01-13 11:00', status: 'completed' },
+  { id: '5', symbol: 'DOGE', side: 'short', price: 0.082, amount: 10000, pnl: 156.8, fee: 0.82, closeReason: 'tp', time: '2024-01-12 15:30', status: 'completed' },
+  { id: '6', symbol: 'ADA', side: 'long', price: 0.58, amount: 1000, pnl: -42.5, fee: 0.58, closeReason: 'manual', time: '2024-01-11 10:15', status: 'completed' },
+];
+
 export default function TradingScreen() {
   const router = useSafeRouter();
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'positions' | 'orders' | 'history'>('overview');
 
-  // Mock account statistics
-  const accountStats: AccountStats = {
-    totalProfit: 4582.34,
-    totalLoss: -1587.56,
-    winRate: 68.5,
-    maxDrawdown: -892.45,
-    totalTrades: 156,
-    profitableTrades: 107,
-    avgProfit: 42.82,
-    avgLoss: -14.83,
+  // 数据状态
+  const [accountStats, setAccountStats] = useState<AccountStats>(defaultAccountStats);
+  const [positions, setPositions] = useState<Position[]>(defaultPositions);
+  const [orders, setOrders] = useState<Order[]>(defaultOrders);
+  const [trades, setTrades] = useState<Trade[]>(defaultTrades);
+
+  // 获取账户统计
+  const fetchAccountStats = async () => {
+    const result = await apiRequest<AccountStats>('/trading/stats');
+    if (result.success && result.data) {
+      setAccountStats(result.data);
+    }
   };
 
-  // Mock data
-  const positions: Position[] = [
-    {
-      id: '1',
-      symbol: 'BTC',
-      name: 'Bitcoin',
-      side: 'long',
-      entryPrice: 66500,
-      currentPrice: 67823,
-      pnl: 793.45,
-      pnlPercent: 1.99,
-      amount: 0.5,
-      leverage: 5,
-      margin: 6650,
-      liquidationPrice: 53200,
-      stopLoss: 64000,
-      takeProfit: 72000,
-      openTime: '2024-01-15 14:30',
-    },
-    {
-      id: '2',
-      symbol: 'ETH',
-      name: 'Ethereum',
-      side: 'long',
-      entryPrice: 3450,
-      currentPrice: 3512,
-      pnl: 310,
-      pnlPercent: 1.80,
-      amount: 2,
-      leverage: 3,
-      margin: 2300,
-      liquidationPrice: 2760,
-      openTime: '2024-01-15 16:45',
-    },
-    {
-      id: '3',
-      symbol: 'SOL',
-      name: 'Solana',
-      side: 'short',
-      entryPrice: 112,
-      currentPrice: 108,
-      pnl: 280,
-      pnlPercent: 3.57,
-      amount: 100,
-      leverage: 10,
-      margin: 1120,
-      liquidationPrice: 123.2,
-      openTime: '2024-01-14 09:20',
-    },
-  ];
+  // 获取持仓
+  const fetchPositions = async () => {
+    const result = await apiRequest<{ positions?: Position[] }>('/trading/positions');
+    if (result.success && result.data) {
+      if (result.data.positions) {
+        setPositions(result.data.positions);
+      } else if (Array.isArray(result.data)) {
+        setPositions(result.data as Position[]);
+      }
+    }
+  };
 
-  const orders: Order[] = [
-    { id: '1', symbol: 'BNB', side: 'long', type: 'limit', price: 320, amount: 5, filled: 0, status: 'pending', time: '2024-01-16 10:30' },
-    { id: '2', symbol: 'AVAX', side: 'short', type: 'limit', price: 38.5, amount: 50, filled: 25, status: 'partial', time: '2024-01-16 09:15' },
-    { id: '3', symbol: 'LINK', side: 'long', type: 'stop', price: 0, triggerPrice: 18.5, amount: 100, filled: 0, status: 'pending', time: '2024-01-16 08:00' },
-  ];
+  // 获取订单
+  const fetchOrders = async () => {
+    const result = await apiRequest<{ orders?: Order[] }>('/trading/orders');
+    if (result.success && result.data) {
+      if (result.data.orders) {
+        setOrders(result.data.orders);
+      } else if (Array.isArray(result.data)) {
+        setOrders(result.data as Order[]);
+      }
+    }
+  };
 
-  const trades: Trade[] = [
-    { id: '1', symbol: 'BTC', side: 'long', price: 66500, amount: 0.5, pnl: 793.45, fee: 33.25, closeReason: 'manual', time: '2024-01-15 14:30', status: 'completed' },
-    { id: '2', symbol: 'ETH', side: 'long', price: 3450, amount: 2, pnl: 310, fee: 6.9, closeReason: 'manual', time: '2024-01-15 16:45', status: 'completed' },
-    { id: '3', symbol: 'SOL', side: 'short', price: 112, amount: 100, pnl: 280, fee: 11.2, closeReason: 'tp', time: '2024-01-14 09:20', status: 'completed' },
-    { id: '4', symbol: 'BNB', side: 'long', price: 312, amount: 5, pnl: -85, fee: 1.56, closeReason: 'sl', time: '2024-01-13 11:00', status: 'completed' },
-    { id: '5', symbol: 'DOGE', side: 'short', price: 0.082, amount: 10000, pnl: 156.8, fee: 0.82, closeReason: 'tp', time: '2024-01-12 15:30', status: 'completed' },
-    { id: '6', symbol: 'ADA', side: 'long', price: 0.58, amount: 1000, pnl: -42.5, fee: 0.58, closeReason: 'manual', time: '2024-01-11 10:15', status: 'completed' },
-  ];
+  // 获取历史交易
+  const fetchTrades = async () => {
+    const result = await apiRequest<{ history?: Trade[] }>('/trading/history');
+    if (result.success && result.data) {
+      if (result.data.history) {
+        setTrades(result.data.history);
+      } else if (Array.isArray(result.data)) {
+        setTrades(result.data as Trade[]);
+      }
+    }
+  };
+
+  // 加载所有数据
+  const loadData = async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchAccountStats(),
+      fetchPositions(),
+      fetchOrders(),
+      fetchTrades(),
+    ]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const totalPnl = positions.reduce((sum, p) => sum + p.pnl, 0);
   const totalMargin = positions.reduce((sum, p) => sum + p.margin, 0);
   const netProfit = accountStats.totalProfit + accountStats.totalLoss;
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1500);
+    await loadData();
+    setRefreshing(false);
   }, []);
 
   const renderOverview = () => (
@@ -436,8 +504,8 @@ export default function TradingScreen() {
 
         <View style={styles.tradeDetails}>
           <View style={styles.tradeItem}>
-            <Text style={styles.tradeLabel}>成交价</Text>
-            <Text style={styles.tradeValue}>${trade.price}</Text>
+            <Text style={styles.tradeLabel}>入场价</Text>
+            <Text style={styles.tradeValue}>${trade.price.toLocaleString()}</Text>
           </View>
           <View style={styles.tradeItem}>
             <Text style={styles.tradeLabel}>数量</Text>
@@ -449,7 +517,7 @@ export default function TradingScreen() {
           </View>
           <View style={styles.tradeItem}>
             <Text style={styles.tradeLabel}>盈亏</Text>
-            <Text style={[styles.tradeValue, { color: pnlColor }]}>
+            <Text style={[styles.tradePnl, { color: pnlColor }]}>
               {isProfit ? '+' : ''}{trade.pnl.toFixed(2)} U
             </Text>
           </View>
@@ -460,189 +528,204 @@ export default function TradingScreen() {
 
   return (
     <Screen>
-      <ScrollView
-        style={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00F0FF" />}
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={24} color="#00F0FF" />
-          </TouchableOpacity>
-          <Text style={styles.title}>我的实盘交易</Text>
-          <TouchableOpacity>
-            <Ionicons name="settings-outline" size={24} color="#8B8B9E" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Tabs */}
-        <View style={styles.tabs}>
-          {([
-            { key: 'overview', label: '总览' },
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>我的实盘</Text>
+        <View style={styles.headerTabs}>
+          {[
+            { key: 'overview', label: '账户' },
             { key: 'positions', label: '持仓' },
             { key: 'orders', label: '订单' },
             { key: 'history', label: '历史' },
-          ] as const).map((tab) => (
+          ].map((tab) => (
             <TouchableOpacity
               key={tab.key}
-              style={[styles.tab, activeTab === tab.key && styles.activeTab]}
-              onPress={() => setActiveTab(tab.key)}
+              style={[styles.headerTab, activeTab === tab.key && styles.headerTabActive]}
+              onPress={() => setActiveTab(tab.key as any)}
             >
-              <Text style={[styles.tabText, activeTab === tab.key && styles.activeTabText]}>
+              <Text style={[styles.headerTabText, activeTab === tab.key && styles.headerTabTextActive]}>
                 {tab.label}
-                {tab.key === 'positions' && positions.length > 0 && `(${positions.length})`}
-                {tab.key === 'orders' && orders.length > 0 && `(${orders.length})`}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
+      </View>
 
-        {/* Content */}
-        {activeTab === 'overview' && renderOverview()}
-
-        {activeTab === 'positions' && (
-          <View style={styles.content}>
-            {positions.length > 0 ? (
-              positions.map(renderPosition)
-            ) : (
-              <View style={styles.emptyState}>
-                <Ionicons name="bar-chart-outline" size={48} color="#8B8B9E" style={styles.emptyIcon} />
-                <Text style={styles.emptyText}>暂无持仓</Text>
-                <Text style={styles.emptySubtext}>开始交易以积累你的实盘记录</Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {activeTab === 'orders' && (
-          <View style={styles.content}>
-            {orders.length > 0 ? (
-              orders.map(renderOrder)
-            ) : (
-              <View style={styles.emptyState}>
-                <Ionicons name="document-text-outline" size={48} color="#8B8B9E" style={styles.emptyIcon} />
-                <Text style={styles.emptyText}>暂无订单</Text>
-                <Text style={styles.emptySubtext}>下单后将显示在这里</Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {activeTab === 'history' && (
-          <View style={styles.content}>
-            {trades.length > 0 ? (
-              trades.map(renderTrade)
-            ) : (
-              <View style={styles.emptyState}>
-                <Ionicons name="time-outline" size={48} color="#8B8B9E" style={styles.emptyIcon} />
-                <Text style={styles.emptyText}>暂无交易记录</Text>
-              </View>
-            )}
-          </View>
-        )}
-      </ScrollView>
+      {/* Loading */}
+      {loading && !refreshing ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#00F0FF" />
+          <Text style={styles.loadingText}>加载中...</Text>
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.container}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00F0FF" />
+          }
+        >
+          {activeTab === 'overview' && renderOverview()}
+          {activeTab === 'positions' && (
+            <View style={styles.listContainer}>
+              {positions.length > 0 ? (
+                positions.map(renderPosition)
+              ) : (
+                <View style={styles.emptyState}>
+                  <Ionicons name="cube-outline" size={48} color="#333" />
+                  <Text style={styles.emptyText}>暂无持仓</Text>
+                </View>
+              )}
+            </View>
+          )}
+          {activeTab === 'orders' && (
+            <View style={styles.listContainer}>
+              {orders.length > 0 ? (
+                orders.map(renderOrder)
+              ) : (
+                <View style={styles.emptyState}>
+                  <Ionicons name="document-text-outline" size={48} color="#333" />
+                  <Text style={styles.emptyText}>暂无订单</Text>
+                </View>
+              )}
+            </View>
+          )}
+          {activeTab === 'history' && (
+            <View style={styles.listContainer}>
+              {trades.length > 0 ? (
+                trades.map(renderTrade)
+              ) : (
+                <View style={styles.emptyState}>
+                  <Ionicons name="time-outline" size={48} color="#333" />
+                  <Text style={styles.emptyText}>暂无历史记录</Text>
+                </View>
+              )}
+            </View>
+          )}
+          <View style={{ height: 100 }} />
+        </ScrollView>
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  header: {
+    backgroundColor: 'rgba(10, 10, 15, 0.95)',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 240, 255, 0.2)',
+  },
+  headerTitle: {
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  headerTabs: {
+    flexDirection: 'row',
+  },
+  headerTab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  headerTabActive: {
+    borderBottomColor: '#00F0FF',
+  },
+  headerTabText: {
+    color: '#666',
+    fontSize: 14,
+  },
+  headerTabTextActive: {
+    color: '#00F0FF',
+    fontWeight: '600',
+  },
   container: {
     flex: 1,
     backgroundColor: '#0A0A0F',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-  },
-  title: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  tabs: {
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    backgroundColor: '#12121A',
-    borderRadius: 8,
-    padding: 4,
-  },
-  tab: {
+  loadingContainer: {
     flex: 1,
-    paddingVertical: 10,
+    justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 6,
+    backgroundColor: '#0A0A0F',
   },
-  activeTab: {
-    backgroundColor: '#00F0FF',
+  loadingText: {
+    color: '#666',
+    marginTop: 12,
   },
-  tabText: {
-    color: '#8B8B9E',
+  listContainer: {
+    padding: 16,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    color: '#666',
     fontSize: 14,
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: '#0A0A0F',
-    fontWeight: '600',
+    marginTop: 12,
   },
   overviewContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 100,
+    padding: 16,
   },
   profitCard: {
-    backgroundColor: '#12121A',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: 'rgba(10, 10, 15, 0.95)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1E1E2E',
-  },
-  profitHeader: {
+    borderColor: 'rgba(0, 240, 255, 0.3)',
+    padding: 20,
     marginBottom: 16,
   },
+  profitHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   profitLabel: {
-    color: '#8B8B9E',
+    color: '#666',
     fontSize: 12,
     marginBottom: 4,
   },
   profitValue: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 32,
+    fontWeight: 'bold',
   },
   profitStats: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   profitStat: {
-    flex: 1,
+    alignItems: 'center',
   },
   profitStatLabel: {
-    color: '#8B8B9E',
+    color: '#666',
     fontSize: 11,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   profitStatValue: {
-    color: '#FFFFFF',
+    color: '#FFF',
     fontSize: 14,
     fontWeight: '600',
   },
   metricsCard: {
-    backgroundColor: '#12121A',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: 'rgba(10, 10, 15, 0.95)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1E1E2E',
+    borderColor: 'rgba(0, 240, 255, 0.3)',
+    padding: 20,
+    marginBottom: 16,
   },
   metricsTitle: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    color: '#FFF',
+    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -650,390 +733,364 @@ const styles = StyleSheet.create({
   },
   metricItem: {
     width: '50%',
+    alignItems: 'center',
     paddingVertical: 8,
   },
   metricValue: {
     color: '#00F0FF',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   metricLabel: {
-    color: '#8B8B9E',
-    fontSize: 12,
-    marginTop: 2,
+    color: '#666',
+    fontSize: 11,
+    marginTop: 4,
   },
   avgCard: {
-    backgroundColor: '#12121A',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
+    backgroundColor: 'rgba(10, 10, 15, 0.95)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#1E1E2E',
+    borderColor: 'rgba(0, 240, 255, 0.3)',
+    padding: 16,
+    flexDirection: 'row',
+    marginBottom: 16,
   },
   avgItem: {
     flex: 1,
     alignItems: 'center',
   },
-  avgDivider: {
-    width: 1,
-    backgroundColor: '#1E1E2E',
-    marginHorizontal: 8,
-  },
   avgLabel: {
-    color: '#8B8B9E',
+    color: '#666',
     fontSize: 11,
     marginBottom: 4,
   },
   avgValue: {
-    color: '#FFFFFF',
-    fontSize: 13,
+    color: '#FFF',
+    fontSize: 14,
     fontWeight: '600',
+  },
+  avgDivider: {
+    width: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginHorizontal: 8,
   },
   quickActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
+    backgroundColor: 'rgba(10, 10, 15, 0.95)',
+    borderRadius: 16,
+    padding: 16,
   },
   quickActionBtn: {
     flex: 1,
-    backgroundColor: '#12121A',
-    borderRadius: 8,
-    padding: 12,
     alignItems: 'center',
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: '#1E1E2E',
+    paddingVertical: 12,
   },
   quickActionText: {
-    color: '#FFFFFF',
+    color: '#FFF',
     fontSize: 12,
-    marginTop: 4,
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingBottom: 100,
+    marginTop: 6,
   },
   positionCard: {
-    backgroundColor: '#12121A',
-    borderRadius: 12,
+    backgroundColor: 'rgba(10, 10, 15, 0.95)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 240, 255, 0.3)',
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#1E1E2E',
   },
   positionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 12,
   },
   positionInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
-  positionRight: {
-    alignItems: 'flex-end',
   },
   sideBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
+    marginRight: 8,
   },
   sideText: {
-    color: '#0A0A0F',
+    color: '#000',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: 'bold',
   },
   symbolText: {
-    color: '#FFFFFF',
+    color: '#FFF',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: 'bold',
   },
   nameText: {
-    color: '#8B8B9E',
+    color: '#666',
     fontSize: 12,
   },
+  positionRight: {
+    alignItems: 'flex-end',
+  },
   leverageTag: {
-    backgroundColor: '#FFD700',
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   leverageText: {
-    color: '#0A0A0F',
+    color: '#FFD700',
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: 'bold',
   },
   amountText: {
-    color: '#8B8B9E',
+    color: '#666',
     fontSize: 12,
     marginTop: 4,
   },
   positionPrices: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
   },
   priceItem: {
-    flex: 1,
+    alignItems: 'center',
   },
   priceLabel: {
-    color: '#8B8B9E',
+    color: '#666',
     fontSize: 11,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   priceValue: {
-    color: '#FFFFFF',
+    color: '#FFF',
     fontSize: 13,
-    fontWeight: '500',
   },
   positionLevels: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
-    gap: 20,
-    marginBottom: 8,
-    paddingTop: 8,
+    gap: 24,
+    paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#1E1E2E',
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
   },
   levelItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   levelLabel: {
-    color: '#8B8B9E',
-    fontSize: 11,
+    color: '#666',
+    fontSize: 12,
   },
   levelValue: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
   },
   positionFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
   },
   pnlContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    gap: 6,
+    gap: 4,
   },
   pnlValue: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   pnlPercent: {
     fontSize: 14,
   },
   marginText: {
-    color: '#8B8B9E',
+    color: '#666',
     fontSize: 12,
   },
   positionActions: {
     flexDirection: 'row',
+    justifyContent: 'flex-end',
     gap: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
   },
   actionBtn: {
-    flex: 1,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
-    alignItems: 'center',
   },
   tpBtn: {
-    backgroundColor: '#00FF8820',
-    borderWidth: 1,
-    borderColor: '#00FF88',
+    backgroundColor: 'rgba(0, 255, 136, 0.2)',
   },
   tpBtnText: {
     color: '#00FF88',
     fontSize: 12,
-    fontWeight: '600',
   },
   slBtn: {
-    backgroundColor: '#FF336620',
-    borderWidth: 1,
-    borderColor: '#FF3366',
+    backgroundColor: 'rgba(255, 51, 102, 0.2)',
   },
   slBtnText: {
     color: '#FF3366',
     fontSize: 12,
-    fontWeight: '600',
   },
   closeBtn: {
-    backgroundColor: '#00F0FF',
+    backgroundColor: 'rgba(0, 240, 255, 0.2)',
   },
   closeBtnText: {
-    color: '#0A0A0F',
+    color: '#00F0FF',
     fontSize: 12,
-    fontWeight: '600',
   },
   orderCard: {
-    backgroundColor: '#12121A',
-    borderRadius: 12,
+    backgroundColor: 'rgba(10, 10, 15, 0.95)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#1E1E2E',
   },
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 12,
   },
   orderInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
   },
   orderSymbol: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
   orderType: {
-    color: '#8B8B9E',
-    fontSize: 11,
+    color: '#666',
+    fontSize: 12,
     marginTop: 2,
   },
   orderStatus: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 4,
   },
   orderStatusText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '500',
   },
   orderDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
   },
   orderItem: {
-    flex: 1,
+    alignItems: 'center',
   },
   orderLabel: {
-    color: '#8B8B9E',
-    fontSize: 10,
-    marginBottom: 2,
+    color: '#666',
+    fontSize: 11,
+    marginBottom: 4,
   },
   orderValue: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '500',
+    color: '#FFF',
+    fontSize: 13,
   },
   orderTime: {
-    color: '#8B8B9E',
-    fontSize: 11,
+    color: '#666',
+    fontSize: 12,
   },
   orderActions: {
     flexDirection: 'row',
+    justifyContent: 'flex-end',
     gap: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
   },
   orderBtn: {
-    flex: 1,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
-    alignItems: 'center',
   },
   cancelBtn: {
-    backgroundColor: '#FF336620',
-    borderWidth: 1,
-    borderColor: '#FF3366',
+    backgroundColor: 'rgba(255, 51, 102, 0.2)',
   },
   cancelBtnText: {
     color: '#FF3366',
     fontSize: 12,
-    fontWeight: '600',
   },
   modifyBtn: {
-    backgroundColor: '#12121A',
-    borderWidth: 1,
-    borderColor: '#00F0FF',
+    backgroundColor: 'rgba(0, 240, 255, 0.2)',
   },
   modifyBtnText: {
     color: '#00F0FF',
     fontSize: 12,
-    fontWeight: '600',
   },
   tradeCard: {
-    backgroundColor: '#12121A',
-    borderRadius: 12,
+    backgroundColor: 'rgba(10, 10, 15, 0.95)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 240, 255, 0.3)',
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#1E1E2E',
   },
   tradeHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 12,
   },
   tradeInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
   },
   tradeSymbol: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
   tradeRight: {
     alignItems: 'flex-end',
   },
   tradeTime: {
-    color: '#8B8B9E',
-    fontSize: 11,
+    color: '#666',
+    fontSize: 12,
     marginBottom: 4,
   },
   closeReasonTag: {
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
   },
   closeReasonText: {
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '500',
   },
   tradeDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
   },
   tradeItem: {
-    flex: 1,
+    alignItems: 'center',
   },
   tradeLabel: {
-    color: '#8B8B9E',
-    fontSize: 10,
-    marginBottom: 2,
+    color: '#666',
+    fontSize: 11,
+    marginBottom: 4,
   },
   tradeValue: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '500',
+    color: '#FFF',
+    fontSize: 13,
   },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  emptyIcon: {
-    marginBottom: 16,
-  },
-  emptyText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    color: '#8B8B9E',
-    fontSize: 14,
+  tradePnl: {
+    fontSize: 15,
+    fontWeight: 'bold',
   },
 });

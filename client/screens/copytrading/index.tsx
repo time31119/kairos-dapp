@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,117 +7,15 @@ import {
   Image,
   Dimensions,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useFocusEffect } from 'expo-router';
+import { apiRequest } from '@/utils/api';
 
 const { width } = Dimensions.get('window');
-
-// Mock trader data
-const TRADER_DATA = {
-  id: 'trader_001',
-  name: '币神张三',
-  avatar: null,
-  tags: ['连胜中', '高胜率', '币安认证'],
-  bio: '专注现货趋势交易，擅长捕捉主流币阶段性机会，管理资金超500万U',
-  followers: 2341,
-  totalYield: 127.5,
-  winRate: 82,
-  totalTrades: 156,
-  avgHoldingTime: '3-5天',
-  riskLevel: '中风险',
-  joinDate: '2024-01',
-  recentPerformance: [
-    { date: '01-18', action: '做多', pair: 'BTC/USDT', yield: 5.2, status: 'win' },
-    { date: '01-15', action: '做多', pair: 'ETH/USDT', yield: 8.7, status: 'win' },
-    { date: '01-12', action: '做空', pair: 'SOL/USDT', yield: -2.1, status: 'lose' },
-    { date: '01-08', action: '做多', pair: 'BNB/USDT', yield: 12.3, status: 'win' },
-    { date: '01-05', action: '做多', pair: 'BTC/USDT', yield: 4.8, status: 'win' },
-    { date: '01-02', action: '做空', pair: 'AVAX/USDT', yield: 6.5, status: 'win' },
-  ],
-  monthlyStats: [
-    { month: '1月', yield: 15.2 },
-    { month: '2月', yield: 8.7 },
-    { month: '3月', yield: -3.2 },
-    { month: '4月', yield: 22.5 },
-    { month: '5月', yield: 18.3 },
-    { month: '6月', yield: 12.1 },
-  ],
-  assets: 5234000,
-  profitSharing: '10%',
-};
-
-// Mock historical data for my follow positions
-const MY_POSITIONS = [
-  {
-    id: 'pos_001',
-    traderId: 'trader_001',
-    traderName: '币神张三',
-    pair: 'BTC/USDT',
-    entryPrice: 67200,
-    currentPrice: 68500,
-    pnl: 2.13,
-    pnlAmount: 213,
-    ratio: 0.3,
-    openTime: '01-18 14:30',
-    status: 'active',
-  },
-  {
-    id: 'pos_002',
-    traderId: 'trader_002',
-    traderName: '量化小王',
-    pair: 'ETH/USDT',
-    entryPrice: 3450,
-    currentPrice: 3520,
-    pnl: 1.45,
-    pnlAmount: 145,
-    ratio: 0.5,
-    openTime: '01-16 09:15',
-    status: 'active',
-  },
-];
-
-// Mock history data
-const HISTORY_DATA = [
-  {
-    id: 'hist_001',
-    traderId: 'trader_001',
-    traderName: '币神张三',
-    pair: 'BTC/USDT',
-    entryPrice: 64200,
-    exitPrice: 67800,
-    pnl: 5.61,
-    pnlAmount: 561,
-    closeTime: '01-15 22:00',
-    status: 'win',
-  },
-  {
-    id: 'hist_002',
-    traderId: 'trader_001',
-    traderName: '币神张三',
-    pair: 'ETH/USDT',
-    entryPrice: 3580,
-    exitPrice: 3890,
-    pnl: 8.66,
-    pnlAmount: 866,
-    closeTime: '01-12 18:30',
-    status: 'win',
-  },
-  {
-    id: 'hist_003',
-    traderId: 'trader_002',
-    traderName: '量化小王',
-    pair: 'BNB/USDT',
-    entryPrice: 420,
-    exitPrice: 398,
-    pnl: -5.24,
-    pnlAmount: -524,
-    closeTime: '01-10 15:45',
-    status: 'lose',
-  },
-];
 
 // Reusable Card Component
 function NeonCard({ children, style }: { children: React.ReactNode; style?: any }) {
@@ -184,31 +82,76 @@ function TradeItem({
   );
 }
 
-// Follow Button Component
-function FollowButton({ following, onPress }: { following: boolean; onPress: () => void }) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={{
-        backgroundColor: following ? 'rgba(0, 240, 255, 0.15)' : '#00F0FF',
-        borderWidth: 1,
-        borderColor: '#00F0FF',
-        borderRadius: 20,
-        paddingHorizontal: 24,
-        paddingVertical: 10,
-      }}
-    >
-      <Text style={{ color: following ? '#00F0FF' : '#000', fontWeight: 'bold', fontSize: 14 }}>
-        {following ? '已跟单' : '一键跟单'}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
 // Page Components
 export default function CopyTradingPage() {
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'trader' | 'my' | 'history'>('trader');
+
+  // 数据状态
+  const [traderData, setTraderData] = useState<any>(null);
+  const [myPositions, setMyPositions] = useState<any[]>([]);
+  const [historyData, setHistoryData] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    totalYield: '+358 U',
+    totalYieldPercent: '+1.89%',
+    activeFollows: 2,
+    totalProfit: '+903 U',
+    winRate: '67%',
+  });
+
+  // 获取交易员数据
+  const fetchTraderData = async () => {
+    const result = await apiRequest<{ traders?: any[]; [key: string]: any }>('/copytrading/traders');
+    if (result.success && result.data) {
+      if (result.data.traders && result.data.traders.length > 0) {
+        setTraderData(result.data.traders[0]);
+      } else if (Array.isArray(result.data)) {
+        setTraderData(result.data[0]);
+      } else {
+        setTraderData(result.data);
+      }
+    }
+  };
+
+  // 获取我的跟单
+  const fetchMyPositions = async () => {
+    const result = await apiRequest<{ positions?: any[]; [key: string]: any }>('/copytrading/positions');
+    if (result.success && result.data) {
+      if (result.data.positions) {
+        setMyPositions(result.data.positions);
+      } else if (Array.isArray(result.data)) {
+        setMyPositions(result.data);
+      }
+    }
+  };
+
+  // 获取跟单记录
+  const fetchHistory = async () => {
+    const result = await apiRequest<{ history?: any[]; [key: string]: any }>('/copytrading/history');
+    if (result.success && result.data) {
+      if (result.data.history) {
+        setHistoryData(result.data.history);
+      } else if (Array.isArray(result.data)) {
+        setHistoryData(result.data);
+      }
+    }
+  };
+
+  // 加载所有数据
+  const loadData = async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchTraderData(),
+      fetchMyPositions(),
+      fetchHistory(),
+    ]);
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    loadData().finally(() => setLoading(false));
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -216,10 +159,111 @@ export default function CopyTradingPage() {
     }, [])
   );
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    await loadData();
+    setRefreshing(false);
   }, []);
+
+  // 默认交易员数据
+  const defaultTrader = {
+    id: 'trader_001',
+    name: '币神张三',
+    avatar: null,
+    tags: ['连胜中', '高胜率', '币安认证'],
+    bio: '专注现货趋势交易，擅长捕捉主流币阶段性机会，管理资金超500万U',
+    followers: 2341,
+    totalYield: 127.5,
+    winRate: 82,
+    totalTrades: 156,
+    avgHoldingTime: '3-5天',
+    riskLevel: '中风险',
+    recentPerformance: [
+      { date: '01-18', action: '做多', pair: 'BTC/USDT', yield: 5.2, status: 'win' },
+      { date: '01-15', action: '做多', pair: 'ETH/USDT', yield: 8.7, status: 'win' },
+      { date: '01-12', action: '做空', pair: 'SOL/USDT', yield: -2.1, status: 'lose' },
+      { date: '01-08', action: '做多', pair: 'BNB/USDT', yield: 12.3, status: 'win' },
+      { date: '01-05', action: '做多', pair: 'BTC/USDT', yield: 4.8, status: 'win' },
+      { date: '01-02', action: '做空', pair: 'AVAX/USDT', yield: 6.5, status: 'win' },
+    ],
+    monthlyStats: [
+      { month: '1月', yield: 15.2 },
+      { month: '2月', yield: 8.7 },
+      { month: '3月', yield: -3.2 },
+      { month: '4月', yield: 22.5 },
+      { month: '5月', yield: 18.3 },
+      { month: '6月', yield: 12.1 },
+    ],
+  };
+
+  const displayTrader = traderData || defaultTrader;
+  const displayPositions = myPositions.length > 0 ? myPositions : [
+    {
+      id: 'pos_001',
+      traderId: 'trader_001',
+      traderName: '币神张三',
+      pair: 'BTC/USDT',
+      entryPrice: 67200,
+      currentPrice: 68500,
+      pnl: 2.13,
+      pnlAmount: 213,
+      ratio: 0.3,
+      openTime: '01-18 14:30',
+      status: 'active',
+    },
+    {
+      id: 'pos_002',
+      traderId: 'trader_002',
+      traderName: '量化小王',
+      pair: 'ETH/USDT',
+      entryPrice: 3450,
+      currentPrice: 3520,
+      pnl: 1.45,
+      pnlAmount: 145,
+      ratio: 0.5,
+      openTime: '01-16 09:15',
+      status: 'active',
+    },
+  ];
+
+  const displayHistory = historyData.length > 0 ? historyData : [
+    {
+      id: 'hist_001',
+      traderId: 'trader_001',
+      traderName: '币神张三',
+      pair: 'BTC/USDT',
+      entryPrice: 64200,
+      exitPrice: 67800,
+      pnl: 5.61,
+      pnlAmount: 561,
+      closeTime: '01-15 22:00',
+      status: 'win',
+    },
+    {
+      id: 'hist_002',
+      traderId: 'trader_001',
+      traderName: '币神张三',
+      pair: 'ETH/USDT',
+      entryPrice: 3580,
+      exitPrice: 3890,
+      pnl: 8.66,
+      pnlAmount: 866,
+      closeTime: '01-12 18:30',
+      status: 'win',
+    },
+    {
+      id: 'hist_003',
+      traderId: 'trader_002',
+      traderName: '量化小王',
+      pair: 'BNB/USDT',
+      entryPrice: 420,
+      exitPrice: 398,
+      pnl: -5.24,
+      pnlAmount: -524,
+      closeTime: '01-10 15:45',
+      status: 'lose',
+    },
+  ];
 
   const renderTraderTab = () => (
     <ScrollView
@@ -243,14 +287,16 @@ export default function CopyTradingPage() {
               borderColor: '#00F0FF',
             }}
           >
-            <Text style={{ fontSize: 28, color: '#00F0FF' }}>神</Text>
+            <Text style={{ fontSize: 28, color: '#00F0FF' }}>
+              {displayTrader.name?.charAt(0) || '神'}
+            </Text>
           </View>
           <View style={{ marginLeft: 16, flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <Text style={{ color: '#FFF', fontSize: 20, fontWeight: 'bold' }}>
-                {TRADER_DATA.name}
+                {displayTrader.name}
               </Text>
-              {TRADER_DATA.tags.map((tag) => (
+              {(displayTrader.tags || defaultTrader.tags).map((tag: string) => (
                 <View
                   key={tag}
                   style={{
@@ -272,7 +318,7 @@ export default function CopyTradingPage() {
                 </View>
               ))}
             </View>
-            <Text style={{ color: '#888', fontSize: 12, marginTop: 4 }}>{TRADER_DATA.bio}</Text>
+            <Text style={{ color: '#888', fontSize: 12, marginTop: 4 }}>{displayTrader.bio}</Text>
           </View>
         </View>
 
@@ -286,9 +332,9 @@ export default function CopyTradingPage() {
             borderTopColor: 'rgba(255,255,255,0.1)',
           }}
         >
-          <StatItem label="总收益率" value={`+${TRADER_DATA.totalYield}%`} color="#00FF88" />
-          <StatItem label="胜率" value={`${TRADER_DATA.winRate}%`} color="#00F0FF" />
-          <StatItem label="跟单人数" value={TRADER_DATA.followers.toLocaleString()} />
+          <StatItem label="总收益率" value={`+${displayTrader.totalYield || 127.5}%`} color="#00FF88" />
+          <StatItem label="胜率" value={`${displayTrader.winRate || 82}%`} color="#00F0FF" />
+          <StatItem label="跟单人数" value={(displayTrader.followers || 2341).toLocaleString()} />
         </View>
 
         <View
@@ -300,9 +346,9 @@ export default function CopyTradingPage() {
             borderTopColor: 'rgba(255,255,255,0.1)',
           }}
         >
-          <StatItem label="累计交易" value={`${TRADER_DATA.totalTrades}笔`} />
-          <StatItem label="平均持仓" value={TRADER_DATA.avgHoldingTime} />
-          <StatItem label="风控等级" value={TRADER_DATA.riskLevel} color="#FFD700" />
+          <StatItem label="累计交易" value={`${displayTrader.totalTrades || 156}笔`} />
+          <StatItem label="平均持仓" value={displayTrader.avgHoldingTime || '3-5天'} />
+          <StatItem label="风控等级" value={displayTrader.riskLevel || '中风险'} color="#FFD700" />
         </View>
       </NeonCard>
 
@@ -336,8 +382,8 @@ export default function CopyTradingPage() {
           月度收益
         </Text>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          {TRADER_DATA.monthlyStats.map((stat) => (
-            <View key={stat.month} style={{ alignItems: 'center' }}>
+          {(displayTrader.monthlyStats || defaultTrader.monthlyStats).map((stat: any, index: number) => (
+            <View key={index} style={{ alignItems: 'center' }}>
               <View
                 style={{
                   width: 8,
@@ -368,7 +414,7 @@ export default function CopyTradingPage() {
         <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold', marginBottom: 12 }}>
           最近交易
         </Text>
-        {TRADER_DATA.recentPerformance.map((trade, index) => (
+        {(displayTrader.recentPerformance || defaultTrader.recentPerformance).map((trade: any, index: number) => (
           <TradeItem key={index} trade={trade} />
         ))}
       </NeonCard>
@@ -388,18 +434,18 @@ export default function CopyTradingPage() {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <View>
             <Text style={{ color: '#666', fontSize: 12 }}>总跟单收益</Text>
-            <Text style={{ color: '#00FF88', fontSize: 28, fontWeight: 'bold' }}>+358 U</Text>
-            <Text style={{ color: '#00FF88', fontSize: 12 }}>+1.89%</Text>
+            <Text style={{ color: '#00FF88', fontSize: 28, fontWeight: 'bold' }}>{stats.totalYield}</Text>
+            <Text style={{ color: '#00FF88', fontSize: 12 }}>{stats.totalYieldPercent}</Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             <Text style={{ color: '#666', fontSize: 12 }}>活跃跟单</Text>
-            <Text style={{ color: '#FFF', fontSize: 24, fontWeight: 'bold' }}>2</Text>
+            <Text style={{ color: '#FFF', fontSize: 24, fontWeight: 'bold' }}>{stats.activeFollows}</Text>
             <Text style={{ color: '#666', fontSize: 12 }}>交易员</Text>
           </View>
         </View>
       </NeonCard>
 
-      {MY_POSITIONS.map((pos) => (
+      {displayPositions.map((pos: any) => (
         <NeonCard key={pos.id}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <View>
@@ -422,7 +468,7 @@ export default function CopyTradingPage() {
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={{ color: '#00FF88', fontSize: 18, fontWeight: 'bold' }}>
-                +{pos.pnl.toFixed(2)}%
+                +{typeof pos.pnl === 'number' ? pos.pnl.toFixed(2) : pos.pnl}%
               </Text>
               <Text style={{ color: '#666', fontSize: 12 }}>+{pos.pnlAmount} U</Text>
             </View>
@@ -473,16 +519,16 @@ export default function CopyTradingPage() {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <View>
             <Text style={{ color: '#666', fontSize: 12 }}>累计跟单收益</Text>
-            <Text style={{ color: '#00FF88', fontSize: 24, fontWeight: 'bold' }}>+903 U</Text>
+            <Text style={{ color: '#00FF88', fontSize: 24, fontWeight: 'bold' }}>{stats.totalProfit}</Text>
           </View>
           <View style={{ alignItems: 'center' }}>
             <Text style={{ color: '#666', fontSize: 12 }}>胜率</Text>
-            <Text style={{ color: '#00F0FF', fontSize: 20, fontWeight: 'bold' }}>67%</Text>
+            <Text style={{ color: '#00F0FF', fontSize: 20, fontWeight: 'bold' }}>{stats.winRate}</Text>
           </View>
         </View>
       </NeonCard>
 
-      {HISTORY_DATA.map((item) => (
+      {displayHistory.map((item: any) => (
         <NeonCard key={item.id}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
             <View>
@@ -521,7 +567,7 @@ export default function CopyTradingPage() {
                   fontWeight: 'bold',
                 }}
               >
-                {item.status === 'win' ? '+' : ''}{item.pnl.toFixed(2)}%
+                {item.status === 'win' ? '+' : ''}{typeof item.pnl === 'number' ? item.pnl.toFixed(2) : item.pnl}%
               </Text>
               <Text
                 style={{ color: item.status === 'win' ? '#666' : '#FF4444', fontSize: 12 }}
@@ -571,7 +617,7 @@ export default function CopyTradingPage() {
       >
         <Link href="/">
           <TouchableOpacity style={{ padding: 8, marginRight: 8 }}>
-            <Text style={{ color: '#00F0FF', fontSize: 20 }}>←</Text>
+            <Ionicons name="chevron-back" size={24} color="#00F0FF" />
           </TouchableOpacity>
         </Link>
         <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold', flex: 1 }}>
@@ -620,10 +666,19 @@ export default function CopyTradingPage() {
         ))}
       </View>
 
-      {/* Content */}
-      {activeTab === 'trader' && renderTraderTab()}
-      {activeTab === 'my' && renderMyPositionsTab()}
-      {activeTab === 'history' && renderHistoryTab()}
+      {/* Loading State */}
+      {loading && !refreshing ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#00F0FF" />
+          <Text style={{ color: '#666', marginTop: 12 }}>加载中...</Text>
+        </View>
+      ) : (
+        <>
+          {activeTab === 'trader' && renderTraderTab()}
+          {activeTab === 'my' && renderMyPositionsTab()}
+          {activeTab === 'history' && renderHistoryTab()}
+        </>
+      )}
     </Screen>
   );
 }

@@ -26,7 +26,7 @@ export default function MineScreen() {
   const isLoggedIn = false; // 模拟未登录状态
 
   const handleLogin = () => {
-    router.push('/login');
+    router.push('/auth');
   };
 
   const handleNotification = () => {
@@ -36,7 +36,7 @@ export default function MineScreen() {
   const handleFeaturePress = (label: string) => {
     switch (label) {
       case '我的订单':
-        router.push('/orders');
+        router.push('/trading');
         break;
       case '我的持仓':
         router.push('/trading');

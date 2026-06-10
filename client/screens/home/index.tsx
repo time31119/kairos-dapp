@@ -264,13 +264,13 @@ const topTraders: Trader[] = [
 ];
 
 // My Positions Mock Data
-const myPositions = [
+const myPositions: Array<{ symbol: string; name: string; side: 'long' | 'short'; pnl: number; pnlPercent: number; leverage: number }> = [
   { symbol: 'BTC', name: 'Bitcoin', side: 'long', pnl: 793.45, pnlPercent: 1.99, leverage: 5 },
   { symbol: 'ETH', name: 'Ethereum', side: 'long', pnl: 310, pnlPercent: 1.80, leverage: 3 },
   { symbol: 'SOL', name: 'Solana', side: 'short', pnl: 280, pnlPercent: 3.57, leverage: 10 },
 ];
 
-function MyTradingSection({ onPositionClick }: { onPositionClick?: (position: typeof myPositions[0]) => void }) {
+function MyTradingSection({ onPositionClick }: { onPositionClick?: (position: { symbol: string; side: 'long' | 'short'; leverage: number; pnl: number; pnlPercent: number }) => void }) {
   const totalPnl = myPositions.reduce((sum, p) => sum + p.pnl, 0);
   const isProfit = totalPnl >= 0;
   
@@ -535,7 +535,7 @@ export default function HomeScreen() {
         <VipSection />
         
         {/* My Trading Section */}
-        <MyTradingSection onPositionClick={setSelectedPosition} />
+        <MyTradingSection onPositionClick={(pos) => setSelectedPosition({ ...pos, entryPrice: 0, currentPrice: 0, amount: 0 })} />
         
         {/* Copy Trading Section */}
         <CopyTradingSection />
@@ -700,6 +700,25 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#FF3366',
+  },
+  
+  // Search Bar
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#12121A',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#1F1F2E',
+  },
+  searchPlaceholder: {
+    marginLeft: 10,
+    fontSize: 14,
+    color: '#64748B',
+    flex: 1,
   },
   
   // Intro
@@ -1299,6 +1318,86 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  // Position Detail Modal
+  modalContent: {
+    backgroundColor: '#1A1A2E',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 12,
+    paddingBottom: 32,
+  },
+  modalBody: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  positionDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A2A3E',
+  },
+  positionDetailLabel: {
+    fontSize: 14,
+    color: '#9CA3AF',
+  },
+  positionDetailValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  leverageBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  leverageText: {
+    fontSize: 12,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  positionDetailPnl: {
+    fontSize: 18,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
+  positionDetailPnlPercent: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  // Modal actions
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  modalSecondaryButton: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalSecondaryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9CA3AF',
+  },
+  modalPrimaryButton: {
+    flex: 1,
+    backgroundColor: '#FF3366',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalPrimaryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   modalButton: {
     backgroundColor: '#00F0FF',

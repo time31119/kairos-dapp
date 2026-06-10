@@ -1,4 +1,9 @@
-import React, { useState } from 'react';
+/**
+ * 会员开通页面
+ * KAIROS 行情筛选器
+ */
+
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,11 +12,16 @@ import {
   ScrollView,
   Modal,
   TextInput,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Mock membership plans
+const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+
+// 会员套餐
 const MEMBERSHIP_PLANS = [
   {
     id: 'monthly',
@@ -24,7 +34,6 @@ const MEMBERSHIP_PLANS = [
       '实时异动雷达推送',
       '机构动向监控',
       '高级技术指标',
-      '_priority: 1',
     ],
     color: '#22D3EE',
     badge: '推荐',
@@ -41,7 +50,6 @@ const MEMBERSHIP_PLANS = [
       '机构动向监控',
       '高级技术指标',
       'VIP专属客服',
-      '_priority: 2',
     ],
     color: '#FFD700',
     badge: '超值',
@@ -60,32 +68,122 @@ const MEMBERSHIP_PLANS = [
       '高级技术指标',
       'VIP专属客服',
       '优先体验新功能',
-      '_priority: 3',
     ],
     color: '#A855F7',
     badge: '最优',
   },
 ];
 
+// API 请求函数
+async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const token = await AsyncStorage.getItem('auth_token');
+  const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options?.headers,
+    },
+    ...options,
+  });
+  
+  const data = await response.json();
+  
+  if (data.code !== 0) {
+    throw new Error(data.message || '请求失败');
+  }
+  
+  return data.data;
+}
+
+// 获取会员状态
+async function getMembershipStatus() {
+  try {
+    const data = await apiRequest<{
+      isVip: boolean;
+      vipLevel: string;
+      expireDate: string;
+      features: string[];
+    }>('/membership/status');
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+// 开通会员
+async function createMembership(planId: string, paymentMethod: string) {
+  return apiRequest<{
+    orderId: string;
+    status: string;
+  }>('/membership/create', {
+    method: 'POST',
+    body: JSON.stringify({ planId, paymentMethod }),
+  });
+}
+
 export default function MembershipScreen() {
   const router = useSafeRouter();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState<string>('alipay');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [membershipStatus, setMembershipStatus] = useState<{
+    isVip: boolean;
+    vipLevel: string;
+    expireDate: string;
+  } | null>(null);
+
+  useEffect(() => {
+    loadMembershipStatus();
+  }, []);
+
+  const loadMembershipStatus = async () => {
+    const status = await getMembershipStatus();
+    if (status) {
+      setMembershipStatus(status);
+    }
+  };
 
   const handleSelectPlan = (planId: string) => {
     setSelectedPlan(planId);
     setShowPaymentModal(true);
   };
 
-  const handlePayment = () => {
-    // Simulate payment
-    setPaymentSuccess(true);
-    setTimeout(() => {
-      setShowPaymentModal(false);
-      setPaymentSuccess(false);
-      setSelectedPlan(null);
-    }, 2000);
+  const handlePayment = async () => {
+    if (!selectedPlan) return;
+
+    setLoading(true);
+    try {
+      await createMembership(selectedPlan, selectedPayment);
+      setPaymentSuccess(true);
+      
+      // 更新会员状态
+      const plan = MEMBERSHIP_PLANS.find(p => p.id === selectedPlan);
+      if (plan) {
+        const expireDate = new Date();
+        if (plan.id === 'monthly') expireDate.setMonth(expireDate.getMonth() + 1);
+        else if (plan.id === 'quarterly') expireDate.setMonth(expireDate.getMonth() + 3);
+        else expireDate.setFullYear(expireDate.getFullYear() + 1);
+
+        setMembershipStatus({
+          isVip: true,
+          vipLevel: plan.id,
+          expireDate: expireDate.toISOString(),
+        });
+      }
+
+      setTimeout(() => {
+        setShowPaymentModal(false);
+        setPaymentSuccess(false);
+        setSelectedPlan(null);
+        Alert.alert('成功', '会员开通成功！');
+      }, 2000);
+    } catch (error) {
+      Alert.alert('错误', error instanceof Error ? error.message : '支付失败');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const selectedPlanData = MEMBERSHIP_PLANS.find(p => p.id === selectedPlan);
@@ -101,6 +199,18 @@ export default function MembershipScreen() {
       </View>
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* 会员状态提示 */}
+        {membershipStatus?.isVip && (
+          <View style={styles.vipBanner}>
+            <Text style={styles.vipBannerText}>
+              您已是 {membershipStatus.vipLevel === 'yearly' ? '年度' : membershipStatus.vipLevel === 'quarterly' ? '季度' : '月度'}会员
+            </Text>
+            <Text style={styles.vipBannerExpire}>
+              到期时间：{new Date(membershipStatus.expireDate).toLocaleDateString()}
+            </Text>
+          </View>
+        )}
+
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <Text style={styles.heroTitle}>解锁 KAIROS 全部高级功能</Text>
@@ -137,8 +247,10 @@ export default function MembershipScreen() {
             style={[
               styles.planCard,
               plan.popular && styles.planCardPopular,
+              membershipStatus?.isVip && styles.planCardDisabled,
             ]}
             onPress={() => handleSelectPlan(plan.id)}
+            disabled={membershipStatus?.isVip}
           >
             {plan.badge && (
               <View style={[styles.badge, { backgroundColor: plan.color }]}>
@@ -173,9 +285,16 @@ export default function MembershipScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.selectButton, { backgroundColor: plan.color }]}
+              style={[
+                styles.selectButton,
+                { backgroundColor: plan.color },
+                membershipStatus?.isVip && styles.selectButtonDisabled,
+              ]}
+              disabled={membershipStatus?.isVip}
             >
-              <Text style={styles.selectButtonText}>立即开通</Text>
+              <Text style={styles.selectButtonText}>
+                {membershipStatus?.isVip ? '已开通' : '立即开通'}
+              </Text>
             </TouchableOpacity>
           </TouchableOpacity>
         ))}
@@ -209,6 +328,8 @@ export default function MembershipScreen() {
             开通即表示同意《会员服务协议》和《隐私政策》
           </Text>
         </View>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* Payment Modal */}
@@ -267,17 +388,44 @@ export default function MembershipScreen() {
 
                     <Text style={styles.paymentTitle}>选择支付方式</Text>
                     <View style={styles.paymentMethods}>
-                      <TouchableOpacity style={styles.paymentMethod}>
+                      <TouchableOpacity 
+                        style={[
+                          styles.paymentMethod,
+                          selectedPayment === 'bank' && styles.paymentMethodSelected,
+                        ]}
+                        onPress={() => setSelectedPayment('bank')}
+                      >
                         <Text style={styles.paymentIcon}>💳</Text>
                         <Text style={styles.paymentText}>银行卡</Text>
+                        {selectedPayment === 'bank' && (
+                          <Text style={styles.checkmark}>✓</Text>
+                        )}
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.paymentMethod}>
+                      <TouchableOpacity 
+                        style={[
+                          styles.paymentMethod,
+                          selectedPayment === 'alipay' && styles.paymentMethodSelected,
+                        ]}
+                        onPress={() => setSelectedPayment('alipay')}
+                      >
                         <Text style={styles.paymentIcon}>💰</Text>
                         <Text style={styles.paymentText}>支付宝</Text>
+                        {selectedPayment === 'alipay' && (
+                          <Text style={styles.checkmark}>✓</Text>
+                        )}
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.paymentMethod}>
+                      <TouchableOpacity 
+                        style={[
+                          styles.paymentMethod,
+                          selectedPayment === 'wechat' && styles.paymentMethodSelected,
+                        ]}
+                        onPress={() => setSelectedPayment('wechat')}
+                      >
                         <Text style={styles.paymentIcon}>💬</Text>
                         <Text style={styles.paymentText}>微信</Text>
+                        {selectedPayment === 'wechat' && (
+                          <Text style={styles.checkmark}>✓</Text>
+                        )}
                       </TouchableOpacity>
                     </View>
 
@@ -285,12 +433,18 @@ export default function MembershipScreen() {
                       style={[
                         styles.confirmButton,
                         { backgroundColor: selectedPlanData.color },
+                        loading && styles.confirmButtonDisabled,
                       ]}
                       onPress={handlePayment}
+                      disabled={loading}
                     >
-                      <Text style={styles.confirmButtonText}>
-                        确认支付 ¥{selectedPlanData.price}
-                      </Text>
+                      {loading ? (
+                        <ActivityIndicator color="#FFF" />
+                      ) : (
+                        <Text style={styles.confirmButtonText}>
+                          确认支付 ¥{selectedPlanData.price}
+                        </Text>
+                      )}
                     </TouchableOpacity>
                   </>
                 )}
@@ -331,6 +485,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  vipBanner: {
+    margin: 16,
+    padding: 16,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
+  },
+  vipBannerText: {
+    color: '#FFD700',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  vipBannerExpire: {
+    color: '#9CA3AF',
+    fontSize: 12,
+    marginTop: 4,
+    textAlign: 'center',
+  },
   heroSection: {
     padding: 24,
     alignItems: 'center',
@@ -348,47 +522,48 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   benefitsPreview: {
-    backgroundColor: 'rgba(0,240,255,0.05)',
     marginHorizontal: 16,
-    borderRadius: 12,
     padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0,240,255,0.2)',
+    backgroundColor: '#1A1A1F',
+    borderRadius: 12,
   },
   benefitRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
+    marginVertical: 6,
   },
   benefitIcon: {
     color: '#00F0FF',
     fontSize: 16,
-    marginRight: 10,
+    marginRight: 12,
   },
   benefitText: {
-    color: '#E5E7EB',
+    color: '#D1D5DB',
     fontSize: 14,
   },
   sectionTitle: {
     color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
     marginHorizontal: 16,
     marginTop: 24,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   planCard: {
-    backgroundColor: '#1A1A2E',
     marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 16,
+    marginBottom: 16,
     padding: 16,
+    backgroundColor: '#1A1A1F',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: '#333',
   },
   planCardPopular: {
     borderColor: '#FFD700',
     borderWidth: 2,
+  },
+  planCardDisabled: {
+    opacity: 0.6,
   },
   badge: {
     position: 'absolute',
@@ -396,7 +571,7 @@ const styles = StyleSheet.create({
     right: 16,
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 10,
+    borderRadius: 12,
   },
   badgeText: {
     color: '#0A0A0F',
@@ -407,15 +582,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    marginBottom: 12,
   },
   planName: {
     color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   planDuration: {
     color: '#9CA3AF',
-    fontSize: 14,
+    fontSize: 12,
     marginTop: 4,
   },
   priceContainer: {
@@ -426,17 +602,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   originalPrice: {
-    color: '#6B7280',
+    color: '#666',
     fontSize: 14,
     textDecorationLine: 'line-through',
+    marginTop: 2,
   },
   featuresList: {
-    marginTop: 16,
+    marginBottom: 12,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
+    marginVertical: 4,
   },
   featureIcon: {
     fontSize: 16,
@@ -447,44 +624,46 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   selectButton: {
-    marginTop: 16,
-    paddingVertical: 12,
+    padding: 12,
     borderRadius: 8,
     alignItems: 'center',
+  },
+  selectButtonDisabled: {
+    backgroundColor: '#444',
   },
   selectButtonText: {
     color: '#0A0A0F',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   faqContainer: {
     marginHorizontal: 16,
-    marginBottom: 24,
+    padding: 16,
+    backgroundColor: '#1A1A1F',
+    borderRadius: 12,
   },
   faqItem: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   faqQuestion: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
+    marginBottom: 4,
   },
   faqAnswer: {
     color: '#9CA3AF',
     fontSize: 13,
-    marginTop: 8,
+    lineHeight: 20,
   },
   footer: {
-    padding: 24,
+    marginTop: 24,
+    marginHorizontal: 16,
     alignItems: 'center',
   },
   footerText: {
-    color: '#6B7280',
+    color: '#666',
     fontSize: 12,
-    textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
@@ -492,7 +671,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: '#1A1A1F',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -502,24 +681,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   modalTitle: {
     color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   closeButton: {
-    color: '#9CA3AF',
+    color: '#666',
     fontSize: 24,
-    padding: 4,
   },
   orderInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
+    borderBottomColor: '#333',
   },
   orderLabel: {
     color: '#9CA3AF',
@@ -539,29 +717,33 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   totalValue: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
   },
   paymentTitle: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '500',
-    marginTop: 20,
-    marginBottom: 12,
+    fontWeight: '600',
+    marginTop: 24,
+    marginBottom: 16,
   },
   paymentMethods: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 12,
   },
   paymentMethod: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 12,
     padding: 16,
+    backgroundColor: '#2A2A2F',
+    borderRadius: 12,
     alignItems: 'center',
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  paymentMethodSelected: {
+    borderColor: '#00F0FF',
+    backgroundColor: 'rgba(0, 240, 255, 0.1)',
   },
   paymentIcon: {
     fontSize: 24,
@@ -571,31 +753,41 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
   },
+  checkmark: {
+    color: '#00F0FF',
+    fontSize: 14,
+    marginTop: 4,
+  },
   confirmButton: {
-    marginTop: 20,
-    paddingVertical: 16,
+    marginTop: 24,
+    padding: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
+  confirmButtonDisabled: {
+    opacity: 0.6,
+  },
   confirmButtonText: {
     color: '#0A0A0F',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   successContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 60,
   },
   successIcon: {
-    fontSize: 60,
-    color: '#00FF88',
-    marginBottom: 16,
+    fontSize: 64,
+    color: '#00F0FF',
+    marginBottom: 24,
   },
   successTitle: {
     color: '#FFFFFF',
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   successText: {
     color: '#9CA3AF',

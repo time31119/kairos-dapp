@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Screen } from '@/components/Screen';
-import { Text, View, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
+import { Text, View, StyleSheet, TouchableOpacity, FlatList, RefreshControl, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
-import { TabBar } from '@/components/TabBar';
+import { apiRequest } from '@/utils/api';
 
 interface Notification {
   id: string;
@@ -18,7 +18,16 @@ interface Notification {
   type: 'alert' | 'trade' | 'system' | 'news';
 }
 
-const MOCK_NOTIFICATIONS: Notification[] = [
+const FILTERS = [
+  { key: 'all', label: '全部' },
+  { key: 'alert', label: '行情' },
+  { key: 'trade', label: '交易' },
+  { key: 'news', label: '快讯' },
+  { key: 'system', label: '系统' },
+];
+
+// 默认通知数据
+const defaultNotifications: Notification[] = [
   {
     id: '1',
     icon: 'trending-up',
@@ -81,18 +90,89 @@ const MOCK_NOTIFICATIONS: Notification[] = [
   },
 ];
 
-const FILTERS = [
-  { key: 'all', label: '全部' },
-  { key: 'alert', label: '行情' },
-  { key: 'trade', label: '交易' },
-  { key: 'news', label: '快讯' },
-  { key: 'system', label: '系统' },
-];
+// 根据类型获取图标
+const getIconByType = (type: string): { icon: string; color: string } => {
+  switch (type) {
+    case 'alert':
+      return { icon: 'trending-up', color: '#00FF88' };
+    case 'trade':
+      return { icon: 'swap-horizontal', color: '#00F0FF' };
+    case 'news':
+      return { icon: 'newspaper', color: '#8B5CF6' };
+    case 'system':
+      return { icon: 'settings', color: '#6B7280' };
+    default:
+      return { icon: 'notifications', color: '#6B7280' };
+  }
+};
 
 export default function NotificationScreen() {
   const router = useSafeRouter();
   const [activeFilter, setActiveFilter] = useState('all');
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<Notification[]>(defaultNotifications);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // 获取通知列表
+  const fetchNotifications = useCallback(async () => {
+    const result = await apiRequest<{ notifications?: any[]; [key: string]: any }>('/notifications');
+    if (result.success && result.data) {
+      // 转换后端数据格式
+      let data = result.data;
+      if (result.data.notifications) {
+        data = result.data.notifications;
+      }
+      if (Array.isArray(data)) {
+        const mapped = data.map((item: any) => {
+          const iconInfo = getIconByType(item.type || item.category || 'system');
+          return {
+            id: item.id,
+            icon: item.icon || iconInfo.icon,
+            iconColor: item.iconColor || iconInfo.color,
+            title: item.title,
+            content: item.content || item.message || item.description || '',
+            time: item.time || item.createdAt || item.timestamp || '',
+            isRead: item.isRead || item.read || false,
+            type: item.type || item.category || 'system',
+          };
+        });
+        setNotifications(mapped);
+      }
+    }
+  }, []);
+
+  // 加载数据
+  const loadData = async () => {
+    setLoading(true);
+    await fetchNotifications();
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // 下拉刷新
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchNotifications();
+    setRefreshing(false);
+  }, [fetchNotifications]);
+
+  // 标记全部已读
+  const handleMarkAllRead = async () => {
+    // 调用 API 标记全部已读
+    await apiRequest('/notifications/read-all', { method: 'POST' });
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+  };
+
+  // 标记单条已读
+  const handleMarkRead = async (id: string) => {
+    await apiRequest(`/notifications/${id}/read`, { method: 'POST' });
+    setNotifications(prev => prev.map(n => 
+      n.id === id ? { ...n, isRead: true } : n
+    ));
+  };
 
   const filteredNotifications = activeFilter === 'all'
     ? notifications
@@ -100,14 +180,11 @@ export default function NotificationScreen() {
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  const handleMarkAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-  };
-
   const renderNotification = ({ item }: { item: Notification }) => (
     <TouchableOpacity
       className="flex-row px-5 py-4 bg-gray-900 mx-4 mb-3 rounded-2xl border border-gray-800"
       style={!item.isRead ? { borderLeftWidth: 3, borderLeftColor: '#00F0FF' } : undefined}
+      onPress={() => handleMarkRead(item.id)}
     >
       <View
         className="w-10 h-10 rounded-xl items-center justify-center"
@@ -122,7 +199,7 @@ export default function NotificationScreen() {
             <View className="w-2 h-2 rounded-full bg-cyan-400" />
           )}
         </View>
-        <Text className="text-xs text-gray-400 leading-5 mb-1">{item.content}</Text>
+        <Text className="text-xs text-gray-400 leading-5 mb-1" numberOfLines={2}>{item.content}</Text>
         <Text className="text-xs text-gray-500">{item.time}</Text>
       </View>
     </TouchableOpacity>
@@ -161,21 +238,34 @@ export default function NotificationScreen() {
         </View>
       </View>
 
-      {/* Notification List */}
-      <FlatList
-        data={filteredNotifications}
-        renderItem={renderNotification}
-        keyExtractor={item => item.id}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        ListEmptyComponent={
-          <View className="items-center py-16">
-            <Ionicons name="notifications-off-outline" size={48} color="#374151" />
-            <Text className="text-sm text-gray-500 mt-3">暂无消息</Text>
-          </View>
-        }
-      />
-      <TabBar />
+      {/* Loading State */}
+      {loading && !refreshing ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#00F0FF" />
+          <Text className="text-gray-500 mt-3">加载中...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredNotifications}
+          renderItem={renderNotification}
+          keyExtractor={item => item.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#00F0FF"
+            />
+          }
+          ListEmptyComponent={
+            <View className="items-center py-16">
+              <Ionicons name="notifications-off-outline" size={48} color="#374151" />
+              <Text className="text-sm text-gray-500 mt-3">暂无消息</Text>
+            </View>
+          }
+        />
+      )}
     </Screen>
   );
 }

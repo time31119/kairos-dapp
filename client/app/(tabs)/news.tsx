@@ -1,1 +1,1 @@
-export { default } from "@/screens/news";
+export { default } from '@/screens/news';

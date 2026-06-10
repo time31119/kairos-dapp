@@ -163,7 +163,9 @@ function VipSection() {
       {/* Section Header */}
       <View style={styles.vipHeader}>
         <View style={styles.vipTitleRow}>
-          <Text style={styles.vipCrown}>👑</Text>
+          <View style={styles.vipCrownContainer}>
+            <Ionicons name="medal" size={18} color="#FFD700" />
+          </View>
           <Text style={styles.vipTitle}>会员速递</Text>
         </View>
         <Pressable>
@@ -206,6 +208,143 @@ function VipSection() {
   );
 }
 
+// 跟单员数据
+interface Trader {
+  id: string;
+  name: string;
+  avatar: string;
+  yield: number;
+  winRate: number;
+  followers: number;
+  tag: string;
+  tagColor: string;
+}
+
+const topTraders: Trader[] = [
+  {
+    id: '1',
+    name: '币神张三',
+    avatar: 'person',
+    yield: 127.5,
+    winRate: 82,
+    followers: 2341,
+    tag: '连胜中',
+    tagColor: '#00FF88'
+  },
+  {
+    id: '2',
+    name: '量化小王',
+    avatar: 'hardware-chip',
+    yield: 89.3,
+    winRate: 76,
+    followers: 1856,
+    tag: '稳健',
+    tagColor: '#00F0FF'
+  },
+  {
+    id: '3',
+    name: '合约女王',
+    avatar: 'woman',
+    yield: 156.8,
+    winRate: 68,
+    followers: 3204,
+    tag: '高收益',
+    tagColor: '#FFD700'
+  }
+];
+
+function CopyTradingSection() {
+  return (
+    <View style={styles.copyContainer}>
+      {/* Section Header */}
+      <View style={styles.copyHeader}>
+        <View style={styles.copyTitleRow}>
+          <View style={styles.copyIconContainer}>
+            <Ionicons name="git-network" size={18} color="#00F0FF" />
+          </View>
+          <Text style={styles.copyTitle}>一键跟单</Text>
+          <View style={styles.copyBadge}>
+            <Text style={styles.copyBadgeText}>HOT</Text>
+          </View>
+        </View>
+        <Pressable>
+          <Text style={styles.copyMore}>更多交易员 →</Text>
+        </Pressable>
+      </View>
+      
+      {/* Trader List */}
+      <View style={styles.traderList}>
+        {topTraders.map((trader, index) => (
+          <View 
+            key={trader.id} 
+            style={[
+              styles.traderCard,
+              index < topTraders.length - 1 && styles.traderCardBorder
+            ]}
+          >
+            {/* Rank */}
+            <View style={styles.traderRank}>
+              <Text style={[
+                styles.traderRankText,
+                index === 0 && styles.traderRankGold
+              ]}>
+                #{index + 1}
+              </Text>
+            </View>
+            
+            {/* Avatar */}
+            <View style={styles.traderAvatar}>
+              <Ionicons 
+                name={trader.avatar as any} 
+                size={20} 
+                color="#00F0FF" 
+              />
+            </View>
+            
+            {/* Info */}
+            <View style={styles.traderInfo}>
+              <View style={styles.traderNameRow}>
+                <Text style={styles.traderName}>{trader.name}</Text>
+                <View style={[styles.traderTag, { backgroundColor: `${trader.tagColor}15` }]}>
+                  <Text style={[styles.traderTagText, { color: trader.tagColor }]}>
+                    {trader.tag}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.traderStats}>
+                <Text style={styles.traderFollowers}>
+                  <Text style={styles.traderFollowersNum}>{trader.followers.toLocaleString()}</Text> 人跟单
+                </Text>
+                <Text style={styles.traderDot}>•</Text>
+                <Text style={styles.traderWinRate}>
+                  <Text style={styles.traderWinRateNum}>{trader.winRate}%</Text> 胜率
+                </Text>
+              </View>
+            </View>
+            
+            {/* Yield */}
+            <View style={styles.traderYield}>
+              <Text style={styles.traderYieldValue}>+{trader.yield}%</Text>
+              <Text style={styles.traderYieldLabel}>收益率</Text>
+            </View>
+            
+            {/* Follow Button */}
+            <Pressable style={styles.followButton}>
+              <Text style={styles.followButtonText}>跟单</Text>
+            </Pressable>
+          </View>
+        ))}
+      </View>
+      
+      {/* Disclaimer */}
+      <View style={styles.copyDisclaimer}>
+        <Ionicons name="warning-outline" size={12} color="#6B7280" />
+        <Text style={styles.copyDisclaimerText}>跟单有风险，投资需谨慎</Text>
+      </View>
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   return (
     <Screen>
@@ -235,6 +374,9 @@ export default function HomeScreen() {
         
         {/* VIP Section */}
         <VipSection />
+        
+        {/* Copy Trading Section */}
+        <CopyTradingSection />
         
         {/* Scenarios */}
         <View style={styles.scenariosContainer}>
@@ -428,8 +570,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  vipCrown: {
-    fontSize: 18,
+  vipCrownContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 215, 0, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 8,
   },
   vipTitle: {
@@ -487,6 +634,179 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#FFD700',
     letterSpacing: 0.5,
+  },
+  
+  // Copy Trading Section
+  copyContainer: {
+    backgroundColor: '#12121A',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 240, 255, 0.15)',
+  },
+  copyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  copyTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  copyIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 240, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  copyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#00F0FF',
+    letterSpacing: 1,
+  },
+  copyBadge: {
+    marginLeft: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    backgroundColor: 'rgba(255, 68, 68, 0.15)',
+    borderRadius: 6,
+  },
+  copyBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FF4444',
+    letterSpacing: 0.5,
+  },
+  copyMore: {
+    fontSize: 12,
+    color: '#00F0FF',
+  },
+  traderList: {
+    gap: 0,
+  },
+  traderCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  traderCardBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  traderRank: {
+    width: 28,
+    marginRight: 8,
+  },
+  traderRankText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  traderRankGold: {
+    color: '#FFD700',
+  },
+  traderAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1A1A24',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  traderInfo: {
+    flex: 1,
+  },
+  traderNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  traderName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginRight: 8,
+  },
+  traderTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  traderTagText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  traderStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  traderFollowers: {
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  traderFollowersNum: {
+    color: '#9CA3AF',
+    fontWeight: '600',
+  },
+  traderDot: {
+    fontSize: 11,
+    color: '#4B5563',
+    marginHorizontal: 6,
+  },
+  traderWinRate: {
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  traderWinRateNum: {
+    color: '#00FF88',
+    fontWeight: '600',
+  },
+  traderYield: {
+    alignItems: 'flex-end',
+    marginRight: 12,
+  },
+  traderYieldValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#00FF88',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  traderYieldLabel: {
+    fontSize: 10,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  followButton: {
+    backgroundColor: 'rgba(0, 240, 255, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 240, 255, 0.3)',
+  },
+  followButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#00F0FF',
+  },
+  copyDisclaimer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    gap: 4,
+  },
+  copyDisclaimerText: {
+    fontSize: 10,
+    color: '#6B7280',
   },
   
   // Footer

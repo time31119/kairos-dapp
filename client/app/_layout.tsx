@@ -26,6 +26,7 @@ export default function RootLayout() {
         <Stack.Screen name="screener/[scenario]" options={{ title: "筛选结果" }} />
         <Stack.Screen name="copytrading" options={{ title: "一键跟单" }} />
         <Stack.Screen name="copytrading/settings" options={{ title: "跟单设置" }} />
+        <Stack.Screen name="vip" options={{ title: "会员速递" }} />
       </Stack>
       <Toast />
     </Provider>

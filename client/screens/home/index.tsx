@@ -168,34 +168,39 @@ function VipSection() {
           </View>
           <Text style={styles.vipTitle}>会员速递</Text>
         </View>
-        <Pressable>
+        <Link href="/vip">
           <Text style={styles.vipMore}>全部 →</Text>
-        </Pressable>
+        </Link>
       </View>
       
       {/* VIP Feature Grid */}
       <View style={styles.vipGrid}>
         {vipFeatures.map((feature, index) => (
-          <Pressable 
+          <Link 
             key={feature.id} 
-            style={({ pressed }) => [
-              styles.vipCard,
-              {
-                backgroundColor: pressed ? '#1A1A24' : '#12121A',
-                opacity: pressed ? 0.8 : 1,
-              }
-            ]}
+            href="/vip"
+            asChild
           >
-            <View style={styles.vipCardIcon}>
-              <Ionicons 
-                name={feature.icon as any} 
-                size={22} 
-                color="#FFD700" 
-              />
-            </View>
-            <Text style={styles.vipCardTitle}>{feature.title}</Text>
-            <Text style={styles.vipCardSubtitle}>{feature.subtitle}</Text>
-          </Pressable>
+            <Pressable 
+              style={({ pressed }) => [
+                styles.vipCard,
+                {
+                  backgroundColor: pressed ? '#1A1A24' : '#12121A',
+                  opacity: pressed ? 0.8 : 1,
+                }
+              ]}
+            >
+              <View style={styles.vipCardIcon}>
+                <Ionicons 
+                  name={feature.icon as any} 
+                  size={22} 
+                  color="#FFD700" 
+                />
+              </View>
+              <Text style={styles.vipCardTitle}>{feature.title}</Text>
+              <Text style={styles.vipCardSubtitle}>{feature.subtitle}</Text>
+            </Pressable>
+          </Link>
         ))}
       </View>
       

@@ -132,28 +132,28 @@ const vipFeatures: VipFeature[] = [
     title: '异动雷达',
     subtitle: '15分钟内成交量突增',
     icon: 'flame',
-    route: '/screener/radar'
+    route: '/vip/radar'
   },
   {
     id: 'institutional',
     title: '机构动向',
     subtitle: '大户建仓信号预警',
     icon: 'trending-up',
-    route: '/screener/institutional'
+    route: '/vip/institutional'
   },
   {
     id: 'multi-cycle',
     title: '跨周期共振',
     subtitle: '多周期强势信号',
     icon: 'layers',
-    route: '/screener/multi-cycle'
+    route: '/vip/multi-cycle'
   },
   {
     id: 'precision',
     title: '精准狙击',
     subtitle: '多指标买卖点',
     icon: 'target',
-    route: '/screener/precision'
+    route: '/vip/precision'
   }
 ];
 

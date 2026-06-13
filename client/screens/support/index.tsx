@@ -1,6 +1,6 @@
 /**
  * 客服帮助页面
- * DAPP 行情筛选器
+ * KAIROS 行情筛选器
  */
 
 import React, { useState } from 'react';
@@ -229,8 +229,8 @@ export default function SupportScreen() {
 
         {/* Version Info */}
         <View style={styles.versionInfo}>
-          <Text style={styles.versionText}>DAPP v1.0.0</Text>
-          <Text style={styles.copyrightText}>© 2024 DAPP. All rights reserved.</Text>
+          <Text style={styles.versionText}>KAIROS v1.0.0</Text>
+          <Text style={styles.copyrightText}>© 2024 KAIROS. All rights reserved.</Text>
         </View>
       </ScrollView>
 

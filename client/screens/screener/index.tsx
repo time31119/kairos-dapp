@@ -1,6 +1,6 @@
 /**
  * 筛选结果页面 - 代币列表
- * DAPP 行情筛选器
+ * KAIROS 行情筛选器
  */
 
 import React, { useEffect, useState, useCallback } from 'react';

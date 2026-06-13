@@ -1,6 +1,6 @@
 /**
  * 搜索页面
- * DAPP 行情筛选器
+ * KAIROS 行情筛选器
  */
 
 import { useState, useEffect, useCallback } from 'react';

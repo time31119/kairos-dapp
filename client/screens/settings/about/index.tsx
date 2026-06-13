@@ -29,7 +29,7 @@ export default function AboutScreen() {
           <View className="w-20 h-20 rounded-3xl bg-gradient-to-br from-cyan-500 to-purple-600 items-center justify-center mb-4 shadow-lg shadow-cyan-500/30">
             <Ionicons name="flash" size={40} color="white" />
           </View>
-          <Text className="text-2xl font-bold text-white mb-1">DAPP</Text>
+          <Text className="text-2xl font-bold text-white mb-1">KAIROS</Text>
           <Text className="text-sm text-gray-500">行情筛选器 v1.0.0</Text>
         </View>
 
@@ -78,7 +78,7 @@ export default function AboutScreen() {
                 <Ionicons name="logo-discord" size={20} color="#8B5CF6" />
                 <Text className="text-sm text-white">Discord</Text>
               </View>
-              <Text className="text-sm text-gray-400">DAPP Community</Text>
+              <Text className="text-sm text-gray-400">KAIROS Community</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -86,7 +86,7 @@ export default function AboutScreen() {
         {/* Disclaimer */}
         <View className="mx-5 p-4 bg-gray-900/50 rounded-2xl border border-gray-800 mb-8">
           <Text className="text-xs text-gray-500 leading-5 text-center">
-            本APP仅提供行情数据和分析工具，不构成任何投资建议。
+            本DAPP仅提供行情数据和分析工具，不构成任何投资建议。
             加密货币投资存在风险，请谨慎决策。
           </Text>
         </View>

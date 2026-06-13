@@ -83,7 +83,7 @@ const defaultNotifications: Notification[] = [
     icon: 'settings',
     iconColor: '#6B7280',
     title: '系统更新通知',
-    content: 'DAPP v1.0.0 已发布，优化了行情筛选算法，新增跨周期共振功能。',
+    content: 'KAIROS v1.0.0 已发布，优化了行情筛选算法，新增跨周期共振功能。',
     time: '1天前',
     isRead: true,
     type: 'system',

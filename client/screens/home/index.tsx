@@ -1,6 +1,6 @@
 /**
  * 首页 - 场景选择
- * DAPP 行情筛选器
+ * KAIROS 行情筛选器
  */
 
 import React, { useCallback, useState } from 'react';
@@ -496,7 +496,7 @@ export default function HomeScreen() {
           <View style={styles.headerLeft}>
             <View style={styles.logoContainer}>
               <Ionicons name="flash" size={32} color="#00F0FF" style={styles.logoIcon} />
-              <Text style={styles.logoText}>DAPP</Text>
+              <Text style={styles.logoText}>KAIROS</Text>
             </View>
             <Text style={styles.subtitle}>行情筛选器</Text>
           </View>

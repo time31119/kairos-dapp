@@ -1,6 +1,6 @@
 /**
  * 会员开通页面
- * DAPP 行情筛选器
+ * KAIROS 行情筛选器
  */
 
 import React, { useState, useEffect } from 'react';
@@ -213,7 +213,7 @@ export default function MembershipScreen() {
 
         {/* Hero Section */}
         <View style={styles.heroSection}>
-          <Text style={styles.heroTitle}>解锁 DAPP 全部高级功能</Text>
+          <Text style={styles.heroTitle}>解锁 KAIROS 全部高级功能</Text>
           <Text style={styles.heroSubtitle}>
             让每一次交易决策都有数据支撑
           </Text>
@@ -346,7 +346,7 @@ export default function MembershipScreen() {
                 <Text style={styles.successIcon}>✓</Text>
                 <Text style={styles.successTitle}>支付成功</Text>
                 <Text style={styles.successText}>
-                  欢迎成为 DAPP 会员！
+                  欢迎成为 KAIROS 会员！
                 </Text>
               </View>
             ) : (

@@ -345,7 +345,7 @@ export default function MineScreen() {
               shadowOpacity: 0.15,
               shadowRadius: 20,
             }}
-            onPress={() => router.push('/vip/membership/index')}
+            onPress={() => router.push('/vip/membership')}
           >
             <View className="flex-row items-center gap-3 mb-3">
               {/* 会员图标 */}

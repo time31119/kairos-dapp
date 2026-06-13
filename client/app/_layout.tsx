@@ -27,20 +27,20 @@ export default function RootLayout() {
       >
         <Stack.Screen name="(tabs)" options={{ title: "" }} />
         <Stack.Screen name="demo" options={{ title: "Demo" }} />
-        <Stack.Screen name="screener/[scenario]/index" options={{ title: "筛选结果" }} />
+        <Stack.Screen name="screener/[scenario]" options={{ title: "筛选结果" }} />
         <Stack.Screen name="copytrading" options={{ title: "一键跟单" }} />
-        <Stack.Screen name="copytrading/settings/index" options={{ title: "跟单设置" }} />
-        <Stack.Screen name="vip" options={{ title: "会员速递" }} />
-        <Stack.Screen name="vip/membership/index" options={{ title: "开通会员" }} />
-        <Stack.Screen name="coin/[symbol]/index" options={{ title: "代币详情" }} />
+        <Stack.Screen name="copytrading/settings" options={{ title: "跟单设置" }} />
+        <Stack.Screen name="coin/[symbol]" options={{ title: "代币详情" }} />
         <Stack.Screen name="trading" options={{ title: "我的实盘交易" }} />
         <Stack.Screen name="search" options={{ title: "搜索" }} />
         <Stack.Screen name="notification" options={{ title: "消息通知" }} />
         <Stack.Screen name="settings" options={{ title: "设置" }} />
-        <Stack.Screen name="settings/about/index" options={{ title: "关于我们" }} />
+        <Stack.Screen name="settings/about" options={{ title: "关于我们" }} />
         <Stack.Screen name="auth" options={{ title: "登录注册" }} />
         <Stack.Screen name="kyc" options={{ title: "实名认证" }} />
         <Stack.Screen name="support" options={{ title: "帮助与客服" }} />
+        <Stack.Screen name="vip" options={{ title: "会员中心" }} />
+        <Stack.Screen name="vip/membership" options={{ title: "会员速递" }} />
       </Stack>
       </Web3Provider>
       <Toast />

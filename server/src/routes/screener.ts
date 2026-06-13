@@ -76,6 +76,32 @@ router.get('/scenarios', (req, res) => {
 });
 
 // 获取场景详情
+// 获取热门精选（每个赛道前3名）
+router.get('/featured', (req: any, res: any) => {
+  const scenarios: ScenarioType[] = ['defi', 'meme', 'ai', 'gaming', 'infrastructure', 'layer2'];
+  
+  const featured = scenarios.map(scenario => {
+    const tokens = generateTokens(scenario);
+    // 按成交量排序取前3
+    const top3 = tokens
+      .sort((a, b) => b.volume - a.volume)
+      .slice(0, 3)
+      .map(t => ({ ...t, rank: tokens.indexOf(t) + 1 }));
+    
+    return {
+      scenario,
+      config: SCENARIO_CONFIG[scenario],
+      tokens: top3
+    };
+  });
+  
+  res.json({
+    success: true,
+    data: featured,
+    updatedAt: new Date().toISOString()
+  });
+});
+
 router.get('/:scenario', (req, res) => {
   const { scenario } = req.params;
   const validScenario = scenario as ScenarioType;

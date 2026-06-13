@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LogBox } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { Provider } from '@/components/Provider';
+import { Web3Provider } from '@/contexts/Web3Context';
 
 import '../global.css';
 
@@ -14,7 +15,8 @@ LogBox.ignoreLogs([
 export default function RootLayout() {
   return (
     <Provider>
-      <Stack
+      <Web3Provider>
+        <Stack
         screenOptions={{
           animation: 'slide_from_right',
           gestureEnabled: true,
@@ -38,6 +40,7 @@ export default function RootLayout() {
         <Stack.Screen name="kyc" options={{ title: "实名认证" }} />
         <Stack.Screen name="support" options={{ title: "帮助与客服" }} />
       </Stack>
+      </Web3Provider>
       <Toast />
     </Provider>
   );

@@ -10,13 +10,22 @@ import { Ionicons } from '@expo/vector-icons';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
-const SCENARIOS = [
-  { id: 'defi', title: 'DeFi潜力币', icon: 'swap-horizontal', color: '#00F0FF' },
-  { id: 'meme', title: 'Meme币', icon: 'happy-outline', color: '#FFD700' },
-  { id: 'ai', title: 'AI赛道', icon: 'bulb-outline', color: '#FF69B4' },
+// 赛道分类
+const CATEGORIES = [
+  { id: 'defi', title: 'DeFi', icon: 'swap-horizontal', color: '#00F0FF' },
+  { id: 'meme', title: 'Meme', icon: 'happy-outline', color: '#FFD700' },
+  { id: 'ai', title: 'AI', icon: 'bulb-outline', color: '#FF69B4' },
   { id: 'gaming', title: 'GameFi', icon: 'game-controller-outline', color: '#00FF7F' },
   { id: 'infrastructure', title: '基础设施', icon: 'construct-outline', color: '#9370DB' },
   { id: 'layer2', title: 'Layer2', icon: 'layers-outline', color: '#FF6B6B' },
+];
+
+// 技术分析场景
+const TECHNICAL_SCENARIOS = [
+  { id: '1h_up', title: '1H上涨', icon: 'trending-up', color: '#00F0FF', desc: '短期爆发' },
+  { id: '4h_up', title: '4H上涨', icon: 'trending-up', color: '#00FF88', desc: '波段延续' },
+  { id: 'macd', title: 'MACD金叉', icon: 'sync', color: '#9370DB', desc: '趋势转折' },
+  { id: '1h_down', title: '1H下跌', icon: 'trending-down', color: '#FF4444', desc: '做空机会' },
 ];
 
 function TokenRow({ token, rank }: { token: any; rank: number }) {
@@ -47,7 +56,7 @@ function CategorySection({ category }: { category: any }) {
         </View>
         <Text style={styles.sectionTitle}>{category.title}</Text>
         <Link href={'/screener/' + category.id} style={styles.more}>
-          <Text style={{ color: '#00F0FF', fontSize: 12 }}>更多 &gt;</Text>
+          <Text style={{ color: '#00F0FF', fontSize: 12 }}>更多</Text>
         </Link>
       </View>
       <View style={styles.tokenList}>
@@ -59,15 +68,23 @@ function CategorySection({ category }: { category: any }) {
   );
 }
 
-function GridItem({ scenario }: { scenario: any }) {
+function TechCard({ scenario }: { scenario: any }) {
   return (
-    <Pressable style={styles.gridItem}>
-      <Link href={'/screener/' + scenario.id} style={styles.gridLink}>
-        <View style={[styles.gridIcon, { backgroundColor: scenario.color + '20' }]}>
-          <Ionicons name={scenario.icon} size={24} color={scenario.color} />
-        </View>
-        <Text style={styles.gridText}>{scenario.title}</Text>
-      </Link>
+    <Pressable style={[styles.techCard, { borderColor: scenario.color }]}>
+      <Ionicons name={scenario.icon} size={20} color={scenario.color} />
+      <Text style={styles.techTitle}>{scenario.title}</Text>
+      <Text style={styles.techDesc}>{scenario.desc}</Text>
+    </Pressable>
+  );
+}
+
+function CategoryCard({ cat }: { cat: any }) {
+  return (
+    <Pressable style={[styles.catCard, { borderColor: cat.color }]}>
+      <View style={[styles.catIcon, { backgroundColor: cat.color + '20' }]}>
+        <Ionicons name={cat.icon} size={20} color={cat.color} />
+      </View>
+      <Text style={styles.catTitle}>{cat.title}</Text>
     </Pressable>
   );
 }
@@ -87,7 +104,6 @@ export default function HomeScreen() {
 
   useEffect(() => {
     fetchData();
-    // 每 30 秒自动刷新
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -95,30 +111,38 @@ export default function HomeScreen() {
   return (
     <Screen>
       <ScrollView style={styles.container} refreshControl={
-        <RefreshControl refreshing={loading} onRefresh={() => setLoading(true)} tintColor="#00F0FF" />
+        <RefreshControl refreshing={loading} onRefresh={fetchData} tintColor="#00F0FF" />
       }>
         <View style={styles.header}>
           <Text style={styles.logo}>KAIROS</Text>
           <Text style={styles.sub}>加密货币行情筛选</Text>
         </View>
 
-        <View style={styles.content}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>🔥 热门精选</Text>
+        {/* 技术分析场景 */}
+        <View style={styles.techSection}>
+          <Text style={styles.sectionLabel}>技术分析</Text>
+          <View style={styles.techGrid}>
+            {TECHNICAL_SCENARIOS.map(s => (
+              <TechCard key={s.id} scenario={s} />
+            ))}
           </View>
+        </View>
+
+        {/* 热门精选 */}
+        <View style={styles.featuredSection}>
+          <Text style={styles.sectionLabel}>热门精选</Text>
           {loading ? <Text style={styles.loading}>加载中...</Text> : null}
           {data.map(cat => (
             <CategorySection key={cat.scenario} category={{ ...cat.config, tokens: cat.tokens }} />
           ))}
         </View>
 
-        <View style={styles.grid}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>📂 赛道分类</Text>
-          </View>
-          <View style={styles.gridBox}>
-            {SCENARIOS.map(s => (
-              <GridItem key={s.id} scenario={s} />
+        {/* 赛道分类 */}
+        <View style={styles.catSection}>
+          <Text style={styles.sectionLabel}>赛道分类</Text>
+          <View style={styles.catGrid}>
+            {CATEGORIES.map(c => (
+              <CategoryCard key={c.id} cat={c} />
             ))}
           </View>
         </View>
@@ -132,10 +156,26 @@ const styles = StyleSheet.create({
   header: { padding: 20, paddingTop: 60 },
   logo: { fontSize: 28, fontWeight: '900', color: '#00F0FF', letterSpacing: 2 },
   sub: { fontSize: 14, color: '#6B7280', marginTop: 4 },
-  content: { padding: 16 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 18, fontWeight: '700', color: '#FFF' },
+  sectionLabel: { fontSize: 16, fontWeight: '700', color: '#FFF', marginBottom: 12 },
   loading: { color: '#6B7280', textAlign: 'center', padding: 20 },
+  
+  // 技术分析
+  techSection: { padding: 16 },
+  techGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  techCard: {
+    width: '48%',
+    backgroundColor: '#12121A',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  techTitle: { fontSize: 13, fontWeight: '600', color: '#FFF', marginTop: 8 },
+  techDesc: { fontSize: 11, color: '#6B7280', marginTop: 2 },
+  
+  // 热门精选
+  featuredSection: { padding: 16 },
   section: { marginBottom: 20, backgroundColor: '#12121A', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#1F2937' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   iconBox: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
@@ -150,10 +190,20 @@ const styles = StyleSheet.create({
   priceInfo: { alignItems: 'flex-end' },
   price: { fontSize: 14, fontWeight: '600', color: '#FFF' },
   change: { fontSize: 12, fontWeight: '600', marginTop: 2 },
-  grid: { padding: 16 },
-  gridBox: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  gridItem: { width: '31%', aspectRatio: 1 },
-  gridLink: { flex: 1, backgroundColor: '#12121A', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#1F2937' },
-  gridIcon: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  gridText: { fontSize: 11, fontWeight: '600', color: '#FFF', textAlign: 'center' },
+  
+  // 赛道分类
+  catSection: { padding: 16 },
+  catGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  catCard: {
+    width: '31%',
+    aspectRatio: 1,
+    backgroundColor: '#12121A',
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  catIcon: { width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
+  catTitle: { fontSize: 12, fontWeight: '600', color: '#FFF' },
 });

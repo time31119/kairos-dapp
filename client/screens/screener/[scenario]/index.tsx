@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { Ionicons } from '@expo/vector-icons';
 import { useWeb3 } from '@/contexts/Web3Context';
+import { apiRequest } from '@/utils/api';
 
 // 暗黑科技风配色
 const colors = {
@@ -29,7 +30,7 @@ const SCENARIOS = {
   'layer2': { name: 'Layer2', icon: 'layers', color: '#F472B6' },
 };
 
-// 模拟代币数据
+// 默认代币数据（备用）
 const MOCK_TOKENS = [
   { symbol: 'UNI', name: 'Uniswap', price: 12.45, change: 5.2, volume: 234567890, marketCap: 7456789000 },
   { symbol: 'AAVE', name: 'Aave', price: 156.78, change: -2.3, volume: 123456789, marketCap: 2345678000 },
@@ -50,8 +51,31 @@ export default function ScreenerScenario() {
   const scenarioInfo = SCENARIOS[scenarioKey] || SCENARIOS.defi;
   
   const [tokens, setTokens] = useState(MOCK_TOKENS);
+  const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<'price' | 'change' | 'volume' | 'marketCap'>('volume');
   const [filter, setFilter] = useState<'all' | 'gainers' | 'losers'>('all');
+
+  // 从 API 获取代币数据
+  useEffect(() => {
+    const fetchTokens = async () => {
+      setLoading(true);
+      try {
+        const result = await apiRequest<{ tokens?: any[]; data?: any }>(`/screener/${scenarioKey}`);
+        if (result.success && result.data) {
+          const tokenData = result.data.tokens || (result.data.data?.tokens) || [];
+          if (tokenData.length > 0) {
+            setTokens(tokenData);
+          }
+        }
+      } catch (error) {
+        console.log('Failed to fetch tokens, using mock data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchTokens();
+  }, [scenarioKey]);
 
   // 过滤和排序
   const filteredTokens = tokens
@@ -123,35 +147,46 @@ export default function ScreenerScenario() {
 
       {/* Token List */}
       <ScrollView style={styles.tokenList}>
-        {filteredTokens.map((token, index) => (
-          <TouchableOpacity
-            key={token.symbol}
-            style={styles.tokenCard}
-            onPress={() => router.push(`/coin/[symbol]?symbol=${token.symbol.toLowerCase()}`)}
-          >
-            <View style={styles.tokenLeft}>
-              <View style={[styles.tokenIcon, { backgroundColor: scenarioInfo.color + '20' }]}>
-                <Text style={[styles.tokenSymbol, { color: scenarioInfo.color }]}>
-                  {token.symbol.charAt(0)}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.neonCyan} />
+            <Text style={styles.loadingText}>加载中...</Text>
+          </View>
+        ) : filteredTokens.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>暂无数据</Text>
+          </View>
+        ) : (
+          filteredTokens.map((token, index) => (
+            <TouchableOpacity
+              key={token.symbol}
+              style={styles.tokenCard}
+              onPress={() => router.push(`/coin/[symbol]?symbol=${token.symbol.toLowerCase()}`)}
+            >
+              <View style={styles.tokenLeft}>
+                <View style={[styles.tokenIcon, { backgroundColor: scenarioInfo.color + '20' }]}>
+                  <Text style={[styles.tokenSymbol, { color: scenarioInfo.color }]}>
+                    {token.symbol.charAt(0)}
+                  </Text>
+                </View>
+                <View>
+                  <Text style={styles.tokenSymbol}>{token.symbol}</Text>
+                  <Text style={styles.tokenName}>{token.name}</Text>
+                </View>
+              </View>
+              
+              <View style={styles.tokenRight}>
+                <Text style={styles.tokenPrice}>${token.price.toFixed(token.price < 1 ? 4 : 2)}</Text>
+                <Text style={[
+                  styles.tokenChange,
+                  { color: token.change >= 0 ? colors.success : colors.error }
+                ]}>
+                  {token.change >= 0 ? '+' : ''}{token.change.toFixed(2)}%
                 </Text>
               </View>
-              <View>
-                <Text style={styles.tokenSymbol}>{token.symbol}</Text>
-                <Text style={styles.tokenName}>{token.name}</Text>
-              </View>
-            </View>
-            
-            <View style={styles.tokenRight}>
-              <Text style={styles.tokenPrice}>${token.price.toFixed(token.price < 1 ? 4 : 2)}</Text>
-              <Text style={[
-                styles.tokenChange,
-                { color: token.change >= 0 ? colors.success : colors.error }
-              ]}>
-                {token.change >= 0 ? '+' : ''}{token.change.toFixed(2)}%
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
 
       {/* Wallet Required Banner */}
@@ -321,6 +356,27 @@ const styles = StyleSheet.create({
   walletBannerButtonText: {
     color: colors.background,
     fontWeight: '600',
+    fontSize: 14,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    gap: 16,
+  },
+  loadingText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    color: colors.textSecondary,
     fontSize: 14,
   },
 });

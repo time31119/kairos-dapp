@@ -1,6 +1,6 @@
 /**
  * 会员页面 - KAIROS DAPP
- * 包含：一键跟单、我的实盘、会员速递
+ * 包含：一键跟单、我的实盘、付费订阅
  */
 
 import React, { useState, useEffect } from 'react';
@@ -52,7 +52,7 @@ const MOCK_POSITIONS = [
   { symbol: 'ETH', side: '空', amount: 2.0, pnl: -320, pnlRate: -1.2 },
 ];
 
-// 会员速递数据
+// 付费订阅数据
 const VIP_NEWS = [
   { id: 1, title: 'BTC 异动预警', desc: '大额转账 5000 BTC', time: '2分钟前', type: 'alert' },
   { id: 2, title: '机构建仓信号', desc: '某鲸鱼买入 2000 ETH', time: '5分钟前', type: 'signal' },
@@ -114,7 +114,7 @@ function PositionRow({ position }: { position: any }) {
   );
 }
 
-// 会员速递
+// 付费订阅入口
 function VipNewsRow({ item }: { item: any }) {
   const typeIcon = item.type === 'alert' ? '🔴' : item.type === 'signal' ? '🟡' : '🔵';
   return (
@@ -164,7 +164,7 @@ export default function VipScreen() {
           {[
             { key: 'follow', title: '一键跟单', icon: 'people-outline' },
             { key: 'position', title: '我的实盘', icon: 'wallet-outline' },
-            { key: 'news', title: '会员速递', icon: 'newspaper-outline' },
+            { key: 'news', title: '付费订阅', icon: 'card-outline' },
           ].map(tab => (
             <Pressable
               key={tab.key}
@@ -229,19 +229,57 @@ export default function VipScreen() {
             </View>
           )}
 
-          {/* 会员速递 */}
+          {/* 付费订阅 */}
           {activeTab === 'news' && (
             <View>
               <View style={styles.vipBanner}>
-                <Text style={styles.vipTitle}>尊贵的 VIP 会员</Text>
-                <Text style={styles.vipDesc}>第一时间获取机构级异动情报</Text>
+                <Text style={styles.vipTitle}>解锁高级会员权益</Text>
+                <Text style={styles.vipDesc}>专业级行情分析 + 智能跟单 + API接口</Text>
+                <Link href="/vip/membership">
+                  <Pressable style={styles.subscribeBtn}>
+                    <Text style={styles.subscribeBtnText}>立即订阅</Text>
+                  </Pressable>
+                </Link>
               </View>
-              {VIP_NEWS.map(item => (
-                <VipNewsRow key={item.id} item={item} />
-              ))}
-              <Link href="/notification">
-                <Pressable style={styles.moreNewsBtn}>
-                  <Text style={styles.moreNewsBtnText}>查看更多情报</Text>
+              
+              <View style={styles.plansPreview}>
+                <Text style={styles.plansTitle}>会员套餐</Text>
+                <View style={styles.planRow}>
+                  <View style={[styles.planItem, { borderColor: '#8B9DC3' }]}>
+                    <Text style={[styles.planName, { color: '#8B9DC3' }]}>基础版</Text>
+                    <Text style={styles.planPrice}>$9.9/月</Text>
+                  </View>
+                  <View style={[styles.planItem, { borderColor: '#00F0FF' }]}>
+                    <Text style={[styles.planName, { color: '#00F0FF' }]}>专业版</Text>
+                    <Text style={styles.planPrice}>$29.9/月</Text>
+                  </View>
+                  <View style={[styles.planItem, { borderColor: '#FFD700' }]}>
+                    <Text style={[styles.planName, { color: '#FFD700' }]}>尊享版</Text>
+                    <Text style={styles.planPrice}>$99.9/月</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.featuresList}>
+                <Text style={styles.featuresTitle}>会员专属功能</Text>
+                {[
+                  { icon: '📊', text: '全部赛道行情' },
+                  { icon: '🔍', text: '无限筛选条件' },
+                  { icon: '🔔', text: '实时行情推送' },
+                  { icon: '📈', text: '技术分析工具' },
+                  { icon: '👥', text: '智能跟单功能' },
+                  { icon: '🔑', text: '完整API接口' },
+                ].map((f, i) => (
+                  <View key={i} style={styles.featureRow}>
+                    <Text style={styles.featureIcon}>{f.icon}</Text>
+                    <Text style={styles.featureText}>{f.text}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <Link href="/vip/membership">
+                <Pressable style={styles.fullSubscribeBtn}>
+                  <Text style={styles.fullSubscribeBtnText}>查看全部套餐 →</Text>
                 </Pressable>
               </Link>
             </View>
@@ -295,16 +333,23 @@ const styles = StyleSheet.create({
   posPnl: { fontSize: 14, fontWeight: '600', marginTop: 2 },
   historyBtn: { backgroundColor: '#1A1A24', paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 8, borderWidth: 1, borderColor: '#374151' },
   historyBtnText: { color: '#00F0FF', fontSize: 14, fontWeight: '600' },
-  // 会员速递
-  vipBanner: { backgroundColor: 'linear-gradient(135deg, #1A1A24 0%, #2D2D3A 100%)', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#FFD700' },
-  vipTitle: { fontSize: 18, fontWeight: '700', color: '#FFD700', marginBottom: 4 },
-  vipDesc: { fontSize: 13, color: '#9CA3AF' },
-  newsRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#12121A', borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: '#1F2937' },
-  newsIcon: { fontSize: 24, marginRight: 12 },
-  newsContent: { flex: 1 },
-  newsTitle: { fontSize: 14, fontWeight: '600', color: '#FFFFFF', marginBottom: 2 },
-  newsDesc: { fontSize: 12, color: '#6B7280' },
-  newsTime: { fontSize: 10, color: '#6B7280' },
-  moreNewsBtn: { backgroundColor: '#FFD70020', paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 8, borderWidth: 1, borderColor: '#FFD700' },
-  moreNewsBtnText: { color: '#FFD700', fontSize: 14, fontWeight: '600' },
+  // 付费订阅
+  vipBanner: { backgroundColor: '#1A1A24', borderRadius: 16, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#00F0FF' },
+  vipTitle: { fontSize: 18, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
+  vipDesc: { fontSize: 13, color: '#9CA3AF', marginBottom: 16 },
+  subscribeBtn: { backgroundColor: '#00F0FF', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, alignSelf: 'flex-start' },
+  subscribeBtnText: { color: '#0A0A0F', fontSize: 14, fontWeight: '700' },
+  plansPreview: { marginBottom: 20 },
+  plansTitle: { fontSize: 16, fontWeight: '700', color: '#FFFFFF', marginBottom: 12 },
+  planRow: { flexDirection: 'row', gap: 10 },
+  planItem: { flex: 1, backgroundColor: '#12121A', borderRadius: 12, padding: 12, alignItems: 'center', borderWidth: 1 },
+  planName: { fontSize: 12, fontWeight: '700', marginBottom: 4 },
+  planPrice: { fontSize: 11, color: '#9CA3AF' },
+  featuresList: { marginBottom: 16 },
+  featuresTitle: { fontSize: 16, fontWeight: '700', color: '#FFFFFF', marginBottom: 12 },
+  featureRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  featureIcon: { fontSize: 16, marginRight: 10 },
+  featureText: { fontSize: 14, color: '#FFFFFF' },
+  fullSubscribeBtn: { backgroundColor: '#1A1A24', paddingVertical: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#00F0FF' },
+  fullSubscribeBtnText: { color: '#00F0FF', fontSize: 14, fontWeight: '600' },
 });

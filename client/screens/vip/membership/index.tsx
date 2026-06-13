@@ -1,6 +1,6 @@
 /**
- * 会员速递 - 付费订阅页面
- * 支持多种支付方式和订阅周期
+ * 付费订阅页面
+ * 会员权益、订阅周期、支付方式
  */
 
 import { Screen } from '@/components/Screen';
@@ -123,7 +123,7 @@ export default function Membership() {
     <Screen>
       <Stack.Screen
         options={{
-          title: '会员速递',
+          title: '付费订阅',
           headerStyle: { backgroundColor: colors.background },
           headerTintColor: colors.neonCyan,
         }}

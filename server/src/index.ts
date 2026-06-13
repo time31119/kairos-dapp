@@ -4,6 +4,7 @@ import screenerRouter from "./routes/screener";
 import apiRouter from "./routes/api";
 import authRouter from "./routes/auth";
 import chainsRouter from "./routes/chains";
+import contractsRouter from "./routes/contracts";
 
 const app = express();
 const port = process.env.PORT || 9091;
@@ -22,7 +23,8 @@ app.get('/api/v1/health', (req, res) => {
 app.use('/api/v1/screener', screenerRouter);
 app.use('/api/v1', apiRouter);
 app.use('/api/v1/auth', authRouter);
-app.use('/api/v1/web3', chainsRouter);
+app.use('/api/v1/web3/chains', chainsRouter);
+app.use('/api/v1/web3/contracts', contractsRouter);
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}/`);

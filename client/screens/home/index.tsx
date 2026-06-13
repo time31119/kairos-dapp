@@ -71,7 +71,7 @@ function ScenarioCard({ scenario }: { scenario: Scenario }) {
   
   return (
     <Link
-      href={`/screener/${scenario}`}
+      href={`/screener/[scenario]?scenario=${scenario}`}
       asChild
     >
       <Pressable

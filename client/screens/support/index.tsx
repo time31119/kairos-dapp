@@ -1,529 +1,559 @@
-/**
- * 客服帮助页面
- * KAIROS 行情筛选器
- */
-
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
-  TextInput,
-  Modal,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Alert, Linking, Platform } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { Ionicons } from '@expo/vector-icons';
+import { useWeb3 } from '@/contexts/Web3Context';
 
-interface FAQItem {
-  id: string;
-  question: string;
-  answer: string;
-}
+// 暗黑科技风配色
+const colors = {
+  background: '#0A0A0F',
+  card: '#12121A',
+  cardBorder: '#1F1F2E',
+  neonCyan: '#00F0FF',
+  neonPurple: '#BF00FF',
+  text: '#FFFFFF',
+  textSecondary: '#8E8E9A',
+  success: '#00FF88',
+  warning: '#FFB800',
+  error: '#FF4444',
+};
 
-interface ServiceItem {
-  id: string;
-  icon: string;
-  title: string;
-  description: string;
-  action: () => void;
-}
-
-const faqData: FAQItem[] = [
+// 常见问题分类
+const FAQ_CATEGORIES = [
   {
-    id: '1',
-    question: '如何开通会员？',
-    answer: '您可以在"我的"页面点击"开通会员"按钮，选择合适的套餐进行支付开通。支付成功后，会员权益将立即生效。',
+    id: 'wallet',
+    title: '钱包问题',
+    icon: 'wallet-outline',
+    questions: [
+      { q: '如何连接钱包？', a: '点击"连接钱包"按钮，选择您使用的钱包（如 MetaMask），然后在钱包中确认连接请求。' },
+      { q: '钱包连接失败怎么办？', a: '请确保您的钱包已解锁，并已授权该网站连接。如问题持续，请尝试刷新页面或切换网络。' },
+      { q: '如何切换网络？', a: '在钱包中手动切换网络，或点击页面上的"切换网络"按钮，选择您想要的网络。' },
+    ],
   },
   {
-    id: '2',
-    question: '会员可以退款吗？',
-    answer: '会员开通后7天内如需退款，请联系在线客服处理。超过7天的将无法退款，但会员权益将继续有效至到期日。',
+    id: 'transaction',
+    title: '交易问题',
+    icon: 'swap-horizontal-outline',
+    questions: [
+      { q: '交易失败怎么办？', a: '请检查：1) 余额是否充足；2) Gas 是否足够；3) 网络是否拥堵。如仍有问题，请联系客服。' },
+      { q: '交易被卡住了？', a: '您可以在钱包中取消待处理交易，或等待网络拥堵缓解后自动完成。' },
+      { q: '如何查看交易记录？', a: '在钱包中查看交易历史，或使用区块链浏览器搜索您的钱包地址。' },
+    ],
   },
   {
-    id: '3',
-    question: '如何添加自选？',
-    answer: '在行情页面或代币详情页，点击代币右侧的"⭐"图标即可添加自选。您也可以在搜索页面搜索代币后添加。',
-  },
-  {
-    id: '4',
-    question: '实盘交易如何操作？',
-    answer: '实盘交易功能需要先完成实名认证。在"我的实盘"页面，您可以查看持仓、历史订单，并进行平仓等操作。',
-  },
-  {
-    id: '5',
-    question: '一键跟单是什么？',
-    answer: '一键跟单允许您复制优秀交易员的操作策略。当交易员开仓时，您的账户会自动以相同方向开仓。',
-  },
-  {
-    id: '6',
-    question: '如何联系客服？',
-    answer: '您可以通过以下方式联系我们：1. 在线客服（工作时间 9:00-21:00）；2. 发送邮件至 support@dapp.com',
-  },
-  {
-    id: '7',
-    question: '数据多久更新一次？',
-    answer: '行情数据实时更新，筛选结果每分钟刷新一次，会员专属功能会有更快的更新频率。',
-  },
-  {
-    id: '8',
-    question: '如何取消跟单？',
-    answer: '在"我的跟单"页面，点击要取消的交易员，选择"停止跟单"即可取消跟单关系。',
+    id: 'account',
+    title: '账户问题',
+    icon: 'person-outline',
+    questions: [
+      { q: '如何设置账户安全？', a: '我们建议您：1) 使用硬件钱包；2) 开启双因素认证；3) 定期检查授权记录。' },
+      { q: '忘记密码怎么办？', a: '作为去中心化应用，我们不存储您的密码。请确保您已备份钱包助记词。' },
+    ],
   },
 ];
 
-export default function SupportScreen() {
+// 联系方式
+const CONTACT_METHODS = [
+  { type: 'email', value: 'support@kairos.finance', icon: 'mail-outline' },
+  { type: 'telegram', value: '@KAIROS_Finance', icon: 'send-outline' },
+  { type: 'twitter', value: '@KAIROSFinance', icon: 'logo-twitter' },
+  { type: 'discord', value: 'KAIROS Community', icon: 'logo-discord' },
+];
+
+export default function SupportPage() {
   const router = useSafeRouter();
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [showContactModal, setShowContactModal] = useState(false);
-  const [feedbackText, setFeedbackText] = useState('');
-  const [contactType, setContactType] = useState<'online' | 'email' | 'phone'>('online');
+  const { wallet } = useWeb3();
+  
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [showTicketForm, setShowTicketForm] = useState(false);
 
-  const toggleExpand = (id: string) => {
-    setExpandedId(expandedId === id ? null : id);
-  };
-
-  const handleServiceClick = (type: string) => {
-    switch (type) {
-      case 'online':
-        Alert.alert('提示', '在线客服功能即将上线，请通过其他方式联系我们');
-        break;
-      case 'feedback':
-        setShowContactModal(true);
-        break;
-      case 'email':
-        Alert.alert('提示', '请发送邮件至 support@dapp.com');
-        break;
-      case 'phone':
-        Alert.alert('提示', '客服热线：400-888-8888');
-        break;
-    }
-  };
-
-  const handleSubmitFeedback = () => {
-    if (!feedbackText.trim()) {
-      Alert.alert('错误', '请输入反馈内容');
+  const handleSubmitTicket = () => {
+    if (!subject.trim() || !message.trim()) {
+      Alert.alert('提示', '请填写主题和详细描述');
       return;
     }
-    Alert.alert('成功', '感谢您的反馈，我们会尽快处理');
-    setShowContactModal(false);
-    setFeedbackText('');
+    
+    // 模拟提交工单
+    Alert.alert(
+      '提交成功',
+      '您的工单已提交，我们的团队将在 24 小时内回复您。',
+      [{ text: '确定', onPress: () => {
+        setSubject('');
+        setMessage('');
+        setShowTicketForm(false);
+      }}]
+    );
   };
 
-  const serviceItems: ServiceItem[] = [
-    {
-      id: 'online',
-      icon: 'chatbubbles-outline',
-      title: '在线客服',
-      description: '工作时间 9:00-21:00',
-      action: () => handleServiceClick('online'),
-    },
-    {
-      id: 'feedback',
-      icon: 'create-outline',
-      title: '意见反馈',
-      description: '提交您的建议或问题',
-      action: () => handleServiceClick('feedback'),
-    },
-    {
-      id: 'email',
-      icon: 'mail-outline',
-      title: '邮件联系',
-      description: 'support@dapp.com',
-      action: () => handleServiceClick('email'),
-    },
-    {
-      id: 'phone',
-      icon: 'call-outline',
-      title: '电话客服',
-      description: '400-888-8888',
-      action: () => handleServiceClick('phone'),
-    },
-  ];
+  const handleContactPress = (type: string, value: string) => {
+    switch (type) {
+      case 'email':
+        Linking.openURL(`mailto:${value}`);
+        break;
+      case 'telegram':
+        Linking.openURL('https://t.me/KAIROS_Finance');
+        break;
+      case 'twitter':
+        Linking.openURL('https://twitter.com/KAIROSFinance');
+        break;
+      case 'discord':
+        Alert.alert('Discord', '请加入我们的 Discord 社区: https://discord.gg/kairos');
+        break;
+    }
+  };
 
   return (
-    <Screen>
+    <Screen style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#00F0FF" />
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>客服与帮助</Text>
-        <View style={styles.placeholder} />
+        <Text style={styles.headerTitle}>帮助与支持</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Service Channels */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>联系客服</Text>
-          <View style={styles.serviceGrid}>
-            {serviceItems.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.serviceCard}
-                onPress={item.action}
-              >
-                <View style={[styles.serviceIcon, { backgroundColor: 'rgba(0, 240, 255, 0.1)' }]}>
-                  <Ionicons name={item.icon as any} size={24} color="#00F0FF" />
-                </View>
-                <Text style={styles.serviceTitle}>{item.title}</Text>
-                <Text style={styles.serviceDesc}>{item.description}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Quick FAQ */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>常见问题</Text>
-          <View style={styles.faqContainer}>
-            {faqData.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.faqItem}
-                onPress={() => toggleExpand(item.id)}
-              >
-                <View style={styles.faqHeader}>
-                  <Text style={styles.faqQuestion}>{item.question}</Text>
-                  <Ionicons
-                    name={expandedId === item.id ? 'chevron-up' : 'chevron-down'}
-                    size={20}
-                    color="#666"
-                  />
-                </View>
-                {expandedId === item.id && (
-                  <Text style={styles.faqAnswer}>{item.answer}</Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Operating Hours */}
-        <View style={styles.section}>
-          <View style={styles.hoursCard}>
-            <View style={styles.hoursHeader}>
-              <Ionicons name="time-outline" size={20} color="#00F0FF" />
-              <Text style={styles.hoursTitle}>服务时间</Text>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Quick Actions */}
+        <View style={styles.quickActions}>
+          <TouchableOpacity 
+            style={styles.quickAction}
+            onPress={() => setShowTicketForm(true)}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: colors.neonCyan + '20' }]}>
+              <Ionicons name="create-outline" size={24} color={colors.neonCyan} />
             </View>
-            <View style={styles.hoursInfo}>
-              <View style={styles.hoursRow}>
-                <Text style={styles.hoursLabel}>在线客服</Text>
-                <Text style={styles.hoursValue}>09:00 - 21:00</Text>
-              </View>
-              <View style={styles.hoursRow}>
-                <Text style={styles.hoursLabel}>电话客服</Text>
-                <Text style={styles.hoursValue}>09:00 - 18:00</Text>
-              </View>
-              <View style={styles.hoursRow}>
-                <Text style={styles.hoursLabel}>邮件回复</Text>
-                <Text style={styles.hoursValue}>24小时内</Text>
-              </View>
+            <Text style={styles.quickActionText}>提交工单</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.quickAction}
+            onPress={() => Linking.openURL('https://docs.kairos.finance')}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: colors.neonPurple + '20' }]}>
+              <Ionicons name="document-text-outline" size={24} color={colors.neonPurple} />
             </View>
-          </View>
+            <Text style={styles.quickActionText}>使用文档</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.quickAction}
+            onPress={() => Alert.alert('视频教程', '即将推出')}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: colors.success + '20' }]}>
+              <Ionicons name="play-circle-outline" size={24} color={colors.success} />
+            </View>
+            <Text style={styles.quickActionText}>视频教程</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Version Info */}
-        <View style={styles.versionInfo}>
-          <Text style={styles.versionText}>KAIROS v1.0.0</Text>
-          <Text style={styles.copyrightText}>© 2024 KAIROS. All rights reserved.</Text>
-        </View>
-      </ScrollView>
-
-      {/* Feedback Modal */}
-      <Modal
-        visible={showContactModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowContactModal(false)}
-      >
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>意见反馈</Text>
-              <TouchableOpacity onPress={() => setShowContactModal(false)}>
-                <Ionicons name="close" size={24} color="#666" />
+        {/* Ticket Form */}
+        {showTicketForm && (
+          <View style={styles.ticketForm}>
+            <View style={styles.ticketFormHeader}>
+              <Text style={styles.sectionTitle}>提交工单</Text>
+              <TouchableOpacity onPress={() => setShowTicketForm(false)}>
+                <Ionicons name="close-circle" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.feedbackType}>
-              <TouchableOpacity
-                style={[
-                  styles.typeButton,
-                  contactType === 'online' && styles.typeButtonActive,
-                ]}
-                onPress={() => setContactType('online')}
-              >
-                <Text
-                  style={[
-                    styles.typeButtonText,
-                    contactType === 'online' && styles.typeButtonTextActive,
-                  ]}
-                >
-                  功能建议
+            {wallet.isConnected && (
+              <View style={styles.walletInfo}>
+                <Ionicons name="wallet" size={16} color={colors.neonCyan} />
+                <Text style={styles.walletInfoText}>
+                  {wallet.address?.slice(0, 6)}...{wallet.address?.slice(-4)}
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.typeButton,
-                  contactType === 'email' && styles.typeButtonActive,
-                ]}
-                onPress={() => setContactType('email')}
-              >
-                <Text
-                  style={[
-                    styles.typeButtonText,
-                    contactType === 'email' && styles.typeButtonTextActive,
-                  ]}
-                >
-                  问题反馈
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.typeButton,
-                  contactType === 'phone' && styles.typeButtonActive,
-                ]}
-                onPress={() => setContactType('phone')}
-              >
-                <Text
-                  style={[
-                    styles.typeButtonText,
-                    contactType === 'phone' && styles.typeButtonTextActive,
-                  ]}
-                >
-                  其他
-                </Text>
-              </TouchableOpacity>
+              </View>
+            )}
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>主题</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="请输入问题主题"
+                placeholderTextColor={colors.textSecondary}
+                value={subject}
+                onChangeText={setSubject}
+              />
             </View>
 
-            <TextInput
-              style={styles.feedbackInput}
-              placeholder="请详细描述您的问题或建议..."
-              placeholderTextColor="#666"
-              value={feedbackText}
-              onChangeText={setFeedbackText}
-              multiline
-              numberOfLines={6}
-              textAlignVertical="top"
-            />
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>详细描述</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="请详细描述您遇到的问题..."
+                placeholderTextColor={colors.textSecondary}
+                value={message}
+                onChangeText={setMessage}
+                multiline
+                numberOfLines={5}
+              />
+            </View>
 
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmitFeedback}>
-              <Text style={styles.submitButtonText}>提交反馈</Text>
+            <TouchableOpacity style={styles.submitButton} onPress={handleSubmitTicket}>
+              <Text style={styles.submitButtonText}>提交工单</Text>
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </Modal>
+        )}
+
+        {/* FAQ Section */}
+        <View style={styles.faqSection}>
+          <Text style={styles.sectionTitle}>常见问题</Text>
+          
+          {FAQ_CATEGORIES.map((category) => (
+            <View key={category.id} style={styles.faqCategory}>
+              <TouchableOpacity
+                style={styles.faqCategoryHeader}
+                onPress={() => setExpandedCategory(
+                  expandedCategory === category.id ? null : category.id
+                )}
+              >
+                <View style={styles.faqCategoryLeft}>
+                  <Ionicons 
+                    name={category.icon as any} 
+                    size={20} 
+                    color={colors.neonCyan} 
+                  />
+                  <Text style={styles.faqCategoryTitle}>{category.title}</Text>
+                </View>
+                <Ionicons
+                  name={expandedCategory === category.id ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              </TouchableOpacity>
+
+              {expandedCategory === category.id && (
+                <View style={styles.faqQuestions}>
+                  {category.questions.map((item, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.faqQuestion}
+                      onPress={() => setExpandedQuestion(
+                        expandedQuestion === `${category.id}-${index}` ? null : `${category.id}-${index}`
+                      )}
+                    >
+                      <View style={styles.faqQuestionHeader}>
+                        <Text style={styles.faqQuestionText}>Q: {item.q}</Text>
+                        <Ionicons
+                          name={expandedQuestion === `${category.id}-${index}` ? 'chevron-up' : 'chevron-down'}
+                          size={16}
+                          color={colors.textSecondary}
+                        />
+                      </View>
+                      {expandedQuestion === `${category.id}-${index}` && (
+                        <Text style={styles.faqAnswer}>A: {item.a}</Text>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          ))}
+        </View>
+
+        {/* Contact Us */}
+        <View style={styles.contactSection}>
+          <Text style={styles.sectionTitle}>联系我们</Text>
+          
+          <View style={styles.contactList}>
+            {CONTACT_METHODS.map((contact, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.contactItem}
+                onPress={() => handleContactPress(contact.type, contact.value)}
+              >
+                <View style={[styles.contactIcon, { backgroundColor: colors.card }]}>
+                  <Ionicons name={contact.icon as any} size={20} color={colors.text} />
+                </View>
+                <View style={styles.contactInfo}>
+                  <Text style={styles.contactType}>{contact.type.toUpperCase()}</Text>
+                  <Text style={styles.contactValue}>{contact.value}</Text>
+                </View>
+                <Ionicons name="open-outline" size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Community */}
+        <View style={styles.communitySection}>
+          <Text style={styles.sectionTitle}>社区</Text>
+          <View style={styles.communityList}>
+            <TouchableOpacity style={styles.communityItem}>
+              <Ionicons name="logo-discord" size={24} color="#5865F2" />
+              <Text style={styles.communityText}>Discord 社区</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.communityItem}>
+              <Ionicons name="logo-twitter" size={24} color="#1DA1F2" />
+              <Text style={styles.communityText}>Twitter</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.communityItem}>
+              <Ionicons name="logo-reddit" size={24} color="#FF4500" />
+              <Text style={styles.communityText}>Reddit</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>KAIROS Finance © 2024</Text>
+          <Text style={styles.footerSubtext}>让投资更简单</Text>
+        </View>
+      </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
   backButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
-    color: '#FFFFFF',
     fontSize: 18,
     fontWeight: '600',
+    color: colors.text,
   },
-  placeholder: {
-    width: 40,
-  },
-  container: {
+  content: {
     flex: 1,
-    backgroundColor: '#0A0A0F',
+    paddingHorizontal: 16,
   },
-  section: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 16,
-  },
-  serviceGrid: {
+  quickActions: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'space-between',
+    marginBottom: 24,
   },
-  serviceCard: {
-    width: '47%',
-    backgroundColor: '#1A1A1F',
+  quickAction: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: colors.card,
     borderRadius: 16,
     padding: 16,
+    marginHorizontal: 4,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.cardBorder,
   },
-  serviceIcon: {
+  quickActionIcon: {
     width: 48,
     height: 48,
-    borderRadius: 12,
+    borderRadius: 24,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  serviceTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  serviceDesc: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-  faqContainer: {
-    backgroundColor: '#1A1A1F',
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  faqItem: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-  },
-  faqHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  faqQuestion: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    flex: 1,
-    marginRight: 12,
-  },
-  faqAnswer: {
+  quickActionText: {
     fontSize: 13,
-    color: '#9CA3AF',
-    marginTop: 12,
-    lineHeight: 20,
+    color: colors.text,
+    fontWeight: '500',
   },
-  hoursCard: {
-    backgroundColor: '#1A1A1F',
-    borderRadius: 16,
-    padding: 16,
-  },
-  hoursHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  hoursTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginLeft: 8,
-  },
-  hoursInfo: {},
-  hoursRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  hoursLabel: {
-    fontSize: 14,
-    color: '#9CA3AF',
-  },
-  hoursValue: {
-    fontSize: 14,
-    color: '#FFFFFF',
-  },
-  versionInfo: {
-    alignItems: 'center',
-    paddingVertical: 32,
-  },
-  versionText: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
-  },
-  copyrightText: {
-    fontSize: 11,
-    color: '#444',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#1A1A1F',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  feedbackType: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  typeButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    backgroundColor: '#2A2A2F',
-    alignItems: 'center',
-  },
-  typeButtonActive: {
-    backgroundColor: 'rgba(0, 240, 255, 0.2)',
+  ticketForm: {
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#00F0FF',
+    borderColor: colors.cardBorder,
   },
-  typeButtonText: {
+  ticketFormHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  walletInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.neonCyan + '10',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+  },
+  walletInfoText: {
     fontSize: 13,
-    color: '#9CA3AF',
+    color: colors.neonCyan,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
-  typeButtonTextActive: {
-    color: '#00F0FF',
+  inputGroup: {
+    marginBottom: 16,
   },
-  feedbackInput: {
-    backgroundColor: '#2A2A2F',
+  inputLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: colors.background,
     borderRadius: 12,
     padding: 16,
-    fontSize: 14,
-    color: '#FFFFFF',
-    minHeight: 120,
-    marginBottom: 16,
+    fontSize: 16,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  textArea: {
+    height: 120,
+    textAlignVertical: 'top',
   },
   submitButton: {
-    backgroundColor: '#00F0FF',
+    backgroundColor: colors.neonCyan,
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     alignItems: 'center',
   },
   submitButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#0A0A0F',
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.background,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 16,
+  },
+  faqSection: {
+    marginBottom: 24,
+  },
+  faqCategory: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    marginBottom: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  faqCategoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+  faqCategoryLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  faqCategoryTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: colors.text,
+  },
+  faqQuestions: {
+    borderTopWidth: 1,
+    borderTopColor: colors.cardBorder,
+  },
+  faqQuestion: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  faqQuestionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  faqQuestionText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    marginRight: 8,
+  },
+  faqAnswer: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  contactSection: {
+    marginBottom: 24,
+  },
+  contactList: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  contactItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.cardBorder,
+  },
+  contactIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contactInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  contactType: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  contactValue: {
+    fontSize: 14,
+    color: colors.text,
+  },
+  communitySection: {
+    marginBottom: 24,
+  },
+  communityList: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  communityItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+  },
+  communityText: {
+    fontSize: 13,
+    color: colors.text,
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  footerText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  footerSubtext: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
 });

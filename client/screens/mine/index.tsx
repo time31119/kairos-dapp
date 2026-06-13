@@ -276,30 +276,30 @@ export default function MineScreen() {
           </View>
         )}
 
-        {/* Web3 功能提示 */}
+        {/* Web3 功能提示 - 会员卡片 */}
         <View className="px-5 mb-5">
           <TouchableOpacity 
-            className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 rounded-2xl p-4 border border-cyan-500/20"
+            className="bg-black/60 rounded-2xl p-4 border border-cyan-500/30 shadow-lg shadow-cyan-500/10"
             onPress={() => router.push('/vip/membership')}
           >
             <View className="flex-row items-center gap-3 mb-3">
-              <View className="w-10 h-10 rounded-xl bg-cyan-500/20 items-center justify-center">
+              <View className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/30 to-purple-500/30 items-center justify-center">
                 <Ionicons name="diamond" size={22} color="#00F0FF" />
               </View>
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-cyan-400">KAIROS DAPP 会员</Text>
-                <Text className="text-xs text-gray-500">解锁链上高级功能</Text>
+                <Text className="text-xs text-gray-400">解锁链上高级功能</Text>
               </View>
-              <View className="bg-cyan-500 px-3 py-1 rounded-full">
+              <View className="bg-gradient-to-r from-cyan-500 to-purple-500 px-3 py-1.5 rounded-full shadow-lg shadow-cyan-500/30">
                 <Text className="text-xs font-bold text-black">开通</Text>
               </View>
             </View>
             
-            <View className="flex-row justify-between">
+            <View className="flex-row justify-between pt-2 border-t border-cyan-500/10">
               {['链上数据', '智能筛选', 'Web3 提醒'].map((item, i) => (
                 <View key={i} className="items-center">
                   <Ionicons name="checkmark-circle" size={16} color="#00F0FF" />
-                  <Text className="text-xs text-gray-400 mt-1">{item}</Text>
+                  <Text className="text-xs text-gray-300 mt-1">{item}</Text>
                 </View>
               ))}
             </View>
@@ -308,10 +308,10 @@ export default function MineScreen() {
 
         {/* 用户功能入口 */}
         <View className="px-5 mb-5">
-          <Text className="text-xs text-gray-500 mb-2 px-1">交易功能</Text>
-          <View className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+          <Text className="text-xs text-cyan-400/70 mb-2 px-1 uppercase tracking-wider">交易功能</Text>
+          <View className="bg-black/60 rounded-2xl border border-gray-800/50 overflow-hidden">
             <TouchableOpacity
-              className="flex-row items-center justify-between px-4 py-4 border-b border-gray-800"
+              className="flex-row items-center justify-between px-4 py-4 border-b border-gray-800/30"
               onPress={() => router.push('/trading')}
             >
               <View className="flex-row items-center gap-3">
@@ -321,13 +321,13 @@ export default function MineScreen() {
                 <Text className="text-sm text-white">我的订单</Text>
               </View>
               <View className="flex-row items-center gap-2">
-                <Text className="text-xs text-gray-500">{userStats.totalOrders} 单</Text>
-                <Ionicons name="chevron-forward" size={16} color="#4B5563" />
+                <Text className="text-xs text-gray-400">{userStats.totalOrders} 单</Text>
+                <Ionicons name="chevron-forward" size={16} color="#6B7280" />
               </View>
             </TouchableOpacity>
             
             <TouchableOpacity
-              className="flex-row items-center justify-between px-4 py-4 border-b border-gray-800"
+              className="flex-row items-center justify-between px-4 py-4 border-b border-gray-800/30"
               onPress={() => router.push('/trading')}
             >
               <View className="flex-row items-center gap-3">
@@ -336,11 +336,11 @@ export default function MineScreen() {
                 </View>
                 <Text className="text-sm text-white">我的持仓</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#4B5563" />
+              <Ionicons name="chevron-forward" size={16} color="#6B7280" />
             </TouchableOpacity>
             
             <TouchableOpacity
-              className="flex-row items-center justify-between px-4 py-4 border-b border-gray-800"
+              className="flex-row items-center justify-between px-4 py-4 border-b border-gray-800/30"
               onPress={() => router.push('/copytrading')}
             >
               <View className="flex-row items-center gap-3">
@@ -355,7 +355,7 @@ export default function MineScreen() {
                     <Text className="text-xs text-green-400">{userStats.totalFollowers} 个</Text>
                   </View>
                 )}
-                <Ionicons name="chevron-forward" size={16} color="#4B5563" />
+                <Ionicons name="chevron-forward" size={16} color="#6B7280" />
               </View>
             </TouchableOpacity>
             
@@ -369,17 +369,17 @@ export default function MineScreen() {
                 </View>
                 <Text className="text-sm text-white">我的自选</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#4B5563" />
+              <Ionicons name="chevron-forward" size={16} color="#6B7280" />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Web3 特有功能 */}
         <View className="px-5 mb-5">
-          <Text className="text-xs text-gray-500 mb-2 px-1">Web3 功能</Text>
-          <View className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+          <Text className="text-xs text-purple-400/70 mb-2 px-1 uppercase tracking-wider">Web3 功能</Text>
+          <View className="bg-black/60 rounded-2xl border border-gray-800/50 overflow-hidden">
             <TouchableOpacity
-              className="flex-row items-center justify-between px-4 py-4 border-b border-gray-800"
+              className="flex-row items-center justify-between px-4 py-4 border-b border-gray-800/30"
               onPress={() => router.push('/kyc')}
             >
               <View className="flex-row items-center gap-3">
@@ -390,23 +390,23 @@ export default function MineScreen() {
                 <View className="bg-yellow-500/20 px-2 py-0.5 rounded">
                   <Text className="text-xs text-yellow-400">可选</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color="#4B5563" />
+                <Ionicons name="chevron-forward" size={16} color="#6B7280" />
               </View>
             </TouchableOpacity>
             
             <TouchableOpacity
-              className="flex-row items-center justify-between px-4 py-4 border-b border-gray-800"
+              className="flex-row items-center justify-between px-4 py-4 border-b border-gray-800/30"
               onPress={() => router.push('/support')}
             >
               <View className="flex-row items-center gap-3">
                 <Ionicons name="help-buoy" size={20} color="#8B5CF6" />
                 <Text className="text-sm text-white">Web3 帮助</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#4B5563" />
+              <Ionicons name="chevron-forward" size={16} color="#6B7280" />
             </TouchableOpacity>
             
             <TouchableOpacity
-              className="flex-row items-center justify-between px-4 py-4 border-b border-gray-800"
+              className="flex-row items-center justify-between px-4 py-4 border-b border-gray-800/30"
               onPress={() => Alert.alert('Gas 提醒', 'Gas 价格低时自动提醒')}
             >
               <View className="flex-row items-center gap-3">
@@ -414,10 +414,10 @@ export default function MineScreen() {
                 <Text className="text-sm text-white">Gas 提醒</Text>
               </View>
               <View className="flex-row items-center gap-2">
-                <View className="bg-gray-700 px-2 py-0.5 rounded">
+                <View className="bg-gray-800 px-2 py-0.5 rounded">
                   <Text className="text-xs text-gray-400">未开启</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color="#4B5563" />
+                <Ionicons name="chevron-forward" size={16} color="#6B7280" />
               </View>
             </TouchableOpacity>
             
@@ -430,8 +430,8 @@ export default function MineScreen() {
                 <Text className="text-sm text-white">NFT 藏品</Text>
               </View>
               <View className="flex-row items-center gap-2">
-                <Text className="text-xs text-gray-500">{userStats.nftCount} 个</Text>
-                <Ionicons name="chevron-forward" size={16} color="#4B5563" />
+                <Text className="text-xs text-gray-400">{userStats.nftCount} 个</Text>
+                <Ionicons name="chevron-forward" size={16} color="#6B7280" />
               </View>
             </TouchableOpacity>
           </View>
@@ -439,8 +439,8 @@ export default function MineScreen() {
 
         {/* 设置菜单 */}
         <View className="px-5 mb-5">
-          <Text className="text-xs text-gray-500 mb-2 px-1">设置</Text>
-          <View className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+          <Text className="text-xs text-gray-400/70 mb-2 px-1 uppercase tracking-wider">设置</Text>
+          <View className="bg-black/60 rounded-2xl border border-gray-800/50 overflow-hidden">
             {MENU_ITEMS.map((item, index) => (
               <TouchableOpacity
                 key={item.label}
@@ -448,7 +448,7 @@ export default function MineScreen() {
                 onPress={() => item.path && router.push(item.path)}
                 style={index < MENU_ITEMS.length - 1 ? {
                   borderBottomWidth: 1,
-                  borderBottomColor: '#1F2937'
+                  borderBottomColor: 'rgba(55, 65, 81, 0.3)'
                 } : undefined}
               >
                 <View className="flex-row items-center gap-3">
@@ -459,7 +459,7 @@ export default function MineScreen() {
                   {item.badge ? (
                     <Text className="text-xs text-gray-500">{item.badge}</Text>
                   ) : null}
-                  <Ionicons name="chevron-forward" size={16} color="#4B5563" />
+                  <Ionicons name="chevron-forward" size={16} color="#6B7280" />
                 </View>
               </TouchableOpacity>
             ))}
@@ -468,8 +468,8 @@ export default function MineScreen() {
 
         {/* App Version */}
         <View className="items-center pb-8">
-          <Text className="text-xs text-gray-600">KAIROS DAPP v1.0.0</Text>
-          <Text className="text-xs text-gray-700 mt-1">Powered by Ethereum</Text>
+          <Text className="text-xs text-gray-500">KAIROS DAPP v1.0.0</Text>
+          <Text className="text-xs text-gray-600 mt-1">Powered by Ethereum</Text>
         </View>
       </ScrollView>
     </Screen>

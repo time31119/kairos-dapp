@@ -1,194 +1,222 @@
 /**
- * Web3 Context - DAPP 钱包连接管理
+ * Web3 Context
+ * 全局钱包状态管理
  */
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { ethers } from 'ethers';
-import * as Crypto from 'expo-crypto';
-import * as Linking from 'expo-linking';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 钱包连接状态
-interface WalletState {
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  connectWallet,
+  disconnect,
+  switchNetwork,
+  getWalletInfo,
+  getWalletType,
+  getBalance,
+  createSignMessage,
+  verifySignature,
+  type WalletInfo,
+} from '@/services/web3';
+import {
+  getChainInfo,
+  formatAddress,
+  formatBalance,
+  type ChainType,
+  type WalletType,
+} from '@/services/metamask';
+
+// 钱包状态接口
+export interface WalletState {
   address: string | null;
-  shortAddress: string;
+  chain: ChainType;
   balance: string;
-  chainId: number | null;
+  walletType: WalletType | null;
   isConnected: boolean;
   isConnecting: boolean;
   error: string | null;
 }
 
-interface Web3ContextType extends WalletState {
-  connect: () => Promise<void>;
-  disconnect: () => void;
-  signMessage: (message: string) => Promise<string>;
-  switchNetwork: (chainId: number) => Promise<void>;
+// Context 接口
+interface Web3ContextType {
+  wallet: WalletState;
+  connect: (type: WalletType) => Promise<void>;
+  disconnect: () => Promise<void>;
+  switchChain: (chain: ChainType) => Promise<void>;
+  refreshBalance: () => Promise<void>;
+  signMessage: (message?: string) => Promise<string>;
+  verifySign: (signature: string) => Promise<boolean>;
 }
 
+// 默认状态
+const defaultState: WalletState = {
+  address: null,
+  chain: 'ethereum',
+  balance: '0',
+  walletType: null,
+  isConnected: false,
+  isConnecting: false,
+  error: null,
+};
+
+// 创建 Context
 const Web3Context = createContext<Web3ContextType | undefined>(undefined);
 
-// 简化版钱包（用于演示）
-// 实际 DAPP 应该使用 WalletConnect 或 MetaMask
-class SimpleWallet {
-  privateKey: string;
-  address: string;
-
-  constructor() {
-    // 生成随机钱包
-    const wallet = ethers.Wallet.createRandom();
-    this.privateKey = wallet.privateKey;
-    this.address = wallet.address;
-  }
-
-  getAddress(): string {
-    return this.address;
-  }
-
-  signMessage(message: string): Promise<string> {
-    const wallet = new ethers.Wallet(this.privateKey);
-    return wallet.signMessage(message);
-  }
+// Provider Props
+interface Web3ProviderProps {
+  children: ReactNode;
 }
 
-// 存储当前钱包
-let currentWallet: SimpleWallet | null = null;
+// Provider 组件
+export function Web3Provider({ children }: Web3ProviderProps) {
+  const [wallet, setWallet] = useState<WalletState>(defaultState);
 
-export function Web3Provider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<WalletState>({
-    address: null,
-    shortAddress: '',
-    balance: '0',
-    chainId: 1,
-    isConnected: false,
-    isConnecting: false,
-    error: null,
-  });
-
-  // 连接钱包（简化版 - 模拟连接）
-  const connect = useCallback(async () => {
-    setState(prev => ({ ...prev, isConnecting: true, error: null }));
-    
-    try {
-      // 模拟连接延迟
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // 创建新钱包或使用已有钱包
-      if (!currentWallet) {
-        currentWallet = new SimpleWallet();
-      }
-      
-      const address = currentWallet.getAddress();
-      const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
-      
-      setState({
-        address,
-        shortAddress,
-        balance: '0.5', // 模拟余额
-        chainId: 1,
-        isConnected: true,
-        isConnecting: false,
-        error: null,
-      });
-      
-      // 存储到本地
-      try {
-        await AsyncStorage.setItem('wallet_address', address);
-      } catch (e) {
-        // 忽略存储错误
-      }
-    } catch (error: any) {
-      setState(prev => ({
-        ...prev,
-        isConnecting: false,
-        error: error.message || '连接失败'
-      }));
-    }
-  }, []);
-
-  // 断开连接
-  const disconnect = useCallback(() => {
-    currentWallet = null;
-    setState({
-      address: null,
-      shortAddress: '',
-      balance: '0',
-      chainId: null,
-      isConnected: false,
-      isConnecting: false,
-      error: null,
-    });
-    
-    // 异步清理存储
-    AsyncStorage.removeItem('wallet_address').catch(() => {});
-  }, []);
-
-  // 签名消息
-  const signMessage = useCallback(async (message: string): Promise<string> => {
-    if (!currentWallet) {
-      throw new Error('请先连接钱包');
-    }
-    
-    // 生成随机 nonce 用于防重放攻击
-    const nonce = await Crypto.getRandomBytesAsync(16);
-    const nonceHex = Buffer.from(nonce).toString('hex');
-    const fullMessage = `${message}\n\nNonce: ${nonceHex}\nTimestamp: ${Date.now()}`;
-    
-    return currentWallet.signMessage(fullMessage);
-  }, []);
-
-  // 切换网络
-  const switchNetwork = useCallback(async (chainId: number) => {
-    setState(prev => ({ ...prev, chainId }));
-  }, []);
-
-  // 恢复连接状态
+  // 初始化 - 恢复连接状态
   useEffect(() => {
     const restoreConnection = async () => {
       try {
-        const savedAddress = await AsyncStorage.getItem('wallet_address');
-        
-        if (savedAddress) {
-          // 恢复钱包
-          currentWallet = new SimpleWallet();
-          (currentWallet as any).address = savedAddress;
+        const info = await getWalletInfo();
+        const type = await getWalletType();
+
+        if (info && type) {
+          const balance = await getBalance(info.address);
           
-          setState({
-            address: savedAddress,
-            shortAddress: `${savedAddress.slice(0, 6)}...${savedAddress.slice(-4)}`,
-            balance: '0.5',
-            chainId: 1,
+          setWallet({
+            address: info.address,
+            chain: info.chain,
+            balance,
+            walletType: type,
             isConnected: true,
             isConnecting: false,
             error: null,
           });
         }
-      } catch (e) {
-        // 忽略
+      } catch (error) {
+        console.error('Failed to restore connection:', error);
       }
     };
-    
+
     restoreConnection();
   }, []);
 
+  // 连接钱包
+  const connect = useCallback(async (type: WalletType) => {
+    setWallet(prev => ({ ...prev, isConnecting: true, error: null }));
+
+    try {
+      const { address, chain } = await connectWallet(type);
+      const balance = await getBalance(address);
+
+      setWallet({
+        address,
+        chain,
+        balance,
+        walletType: type,
+        isConnected: true,
+        isConnecting: false,
+        error: null,
+      });
+    } catch (error: any) {
+      setWallet(prev => ({
+        ...prev,
+        isConnecting: false,
+        error: error.message || 'Failed to connect',
+      }));
+      throw error;
+    }
+  }, []);
+
+  // 断开连接
+  const disconnectWallet = useCallback(async () => {
+    try {
+      await disconnect();
+      setWallet(defaultState);
+    } catch (error: any) {
+      setWallet(prev => ({
+        ...prev,
+        error: error.message || 'Failed to disconnect',
+      }));
+    }
+  }, []);
+
+  // 切换链
+  const switchChain = useCallback(async (chain: ChainType) => {
+    if (!wallet.address) return;
+
+    try {
+      await switchNetwork(chain);
+      setWallet(prev => ({ ...prev, chain }));
+    } catch (error: any) {
+      setWallet(prev => ({
+        ...prev,
+        error: error.message || 'Failed to switch chain',
+      }));
+    }
+  }, [wallet.address]);
+
+  // 刷新余额
+  const refreshBalance = useCallback(async () => {
+    if (!wallet.address) return;
+
+    try {
+      const balance = await getBalance(wallet.address);
+      setWallet(prev => ({ ...prev, balance }));
+    } catch (error) {
+      console.error('Failed to refresh balance:', error);
+    }
+  }, [wallet.address]);
+
+  // 获取签名消息
+  const signMessage = useCallback(async (message?: string): Promise<string> => {
+    if (!wallet.address) {
+      throw new Error('Wallet not connected');
+    }
+    const msg = message || `KAIROS DAPP 登录授权\n钱包地址: ${wallet.address}\n时间: ${new Date().toISOString()}`;
+    return createSignMessage(wallet.address, msg);
+  }, [wallet.address]);
+
+  // 验证签名
+  const verifySign = useCallback(async (signature: string): Promise<boolean> => {
+    if (!wallet.address) {
+      throw new Error('Wallet not connected');
+    }
+    return await verifySignature(wallet.address, signature);
+  }, [wallet.address]);
+
+  const value: Web3ContextType = {
+    wallet,
+    connect,
+    disconnect: disconnectWallet,
+    switchChain,
+    refreshBalance,
+    signMessage,
+    verifySign,
+  };
+
   return (
-    <Web3Context.Provider value={{
-      ...state,
-      connect,
-      disconnect,
-      signMessage,
-      switchNetwork,
-    }}>
+    <Web3Context.Provider value={value}>
       {children}
     </Web3Context.Provider>
   );
 }
 
-export function useWeb3() {
+// Hook
+export function useWeb3(): Web3ContextType {
   const context = useContext(Web3Context);
-  if (!context) {
-    throw new Error('useWeb3 must be used within Web3Provider');
+  
+  if (context === undefined) {
+    throw new Error('useWeb3 must be used within a Web3Provider');
   }
+  
   return context;
 }
 
-export type { WalletState };
+// 辅助 Hook - 获取格式化数据
+export function useFormattedWallet() {
+  const { wallet } = useWeb3();
+  
+  return {
+    ...wallet,
+    shortAddress: wallet.address ? formatAddress(wallet.address) : null,
+    chainInfo: getChainInfo(wallet.chain),
+    formattedBalance: wallet.address ? formatBalance(wallet.balance) : '0',
+  };
+}

@@ -47,7 +47,7 @@ type SortType = 'time' | 'price' | 'change' | 'marketCap';
 
 export default function FollowScreen() {
   const router = useSafeRouter();
-  const { address, isConnected } = useWeb3();
+  const { wallet } = useWeb3();
   const [activeTab, setActiveTab] = useState<TabType>('watchlist');
   const [watchlist, setWatchlist] = useState<Coin[]>([]);
   const [recentCoins, setRecentCoins] = useState<Coin[]>([]);
@@ -62,7 +62,7 @@ export default function FollowScreen() {
 
   useEffect(() => {
     loadData();
-  }, [address]);
+  }, [wallet.address]);
 
   const loadData = () => {
     const savedWatchlist = watchlist.length > 0 ? watchlist : MOCK_COINS.slice(0, 5);

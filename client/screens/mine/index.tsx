@@ -47,7 +47,7 @@ const MENU_ITEMS = [
 
 export default function MineScreen() {
   const router = useSafeRouter();
-  const { address, shortAddress, balance, isConnected, chainId, connect, disconnect } = useWeb3();
+  const { wallet, connect, disconnect, switchChain } = useWeb3();
   const [refreshing, setRefreshing] = useState(false);
   const [userStats, setUserStats] = useState<UserStats>({
     totalOrders: 0,
@@ -59,7 +59,7 @@ export default function MineScreen() {
   const [showAddress, setShowAddress] = useState(false);
 
   useEffect(() => {
-    if (isConnected) {
+    if (wallet.isConnected) {
       setUserStats({
         totalOrders: Math.floor(Math.random() * 50),
         totalFollowers: Math.floor(Math.random() * 20),
@@ -68,7 +68,7 @@ export default function MineScreen() {
         nftCount: Math.floor(Math.random() * 5),
       });
     }
-  }, [isConnected, address]);
+  }, [wallet.isConnected, wallet.address]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -85,8 +85,8 @@ export default function MineScreen() {
   };
 
   const copyAddress = () => {
-    if (address) {
-      Alert.alert('地址已复制', address);
+    if (wallet.address) {
+      Alert.alert('地址已复制', wallet.address);
     }
   };
 
@@ -106,24 +106,28 @@ export default function MineScreen() {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
-  const getNetworkName = (id: number | null) => {
+  const getNetworkName = (id: string | null) => {
     switch (id) {
-      case 1: return 'Mainnet';
-      case 5: return 'Goerli';
-      case 11155111: return 'Sepolia';
-      case 137: return 'Polygon';
-      case 56: return 'BSC';
+      case 'ethereum': return 'Ethereum';
+      case 'sepolia': return 'Sepolia';
+      case 'polygon': return 'Polygon';
+      case 'bsc': return 'BSC';
+      case 'arbitrum': return 'Arbitrum';
+      case 'optimism': return 'Optimism';
+      case 'bscTestnet': return 'BSC Testnet';
       default: return 'Unknown';
     }
   };
 
-  const getNetworkColor = (id: number | null) => {
+  const getNetworkColor = (id: string | null) => {
     switch (id) {
-      case 1: return '#627EEA';
-      case 5: return '#00D3FF';
-      case 11155111: return '#F3BA2F';
-      case 137: return '#8247E5';
-      case 56: return '#F3BA2F';
+      case 'ethereum': return '#627EEA';
+      case 'sepolia': return '#F3BA2F';
+      case 'polygon': return '#8247E5';
+      case 'bsc': return '#F3BA2F';
+      case 'arbitrum': return '#28A0F0';
+      case 'optimism': return '#FF0420';
+      case 'bscTestnet': return '#F3BA2F';
       default: return '#6B7280';
     }
   };
@@ -170,9 +174,9 @@ export default function MineScreen() {
               shadowOpacity: 0.1,
               shadowRadius: 20,
             }}
-            onPress={isConnected ? copyAddress : handleLogin}
+            onPress={wallet.isConnected ? copyAddress : handleLogin}
           >
-            {isConnected ? (
+            {wallet.isConnected ? (
               <View>
                 {/* 用户信息行 */}
                 <View className="flex-row items-center gap-4 mb-4">
@@ -204,7 +208,7 @@ export default function MineScreen() {
                       )}
                     </View>
                     <TouchableOpacity onPress={() => setShowAddress(!showAddress)} className="flex-row items-center gap-1 mt-1">
-                      <Text className="text-sm" style={{ color: '#6B7280' }}>{formatAddress(address || '')}</Text>
+                      <Text className="text-sm" style={{ color: '#6B7280' }}>{formatAddress(wallet.address || '')}</Text>
                       <Ionicons 
                         name={showAddress ? "eye-off-outline" : "eye-outline"} 
                         size={14} 
@@ -229,14 +233,14 @@ export default function MineScreen() {
                 >
                   <View className="items-center flex-1">
                     <Text className="text-xs" style={{ color: '#6B7280' }}>余额</Text>
-                    <Text className="text-sm font-semibold mt-1" style={{ color: '#00F0FF' }}>{balance} ETH</Text>
+                    <Text className="text-sm font-semibold mt-1" style={{ color: '#00F0FF' }}>{wallet.balance} ETH</Text>
                   </View>
                   <View className="w-px" style={{ backgroundColor: '#1F1F2E' }} />
                   <View className="items-center flex-1">
                     <Text className="text-xs" style={{ color: '#6B7280' }}>网络</Text>
                     <View className="flex-row items-center gap-1 mt-1">
-                      <View style={{ backgroundColor: getNetworkColor(chainId) }} className="w-2 h-2 rounded-full" />
-                      <Text className="text-sm font-semibold" style={{ color: '#E5E7EB' }}>{getNetworkName(chainId)}</Text>
+                      <View style={{ backgroundColor: getNetworkColor(wallet.chain) }} className="w-2 h-2 rounded-full" />
+                      <Text className="text-sm font-semibold" style={{ color: '#E5E7EB' }}>{getNetworkName(wallet.chain)}</Text>
                     </View>
                   </View>
                   <View className="w-px" style={{ backgroundColor: '#1F1F2E' }} />
@@ -277,7 +281,7 @@ export default function MineScreen() {
         </View>
 
         {/* 用户统计 - 暗黑科技风格 */}
-        {isConnected && (
+        {wallet.isConnected && (
           <View className="px-5 mb-5">
             <View 
               className="rounded-2xl p-4"

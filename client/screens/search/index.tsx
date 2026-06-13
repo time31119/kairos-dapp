@@ -163,7 +163,7 @@ export default function SearchScreen() {
   // 处理结果项点击
   const handleResultPress = (item: any) => {
     addToHistory(item.symbol);
-    router.push(`/coin/${item.id}`);
+    router.push(`/coin/${item.symbol}`);
   };
 
   const renderSearchResult = ({ item }: { item: any }) => (
@@ -321,7 +321,7 @@ function PopularCoinsList({ hotKeywords, onPress }: { hotKeywords: string[]; onP
   return (
     <View>
       {coins.map((coin) => (
-        <Link key={coin.id} href={`/coin/${coin.id}`} asChild>
+        <Link key={coin.id} href={`/coin/${coin.symbol}`} asChild>
           <Pressable style={styles.popularItem}>
             <View style={styles.popularLeft}>
               <View style={[styles.coinIcon, { backgroundColor: 'rgba(0, 240, 255, 0.2)' }]}>

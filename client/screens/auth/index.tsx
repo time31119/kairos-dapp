@@ -55,20 +55,20 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
 
 export default function LoginScreen() {
   const router = useSafeRouter();
-  const { address, isConnected, isConnecting, connect, disconnect, signMessage } = useWeb3();
+  const { wallet, connect, disconnect, signMessage } = useWeb3();
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
   // 钱包连接后自动登录
   useEffect(() => {
-    if (isConnected && address) {
+    if (wallet.isConnected && wallet.address) {
       handleWalletLogin();
     }
-  }, [isConnected, address]);
+  }, [wallet.isConnected, wallet.address]);
 
   // 钱包登录
   const handleWalletLogin = async () => {
-    if (!address) return;
+    if (!wallet.address) return;
     
     setLoading(true);
     try {
@@ -83,7 +83,7 @@ export default function LoginScreen() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          walletAddress: address,
+          walletAddress: wallet.address,
           signature,
           message,
         }),
@@ -91,16 +91,16 @@ export default function LoginScreen() {
       
       // 3. 保存登录状态
       await AsyncStorage.setItem('token', response?.token || 'wallet_token');
-      await AsyncStorage.setItem('wallet_address', address);
+      await AsyncStorage.setItem('wallet_wallet.address', wallet.address);
       await AsyncStorage.setItem('login_type', 'wallet');
       
-      Alert.alert('登录成功', `欢迎回来！\n${address.slice(0, 8)}...${address.slice(-6)}`);
+      Alert.alert('登录成功', `欢迎回来！\n${wallet.address.slice(0, 8)}...${wallet.address.slice(-6)}`);
       router.replace('/');
     } catch (error: any) {
       console.error('Wallet login error:', error);
       // 即使后端验证失败，也允许使用钱包登录（离线模式）
       await AsyncStorage.setItem('token', 'wallet_token');
-      await AsyncStorage.setItem('wallet_address', address);
+      await AsyncStorage.setItem('wallet_wallet.address', wallet.address);
       await AsyncStorage.setItem('login_type', 'wallet');
       
       Alert.alert('登录成功', '钱包登录成功！');
@@ -115,7 +115,7 @@ export default function LoginScreen() {
     setShowModal(false);
     
     try {
-      await connect();
+      await connect("metamask");
     } catch (error: any) {
       Alert.alert('连接失败', error.message || '请重试');
     }
@@ -149,8 +149,8 @@ export default function LoginScreen() {
         {/* 连接钱包区域 */}
         <View style={styles.connectSection}>
           {/* 主要连接按钮 */}
-          {isConnecting ? (
-            <View style={styles.connectingBox}>
+          {wallet.isConnecting ? (
+            <View style={styles.connectingText}>
               <ActivityIndicator color={colors.neonCyan} size="large" />
               <Text style={styles.connectingText}>正在连接钱包...</Text>
               <Text style={styles.connectingHint}>请在钱包中确认授权</Text>
@@ -167,33 +167,33 @@ export default function LoginScreen() {
           )}
 
           {/* 钱包选项 */}
-          <View style={styles.walletOptions}>
+          <View style={styles.connectSection}>
             <TouchableOpacity
-              style={styles.walletOption}
+              style={styles.connectButton}
               onPress={() => handleConnectWallet('metamask')}
             >
-              <View style={styles.walletIconBox}>
-                <Text style={styles.walletEmoji}>🦊</Text>
+              <View style={styles.iconBox}>
+                <Text style={styles.emoji}>🦊</Text>
               </View>
               <Text style={styles.walletName}>MetaMask</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.walletOption}
+              style={styles.connectButton}
               onPress={() => handleConnectWallet('walletconnect')}
             >
-              <View style={styles.walletIconBox}>
-                <Text style={styles.walletEmoji}>👛</Text>
+              <View style={styles.iconBox}>
+                <Text style={styles.emoji}>👛</Text>
               </View>
               <Text style={styles.walletName}>WalletConnect</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.walletOption}
+              style={styles.connectButton}
               onPress={() => handleConnectWallet('browser')}
             >
-              <View style={styles.walletIconBox}>
-                <Text style={styles.walletEmoji}>📱</Text>
+              <View style={styles.iconBox}>
+                <Text style={styles.emoji}>📱</Text>
               </View>
               <Text style={styles.walletName}>DApp Browser</Text>
             </TouchableOpacity>
@@ -203,14 +203,14 @@ export default function LoginScreen() {
         {/* 底部信息 */}
         <View style={styles.footer}>
           {/* 已连接状态 */}
-          {isConnected && address && (
+          {wallet.isConnected && wallet.address && (
             <View style={styles.connectedInfo}>
               <View style={styles.statusIndicator}>
                 <View style={styles.statusDot} />
                 <Text style={styles.statusText}>已连接</Text>
               </View>
               <Text style={styles.addressText}>
-                {address.slice(0, 8)}...{address.slice(-6)}
+                {wallet.address.slice(0, 8)}...{wallet.address.slice(-6)}
               </Text>
             </View>
           )}
@@ -372,16 +372,14 @@ const styles = StyleSheet.create({
 
   // 连接区域
   connectSection: {
-    paddingHorizontal: 24,
-    paddingVertical: 32,
-  },
-  connectingBox: {
     alignItems: 'center',
     padding: 40,
     backgroundColor: colors.card,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.neonCyan + '40',
+    gap: 12,
+    marginTop: 24,
   },
   connectingText: {
     color: colors.text,
@@ -455,6 +453,44 @@ const styles = StyleSheet.create({
   walletName: {
     color: colors.textMuted,
     fontSize: 11,
+  },
+
+  // 连接按钮样式
+  connectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: '#1F1F2E',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  iconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  emoji: {
+    fontSize: 20,
+  },
+
+  connected: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: '#1F1F2E',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
 
   // 底部信息

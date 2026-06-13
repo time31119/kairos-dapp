@@ -61,57 +61,26 @@ const scenarios: Scenario[] = [
   }
 ];
 
-function ScenarioCard({ scenario }: { scenario: Scenario }) {
-  const router = useSafeRouter();
-  const isUp = scenario.direction === 'up';
-  
-  const borderColor = isUp ? '#00F0FF' : '#BF00FF';
-  const glowColor = isUp ? 'rgba(0, 240, 255, 0.15)' : 'rgba(191, 0, 255, 0.15)';
-  const arrowColor = isUp ? '#00F0FF' : '#BF00FF';
-  
+function ScenarioCard({ scenario }: { scenario: any }) {
   return (
-    <Link
-      href={`/screener/[scenario]?scenario=${scenario}`}
-      asChild
-    >
+    <Link href={`/screener/${scenario.id}`} asChild>
       <Pressable
         style={({ pressed }) => [
-          styles.scenarioCard,
+          styles.categoryCard,
           {
-            borderColor,
             backgroundColor: pressed ? '#1A1A24' : '#12121A',
-            shadowColor: borderColor,
-            shadowOpacity: pressed ? 0.4 : 0.2,
+            borderColor: scenario.color,
+            shadowColor: scenario.color,
+            shadowOpacity: pressed ? 0.4 : 0.15,
           }
         ]}
       >
-        <View style={styles.cardHeader}>
-          <View style={[styles.iconContainer, { backgroundColor: glowColor }]}>
-            <Ionicons 
-              name={scenario.icon} 
-              size={24} 
-              color={borderColor} 
-            />
-          </View>
-          <View style={styles.titleContainer}>
-            <View style={styles.titleRow}>
-              <Text style={[styles.arrowIcon, { color: arrowColor }]}>
-                {isUp ? '↑' : '↓'}
-              </Text>
-              <Text style={styles.title}>{scenario.title}</Text>
-            </View>
-            <Text style={styles.timeframe}>{scenario.timeframe}</Text>
-          </View>
+        <View style={[styles.categoryIcon, { backgroundColor: scenario.color + '20' }]}>
+          <Ionicons name={scenario.icon} size={28} color={scenario.color} />
         </View>
-        
-        <Text style={styles.description}>{scenario.description}</Text>
-        
-        <View style={styles.filtersContainer}>
-          <Text style={styles.filtersLabel}>筛选条件</Text>
-          <Text style={styles.filters}>{scenario.filters}</Text>
-        </View>
-        
-        <View style={[styles.gradientLine, { backgroundColor: borderColor }]} />
+        <Text style={styles.categoryTitle}>{scenario.title}</Text>
+        <Text style={styles.categoryDesc}>{scenario.description}</Text>
+        <View style={[styles.categoryGlow, { backgroundColor: scenario.color }]} />
       </Pressable>
     </Link>
   );
@@ -753,88 +722,53 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   scenarioList: {
-    gap: 16,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
-  
-  // Scenario Card
-  scenarioCard: {
-    borderRadius: 20,
-    padding: 20,
+  categoryCard: {
+    width: '31%',
+    aspectRatio: 1,
+    borderRadius: 16,
     borderWidth: 1,
-    position: 'relative',
+    padding: 10,
+    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
     overflow: 'hidden',
     shadowOffset: { width: 0, height: 0 },
-    shadowRadius: 20,
-    elevation: 5,
+    shadowRadius: 15,
+    elevation: 3,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
+  categoryIcon: {
+    width: 50,
+    height: 50,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginBottom: 8,
   },
-  titleContainer: {
-    flex: 1,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  arrowIcon: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginRight: 6,
-  },
-  title: {
-    fontSize: 18,
+  categoryTitle: {
+    fontSize: 11,
     fontWeight: '700',
     color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 2,
   },
-  timeframe: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 2,
-    marginLeft: 26,
-  },
-  description: {
-    fontSize: 14,
+  categoryDesc: {
+    fontSize: 9,
     color: '#9CA3AF',
-    marginBottom: 12,
-    marginLeft: 60,
+    textAlign: 'center',
   },
-  filtersContainer: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 10,
-    padding: 12,
-    marginLeft: 60,
-  },
-  filtersLabel: {
-    fontSize: 10,
-    color: '#6B7280',
-    marginBottom: 4,
-    letterSpacing: 1,
-  },
-  filters: {
-    fontSize: 11,
-    color: '#9CA3AF',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  gradientLine: {
+  categoryGlow: {
     position: 'absolute',
     bottom: 0,
-    left: 20,
-    right: 20,
+    left: 0,
+    right: 0,
     height: 2,
-    borderRadius: 1,
+    opacity: 0.6,
   },
-  
+
   // VIP Section
   vipContainer: {
     backgroundColor: '#12121A',

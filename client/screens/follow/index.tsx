@@ -1,11 +1,11 @@
 /**
- * 关注页面 - 自选代币管理
+ * 关注页面 - 自选代币管理 (DAPP版)
  * KAIROS 行情筛选器
  */
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Text,
   View,
@@ -16,14 +16,18 @@ import {
   RefreshControl,
   ActivityIndicator,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useWeb3 } from '@/contexts/Web3Context';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 const WATCHLIST_KEY = 'watchlist';
+const RECENT_KEY = 'recent_coins';
+const ALERTS_KEY = 'price_alerts';
 
 // API 请求函数
 async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -54,53 +58,101 @@ async function fetchTokens() {
 
 // 格式化价格
 function formatPrice(price: number): string {
+  if (!price) return '$0.00';
   if (price >= 1000) {
-    return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   } else if (price >= 1) {
-    return price.toFixed(2);
+    return '$' + price.toFixed(2);
   } else {
-    return price.toFixed(4);
+    return '$' + price.toFixed(6);
   }
 }
 
 // 格式化市值
 function formatMarketCap(value: number): string {
-  if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-  if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
-  return `$${value.toFixed(2)}`;
+  if (!value) return '$0';
+  if (value >= 1e12) return '$' + (value / 1e12).toFixed(2) + 'T';
+  if (value >= 1e9) return '$' + (value / 1e9).toFixed(2) + 'B';
+  if (value >= 1e6) return '$' + (value / 1e6).toFixed(2) + 'M';
+  return '$' + value.toFixed(2);
+}
+
+// 格式化钱包地址
+function formatAddress(address: string): string {
+  if (!address) return '';
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 type SortType = 'addTime' | 'price' | 'change' | 'marketCap';
 type SortOrder = 'asc' | 'desc';
 
+interface PriceAlert {
+  coinId: string;
+  symbol: string;
+  targetPrice: number;
+  direction: 'above' | 'below';
+  enabled: boolean;
+}
+
 export default function FollowScreen() {
   const router = useSafeRouter();
+  const { address, isConnected } = useWeb3();
   const [followedCoins, setFollowedCoins] = useState<string[]>([]);
   const [allCoins, setAllCoins] = useState<any[]>([]);
+  const [recentCoins, setRecentCoins] = useState<any[]>([]);
+  const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>([]);
   const [sortType, setSortType] = useState<SortType>('addTime');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [showSortModal, setShowSortModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'follow' | 'recent'>('follow');
+  const [activeTab, setActiveTab] = useState<'follow' | 'recent' | 'alerts'>('follow');
+  const [selectedCoin, setSelectedCoin] = useState<any>(null);
+  const autoRefreshRef = useRef<NodeJS.Timeout | null>(null);
 
   // 加载数据
   useEffect(() => {
     loadData();
+    
+    // 启动自动刷新 (每30秒)
+    autoRefreshRef.current = setInterval(() => {
+      refreshPrices();
+    }, 30000);
+    
+    return () => {
+      if (autoRefreshRef.current) {
+        clearInterval(autoRefreshRef.current);
+      }
+    };
   }, []);
 
   const loadData = async () => {
     setLoading(true);
     try {
       // 从本地存储加载自选列表
-      const stored = await AsyncStorage.getItem(WATCHLIST_KEY);
+      const watchlistKey = isConnected && address ? `${WATCHLIST_KEY}_${address}` : WATCHLIST_KEY;
+      const stored = await AsyncStorage.getItem(watchlistKey);
       if (stored) {
         setFollowedCoins(JSON.parse(stored));
       } else {
-        // 默认自选
-        setFollowedCoins(['bitcoin', 'ethereum']);
+        setFollowedCoins(['bitcoin', 'ethereum', 'binancecoin']);
+      }
+
+      // 加载最近浏览
+      const recentKey = isConnected && address ? `${RECENT_KEY}_${address}` : RECENT_KEY;
+      const recentStored = await AsyncStorage.getItem(recentKey);
+      if (recentStored) {
+        setRecentCoins(JSON.parse(recentStored));
+      }
+
+      // 加载价格提醒
+      const alertsKey = isConnected && address ? `${ALERTS_KEY}_${address}` : ALERTS_KEY;
+      const alertsStored = await AsyncStorage.getItem(alertsKey);
+      if (alertsStored) {
+        setPriceAlerts(JSON.parse(alertsStored));
       }
 
       // 获取代币列表
@@ -113,10 +165,41 @@ export default function FollowScreen() {
     }
   };
 
-  // 保存自选列表到本地
+  // 刷新价格
+  const refreshPrices = async () => {
+    try {
+      const tokens = await fetchTokens();
+      setAllCoins(tokens);
+    } catch (error) {
+      console.error('刷新价格失败:', error);
+    }
+  };
+
+  // 保存自选列表
   const saveWatchlist = async (list: string[]) => {
     try {
-      await AsyncStorage.setItem(WATCHLIST_KEY, JSON.stringify(list));
+      const key = isConnected && address ? `${WATCHLIST_KEY}_${address}` : WATCHLIST_KEY;
+      await AsyncStorage.setItem(key, JSON.stringify(list));
+    } catch (error) {
+      console.error('保存失败:', error);
+    }
+  };
+
+  // 保存最近浏览
+  const saveRecentCoins = async (coins: any[]) => {
+    try {
+      const key = isConnected && address ? `${RECENT_KEY}_${address}` : RECENT_KEY;
+      await AsyncStorage.setItem(key, JSON.stringify(coins.slice(0, 20)));
+    } catch (error) {
+      console.error('保存失败:', error);
+    }
+  };
+
+  // 保存价格提醒
+  const savePriceAlerts = async (alerts: PriceAlert[]) => {
+    try {
+      const key = isConnected && address ? `${ALERTS_KEY}_${address}` : ALERTS_KEY;
+      await AsyncStorage.setItem(key, JSON.stringify(alerts));
     } catch (error) {
       console.error('保存失败:', error);
     }
@@ -149,8 +232,12 @@ export default function FollowScreen() {
 
   const followedCoinsData = getFollowedCoinsData();
 
-  // 最近浏览 (从 allCoins 随机取)
-  const recentCoins = allCoins.slice(0, 5);
+  // 添加到最近浏览
+  const addToRecent = (coin: any) => {
+    const newRecent = [coin, ...recentCoins.filter(c => c.id !== coin.id)].slice(0, 20);
+    setRecentCoins(newRecent);
+    saveRecentCoins(newRecent);
+  };
 
   // 移除自选
   const handleRemoveFollow = (coinId: string) => {
@@ -170,12 +257,34 @@ export default function FollowScreen() {
     setSearchQuery('');
   };
 
+  // 添加价格提醒
+  const handleAddAlert = (coin: any, targetPrice: number, direction: 'above' | 'below') => {
+    const newAlert: PriceAlert = {
+      coinId: coin.id,
+      symbol: coin.symbol,
+      targetPrice,
+      direction,
+      enabled: true,
+    };
+    const newAlerts = [...priceAlerts.filter(a => !(a.coinId === coin.id && a.direction === direction)), newAlert];
+    setPriceAlerts(newAlerts);
+    savePriceAlerts(newAlerts);
+    setShowAlertModal(false);
+  };
+
+  // 删除价格提醒
+  const handleDeleteAlert = (coinId: string, direction: 'above' | 'below') => {
+    const newAlerts = priceAlerts.filter(a => !(a.coinId === coinId && a.direction === direction));
+    setPriceAlerts(newAlerts);
+    savePriceAlerts(newAlerts);
+  };
+
   // 下拉刷新
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
-  }, []);
+  }, [isConnected, address]);
 
   // 切换排序
   const toggleSort = (type: SortType) => {
@@ -185,36 +294,64 @@ export default function FollowScreen() {
       setSortType(type);
       setSortOrder('desc');
     }
+    setShowSortModal(false);
+  };
+
+  // 批量移除
+  const handleBatchRemove = () => {
+    Alert.alert(
+      '批量移除',
+      `确定要移除所有 ${followedCoins.length} 个自选吗？`,
+      [
+        { text: '取消', style: 'cancel' },
+        { text: '确定', style: 'destructive', onPress: () => {
+          setFollowedCoins([]);
+          saveWatchlist([]);
+        }},
+      ]
+    );
   };
 
   // 搜索过滤
   const filteredCoins = searchQuery
     ? allCoins.filter(coin =>
-        coin.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        coin.name.toLowerCase().includes(searchQuery.toLowerCase())
+        coin.symbol?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        coin.name?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : allCoins;
 
+  // 点击代币
+  const handleCoinPress = (coin: any) => {
+    addToRecent(coin);
+    router.push('/coin', { id: coin.id });
+  };
+
   const renderCoinItem = ({ item, index }: { item: any; index: number }) => {
     const isFollowed = followedCoins.includes(item.id);
+    const coinAlert = priceAlerts.find(a => a.coinId === item.id);
     
     return (
       <TouchableOpacity
         style={styles.coinItem}
-        onPress={() => router.push('/coin', { id: item.id })}
+        onPress={() => handleCoinPress(item)}
         activeOpacity={0.7}
       >
         <View style={styles.coinLeft}>
           <Text style={styles.rankText}>{index + 1}</Text>
           <View style={styles.coinIcon}>
-            <Text style={styles.coinIconText}>{item.symbol?.slice(0, 2)}</Text>
+            <Text style={styles.coinIconText}>{item.symbol?.slice(0, 2).toUpperCase()}</Text>
           </View>
           <View style={styles.coinInfo}>
             <View style={styles.coinNameRow}>
-              <Text style={styles.coinSymbol}>{item.symbol}</Text>
+              <Text style={styles.coinSymbol}>{item.symbol?.toUpperCase()}</Text>
               {isFollowed && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>自选</Text>
+                </View>
+              )}
+              {coinAlert && (
+                <View style={[styles.badge, styles.alertBadge]}>
+                  <Ionicons name="notifications" size={10} color="#FFD700" />
                 </View>
               )}
             </View>
@@ -223,30 +360,70 @@ export default function FollowScreen() {
         </View>
         
         <View style={styles.coinRight}>
-          <Text style={styles.coinPrice}>${formatPrice(item.price)}</Text>
+          <Text style={styles.coinPrice}>{formatPrice(item.price)}</Text>
           <View style={styles.changeRow}>
-            <Text style={[styles.coinChange, { color: (item.change24h || 0) >= 0 ? '#00F0FF' : '#BF00FF' }]}>
+            <Text style={[styles.coinChange, { color: (item.change24h || 0) >= 0 ? '#00F0FF' : '#FF4444' }]}>
               {(item.change24h || 0) >= 0 ? '+' : ''}{(item.change24h || 0).toFixed(2)}%
             </Text>
             <Ionicons
               name={(item.change24h || 0) >= 0 ? 'trending-up' : 'trending-down'}
               size={14}
-              color={(item.change24h || 0) >= 0 ? '#00F0FF' : '#BF00FF'}
+              color={(item.change24h || 0) >= 0 ? '#00F0FF' : '#FF4444'}
             />
           </View>
         </View>
         
-        <TouchableOpacity
-          style={[styles.addButton, isFollowed && styles.addButtonFollowed]}
-          onPress={() => isFollowed ? handleRemoveFollow(item.id) : handleAddFollow(item.id)}
-        >
-          <Ionicons
-            name={isFollowed ? 'checkmark' : 'add'}
-            size={18}
-            color={isFollowed ? '#666' : '#0A0A0F'}
-          />
-        </TouchableOpacity>
+        <View style={styles.coinActions}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => {
+              setSelectedCoin(item);
+              setShowAlertModal(true);
+            }}
+          >
+            <Ionicons name="notifications-outline" size={18} color="#FFD700" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.addButton, isFollowed && styles.addButtonFollowed]}
+            onPress={() => isFollowed ? handleRemoveFollow(item.id) : handleAddFollow(item.id)}
+          >
+            <Ionicons
+              name={isFollowed ? 'checkmark' : 'add'}
+              size={18}
+              color={isFollowed ? '#666' : '#0A0A0F'}
+            />
+          </TouchableOpacity>
+        </View>
       </TouchableOpacity>
+    );
+  };
+
+  // 渲染价格提醒项
+  const renderAlertItem = ({ item }: { item: PriceAlert }) => {
+    const coin = allCoins.find(c => c.id === item.coinId);
+    const currentPrice = coin?.price || 0;
+    const isTriggered = item.direction === 'above' ? currentPrice >= item.targetPrice : currentPrice <= item.targetPrice;
+    
+    return (
+      <View style={[styles.alertItem, isTriggered && styles.alertTriggered]}>
+        <View style={styles.alertLeft}>
+          <Text style={styles.alertSymbol}>{item.symbol?.toUpperCase()}</Text>
+          <Text style={styles.alertCondition}>
+            价格{item.direction === 'above' ? '高于' : '低于'} {formatPrice(item.targetPrice)}
+          </Text>
+        </View>
+        <View style={styles.alertRight}>
+          <Text style={styles.alertCurrent}>当前: {formatPrice(currentPrice)}</Text>
+          {isTriggered && (
+            <View style={styles.triggeredBadge}>
+              <Text style={styles.triggeredText}>已触发</Text>
+            </View>
+          )}
+          <TouchableOpacity onPress={() => handleDeleteAlert(item.coinId, item.direction)}>
+            <Ionicons name="trash-outline" size={18} color="#FF4444" />
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   };
 
@@ -254,44 +431,38 @@ export default function FollowScreen() {
     <View style={styles.headerSection}>
       {/* Tab Switcher */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'follow' && styles.tabActive]}
-          onPress={() => setActiveTab('follow')}
-        >
-          <Text style={[styles.tabText, activeTab === 'follow' && styles.tabTextActive]}>
-            自选 ({followedCoins.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'recent' && styles.tabActive]}
-          onPress={() => setActiveTab('recent')}
-        >
-          <Text style={[styles.tabText, activeTab === 'recent' && styles.tabTextActive]}>
-            最近浏览
-          </Text>
-        </TouchableOpacity>
+        {[
+          { key: 'follow' as const, label: '自选', count: followedCoins.length },
+          { key: 'recent' as const, label: '最近', count: recentCoins.length },
+          { key: 'alerts' as const, label: '提醒', count: priceAlerts.length },
+        ].map(tab => (
+          <TouchableOpacity
+            key={tab.key}
+            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+            onPress={() => setActiveTab(tab.key)}
+          >
+            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+              {tab.label} {tab.count > 0 && `(${tab.count})`}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
       
       {/* Sort Options */}
       {activeTab === 'follow' && followedCoins.length > 0 && (
-        <View style={styles.sortContainer}>
-          <Text style={styles.sortLabel}>排序:</Text>
-          {[
-            { key: 'addTime' as SortType, label: '添加时间' },
-            { key: 'price' as SortType, label: '价格' },
-            { key: 'change' as SortType, label: '涨跌幅' },
-            { key: 'marketCap' as SortType, label: '市值' },
-          ].map(option => (
-            <TouchableOpacity
-              key={option.key}
-              style={[styles.sortButton, sortType === option.key && styles.sortButtonActive]}
-              onPress={() => toggleSort(option.key)}
-            >
-              <Text style={[styles.sortButtonText, sortType === option.key && styles.sortButtonTextActive]}>
-                {option.label} {sortType === option.key && (sortOrder === 'desc' ? '↓' : '↑')}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.sortBar}>
+          <TouchableOpacity style={styles.sortButton} onPress={() => setShowSortModal(true)}>
+            <Ionicons name="swap-vertical" size={16} color="#666" />
+            <Text style={styles.sortButtonText}>
+              {sortType === 'addTime' ? '添加时间' : sortType === 'price' ? '价格' : sortType === 'change' ? '涨跌幅' : '市值'}
+            </Text>
+            <Text style={styles.sortArrow}>{sortOrder === 'desc' ? '↓' : '↑'}</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.batchButton} onPress={handleBatchRemove}>
+            <Ionicons name="trash-outline" size={16} color="#FF4444" />
+            <Text style={styles.batchButtonText}>清空</Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -300,22 +471,35 @@ export default function FollowScreen() {
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIcon}>
-        <Ionicons name="bookmark-outline" size={40} color="#374151" />
+        <Ionicons 
+          name={activeTab === 'alerts' ? "notifications-outline" : "bookmark-outline"} 
+          size={48} 
+          color="#374151" 
+        />
       </View>
       <Text style={styles.emptyTitle}>
-        {activeTab === 'follow' ? '暂无自选代币' : '暂无浏览记录'}
+        {activeTab === 'follow' ? '暂无自选代币' : activeTab === 'recent' ? '暂无浏览记录' : '暂无价格提醒'}
       </Text>
       <Text style={styles.emptyDesc}>
-        {activeTab === 'follow'
-          ? '从行情筛选中添加感兴趣的代币\n以便快速查看'
-          : '浏览过的代币将显示在这里'}
+        {activeTab === 'follow' && '从行情筛选中添加感兴趣的代币\n以便快速查看'}
+        {activeTab === 'recent' && '浏览过的代币将显示在这里'}
+        {activeTab === 'alerts' && '设置价格提醒，\n代币达到目标价格时通知您'}
       </Text>
       {activeTab === 'follow' && (
         <TouchableOpacity
           style={styles.addButtonLarge}
           onPress={() => setShowAddModal(true)}
         >
+          <Ionicons name="add" size={20} color="#0A0A0F" />
           <Text style={styles.addButtonLargeText}>添加自选</Text>
+        </TouchableOpacity>
+      )}
+      {activeTab === 'alerts' && (
+        <TouchableOpacity
+          style={styles.addButtonLarge}
+          onPress={() => setActiveTab('follow')}
+        >
+          <Text style={styles.addButtonLargeText}>去自选设置提醒</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -332,13 +516,22 @@ export default function FollowScreen() {
     );
   }
 
+  // 获取显示的数据
+  const displayData = activeTab === 'follow' 
+    ? followedCoinsData 
+    : activeTab === 'recent' 
+      ? recentCoins 
+      : priceAlerts.map(a => allCoins.find(c => c.id === a.coinId)).filter(Boolean);
+
   return (
     <Screen>
       {/* Header */}
       <View style={styles.pageHeader}>
         <View>
           <Text style={styles.pageTitle}>我的关注</Text>
-          <Text style={styles.pageSubtitle}>自选代币列表</Text>
+          <Text style={styles.pageSubtitle}>
+            {isConnected && address ? formatAddress(address) : '未连接钱包'} · {followedCoins.length} 个自选
+          </Text>
         </View>
         <TouchableOpacity
           style={styles.headerAddButton}
@@ -350,9 +543,9 @@ export default function FollowScreen() {
 
       {/* Content */}
       <FlatList
-        data={activeTab === 'follow' ? followedCoinsData : recentCoins}
-        keyExtractor={(item) => item.id}
-        renderItem={renderCoinItem}
+        data={activeTab === 'alerts' ? priceAlerts : (activeTab === 'follow' ? followedCoinsData : recentCoins)}
+        keyExtractor={(item: any) => item.id || `${item.coinId}_${item.direction}`}
+        renderItem={activeTab === 'alerts' ? renderAlertItem : renderCoinItem}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmpty}
         refreshControl={
@@ -363,7 +556,7 @@ export default function FollowScreen() {
             colors={['#00F0FF']}
           />
         }
-        contentContainerStyle={followedCoinsData.length === 0 ? styles.emptyList : styles.listContent}
+        contentContainerStyle={displayData.length === 0 ? styles.emptyList : styles.listContent}
         showsVerticalScrollIndicator={false}
       />
 
@@ -397,12 +590,116 @@ export default function FollowScreen() {
             <FlatList
               data={filteredCoins}
               keyExtractor={(item) => item.id}
-              renderItem={({ item, index }) => renderCoinItem({ item, index })}
+              renderItem={renderCoinItem}
               style={styles.modalList}
               showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                <View style={styles.searchEmpty}>
+                  <Text style={styles.searchEmptyText}>未找到相关代币</Text>
+                </View>
+              }
             />
           </View>
         </View>
+      </Modal>
+
+      {/* Price Alert Modal */}
+      <Modal
+        visible={showAlertModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowAlertModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>价格提醒</Text>
+              <TouchableOpacity onPress={() => setShowAlertModal(false)}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            {selectedCoin && (
+              <View style={styles.alertCoinInfo}>
+                <Text style={styles.alertCoinSymbol}>{selectedCoin.symbol?.toUpperCase()}</Text>
+                <Text style={styles.alertCoinPrice}>当前价格: {formatPrice(selectedCoin.price)}</Text>
+              </View>
+            )}
+
+            <View style={styles.alertButtons}>
+              <TouchableOpacity
+                style={styles.alertButton}
+                onPress={() => selectedCoin && handleAddAlert(selectedCoin, selectedCoin.price * 1.05, 'above')}
+              >
+                <Ionicons name="arrow-up" size={20} color="#00F0FF" />
+                <Text style={styles.alertButtonText}>价格高于 +5%</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.alertButton}
+                onPress={() => selectedCoin && handleAddAlert(selectedCoin, selectedCoin.price * 0.95, 'below')}
+              >
+                <Ionicons name="arrow-down" size={20} color="#FF4444" />
+                <Text style={styles.alertButtonText}>价格低于 -5%</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.alertButtons}>
+              <TouchableOpacity
+                style={styles.alertButton}
+                onPress={() => selectedCoin && handleAddAlert(selectedCoin, selectedCoin.price * 1.1, 'above')}
+              >
+                <Ionicons name="arrow-up" size={20} color="#00F0FF" />
+                <Text style={styles.alertButtonText}>价格高于 +10%</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.alertButton}
+                onPress={() => selectedCoin && handleAddAlert(selectedCoin, selectedCoin.price * 0.9, 'below')}
+              >
+                <Ionicons name="arrow-down" size={20} color="#FF4444" />
+                <Text style={styles.alertButtonText}>价格低于 -10%</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Sort Modal */}
+      <Modal
+        visible={showSortModal}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowSortModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.sortOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowSortModal(false)}
+        >
+          <View style={styles.sortModalContent}>
+            <Text style={styles.sortModalTitle}>排序方式</Text>
+            {[
+              { key: 'addTime' as SortType, label: '添加时间' },
+              { key: 'price' as SortType, label: '价格' },
+              { key: 'change' as SortType, label: '涨跌幅' },
+              { key: 'marketCap' as SortType, label: '市值' },
+            ].map(option => (
+              <TouchableOpacity
+                key={option.key}
+                style={[styles.sortOption, sortType === option.key && styles.sortOptionActive]}
+                onPress={() => toggleSort(option.key)}
+              >
+                <Text style={[styles.sortOptionText, sortType === option.key && styles.sortOptionTextActive]}>
+                  {option.label}
+                </Text>
+                {sortType === option.key && (
+                  <Ionicons name="checkmark" size={20} color="#00F0FF" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
       </Modal>
     </Screen>
   );
@@ -420,9 +717,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   pageHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 8,
     paddingBottom: 16,
@@ -453,11 +747,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerSection: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#1A1A1F',
+    backgroundColor: '#1A1A2E',
     borderRadius: 12,
     padding: 4,
     marginBottom: 12,
@@ -465,8 +759,8 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: 8,
     alignItems: 'center',
+    borderRadius: 8,
   },
   tabActive: {
     backgroundColor: '#00F0FF',
@@ -478,90 +772,102 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: '#0A0A0F',
+    fontWeight: '600',
   },
-  sortContainer: {
+  sortBar: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
-  },
-  sortLabel: {
-    fontSize: 12,
-    color: '#666',
   },
   sortButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1A1A2E',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#1A1A1F',
-  },
-  sortButtonActive: {
-    backgroundColor: 'rgba(0, 240, 255, 0.2)',
-    borderWidth: 1,
-    borderColor: '#00F0FF',
   },
   sortButtonText: {
-    fontSize: 12,
-    color: '#666',
+    color: '#FFFFFF',
+    fontSize: 13,
+    marginLeft: 6,
+    marginRight: 4,
   },
-  sortButtonTextActive: {
+  sortArrow: {
     color: '#00F0FF',
+    fontSize: 14,
+  },
+  batchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  batchButtonText: {
+    color: '#FF4444',
+    fontSize: 13,
+    marginLeft: 4,
   },
   coinItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1A1F',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: '#1A1A2E',
+    borderRadius: 12,
+    padding: 14,
     marginBottom: 8,
   },
   coinLeft: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
   },
   rankText: {
+    width: 24,
     fontSize: 12,
     color: '#666',
-    width: 20,
     textAlign: 'center',
   },
   coinIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#2A2A2F',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#2A2A3E',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginLeft: 8,
   },
   coinIconText: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: '#00F0FF',
   },
   coinInfo: {
-    flex: 1,
+    marginLeft: 12,
   },
   coinNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
   },
   coinSymbol: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
   badge: {
-    backgroundColor: 'rgba(0, 240, 255, 0.2)',
+    backgroundColor: '#00F0FF20',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
+    marginLeft: 6,
+  },
+  alertBadge: {
+    backgroundColor: '#FFD70020',
+    paddingHorizontal: 5,
   },
   badgeText: {
     fontSize: 10,
     color: '#00F0FF',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   coinName: {
     fontSize: 12,
@@ -573,49 +879,56 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   coinPrice: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: '#FFFFFF',
   },
   changeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
+    marginTop: 4,
   },
   coinChange: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  coinActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionButton: {
+    padding: 8,
+    marginRight: 4,
   },
   addButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#00F0FF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   addButtonFollowed: {
-    backgroundColor: '#2A2A2F',
+    backgroundColor: '#333',
   },
   emptyContainer: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingTop: 60,
+    alignItems: 'center',
+    paddingVertical: 60,
   },
   emptyIcon: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#1A1A1F',
+    backgroundColor: '#1A1A2E',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   emptyTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: '#FFFFFF',
     marginBottom: 8,
@@ -625,18 +938,21 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     lineHeight: 20,
-    marginBottom: 24,
   },
   addButtonLarge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#00F0FF',
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: 24,
+    marginTop: 24,
   },
   addButtonLargeText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: '#0A0A0F',
+    marginLeft: 4,
   },
   modalOverlay: {
     flex: 1,
@@ -644,18 +960,17 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#1A1A1F',
+    backgroundColor: '#0A0A0F',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    padding: 20,
     maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
+    marginBottom: 16,
   },
   modalTitle: {
     fontSize: 18,
@@ -665,19 +980,149 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2A2A2F',
-    margin: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
+    backgroundColor: '#1A1A2E',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    marginBottom: 16,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 8,
-    fontSize: 14,
+    height: 44,
+    marginLeft: 10,
+    fontSize: 15,
     color: '#FFFFFF',
   },
   modalList: {
     maxHeight: 400,
+  },
+  searchEmpty: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  searchEmptyText: {
+    color: '#666',
+    fontSize: 14,
+  },
+  alertCoinInfo: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  alertCoinSymbol: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#00F0FF',
+  },
+  alertCoinPrice: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
+  alertButtons: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  alertButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1A1A2E',
+    padding: 16,
+    borderRadius: 12,
+    marginHorizontal: 4,
+  },
+  alertButtonText: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    marginLeft: 6,
+  },
+  alertItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#1A1A2E',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#FFD700',
+  },
+  alertTriggered: {
+    borderLeftColor: '#FF4444',
+    backgroundColor: '#FF444420',
+  },
+  alertLeft: {
+    flex: 1,
+  },
+  alertSymbol: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  alertCondition: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  alertRight: {
+    alignItems: 'flex-end',
+  },
+  alertCurrent: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  triggeredBadge: {
+    backgroundColor: '#FF4444',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  triggeredText: {
+    fontSize: 10,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  sortOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sortModalContent: {
+    backgroundColor: '#1A1A2E',
+    borderRadius: 16,
+    padding: 20,
+    width: '80%',
+  },
+  sortModalTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  sortOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A2A3E',
+  },
+  sortOptionActive: {
+    backgroundColor: '#00F0FF10',
+    marginHorizontal: -12,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  sortOptionText: {
+    fontSize: 15,
+    color: '#FFFFFF',
+  },
+  sortOptionTextActive: {
+    color: '#00F0FF',
+    fontWeight: '600',
   },
 });

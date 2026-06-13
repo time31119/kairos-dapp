@@ -242,34 +242,34 @@ export default function MineScreen() {
         {/* 用户统计 */}
         {isConnected && (
           <View className="px-5 mb-5">
-            <View className="bg-gray-900/80 rounded-2xl p-4 border border-gray-800">
+            <View className="bg-black/60 rounded-2xl p-4 border border-cyan-500/20 shadow-lg shadow-cyan-500/5">
               <View className="flex-row justify-around">
                 <TouchableOpacity 
                   className="items-center flex-1"
                   onPress={() => router.push('/trading')}
                 >
-                  <Text className="text-xl font-bold text-white">{userStats.totalOrders}</Text>
-                  <Text className="text-xs text-gray-500 mt-1">订单数</Text>
+                  <Text className="text-xl font-bold text-cyan-400">{userStats.totalOrders}</Text>
+                  <Text className="text-xs text-gray-400 mt-1">订单数</Text>
                 </TouchableOpacity>
-                <View className="w-px bg-gray-800" />
+                <View className="w-px bg-cyan-500/20" />
                 <TouchableOpacity 
                   className="items-center flex-1"
                   onPress={() => router.push('/follow')}
                 >
-                  <Text className="text-xl font-bold text-white">{userStats.totalFollowers}</Text>
-                  <Text className="text-xs text-gray-500 mt-1">跟单数</Text>
+                  <Text className="text-xl font-bold text-purple-400">{userStats.totalFollowers}</Text>
+                  <Text className="text-xs text-gray-400 mt-1">跟单数</Text>
                 </TouchableOpacity>
-                <View className="w-px bg-gray-800" />
+                <View className="w-px bg-purple-500/20" />
                 <View className="items-center flex-1">
                   <Text className={`text-xl font-bold ${userStats.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {userStats.totalProfit > 0 ? '+' : ''}{userStats.totalProfit}%
                   </Text>
-                  <Text className="text-xs text-gray-500 mt-1">收益率</Text>
+                  <Text className="text-xs text-gray-400 mt-1">收益率</Text>
                 </View>
-                <View className="w-px bg-gray-800" />
+                <View className="w-px bg-purple-500/20" />
                 <View className="items-center flex-1">
                   <Text className="text-xl font-bold text-yellow-400">{userStats.nftCount}</Text>
-                  <Text className="text-xs text-gray-500 mt-1">NFT</Text>
+                  <Text className="text-xs text-gray-400 mt-1">NFT</Text>
                 </View>
               </View>
             </View>

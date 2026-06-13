@@ -56,19 +56,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="follow"
-        options={{
-          title: '技术分析',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? 'eye' : 'eye-outline'} 
-              size={22} 
-              color={color} 
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="news"
         options={{
           title: '资讯',

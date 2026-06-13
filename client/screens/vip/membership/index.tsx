@@ -1,417 +1,526 @@
 /**
- * VIP 会员中心页面
- * 支持钱包验证和智能合约交互
+ * 会员速递 - 付费订阅页面
+ * 支持多种支付方式和订阅周期
  */
 
 import { Screen } from '@/components/Screen';
 import { Stack } from 'expo-router';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { FontAwesome6 } from '@expo/vector-icons';
+import { Ionicons, FontAwesome6 } from '@expo/vector-icons';
 import { useState } from 'react';
-import ContractInteraction from '@/components/ContractInteraction';
 import { useWeb3 } from '@/contexts/Web3Context';
 
-// 颜色配置 - 暗黑科技风
 const colors = {
   background: '#0A0A0F',
-  card: '#141420',
+  card: '#12121A',
+  cardAlt: '#1A1A24',
   neonCyan: '#00F0FF',
   neonPurple: '#BF00FF',
   neonGreen: '#00FF88',
   neonYellow: '#FFD700',
+  neonRed: '#FF4444',
   text: '#FFFFFF',
   textSecondary: '#8A8A9A',
   muted: '#4A4A5A',
   border: '#2A2A3A',
 };
 
+// 会员等级配置
+const VIP_LEVELS = [
+  {
+    id: 'basic',
+    name: '基础版',
+    subtitle: '新手入门',
+    color: '#8B9DC3',
+    icon: 'leaf-outline',
+    price: { month: 9.9, quarter: 24.9, year: 89.9 },
+    features: [
+      { text: '6大赛道行情', enabled: true },
+      { text: '30条筛选条件', enabled: true },
+      { text: '每日资讯推送', enabled: true },
+      { text: '技术分析工具', enabled: false },
+      { text: '跟单功能', enabled: false },
+      { text: 'API接口访问', enabled: false },
+    ],
+    tag: null,
+  },
+  {
+    id: 'pro',
+    name: '专业版',
+    subtitle: '交易必备',
+    color: '#00F0FF',
+    icon: 'trending-up-outline',
+    price: { month: 29.9, quarter: 79.9, year: 299.9 },
+    features: [
+      { text: '全部赛道行情', enabled: true },
+      { text: '无限筛选条件', enabled: true },
+      { text: '实时行情推送', enabled: true },
+      { text: '技术分析工具', enabled: true },
+      { text: '基础跟单功能', enabled: true },
+      { text: 'API接口访问', enabled: false },
+    ],
+    tag: '推荐',
+  },
+  {
+    id: 'vip',
+    name: '尊享版',
+    subtitle: '机构级服务',
+    color: '#FFD700',
+    icon: 'diamond-outline',
+    price: { month: 99.9, quarter: 269.9, year: 999.9 },
+    features: [
+      { text: '全部赛道行情', enabled: true },
+      { text: '无限筛选条件', enabled: true },
+      { text: '实时行情推送', enabled: true },
+      { text: '高级技术分析', enabled: true },
+      { text: '高级跟单功能', enabled: true },
+      { text: '完整API接口', enabled: true },
+    ],
+    tag: '最佳价值',
+  },
+];
+
+// 支付方式
+const PAYMENT_METHODS = [
+  { id: 'usdt', name: 'USDT', icon: 'logo-usd', color: '#26A17B' },
+  { id: 'eth', name: 'ETH', icon: 'logo-ethereum', color: '#627EEA' },
+  { id: 'card', name: '信用卡', icon: 'card-outline', color: '#FF6B6B' },
+];
+
+type BillingCycle = 'month' | 'quarter' | 'year';
+
 export default function Membership() {
-  const { wallet, signMessage } = useWeb3();
-  const [activeTab, setActiveTab] = useState<'vip' | 'contracts'>('vip');
+  const { wallet } = useWeb3();
+  const [selectedPlan, setSelectedPlan] = useState<string>('pro');
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('year');
+  const [paymentMethod, setPaymentMethod] = useState<string>('usdt');
+  const [showPayment, setShowPayment] = useState(false);
 
-  // VIP 等级配置
-  const vipLevels = [
-    {
-      level: 1,
-      name: 'Bronze',
-      color: '#CD7F32',
-      price: '0.01 ETH',
-      features: ['基础行情', '100 条筛选条件', '邮件提醒'],
-    },
-    {
-      level: 2,
-      name: 'Silver',
-      color: '#C0C0C0',
-      price: '0.05 ETH',
-      features: ['高级行情', '无限筛选条件', '实时推送', '链上数据'],
-    },
-    {
-      level: 3,
-      name: 'Gold',
-      color: '#FFD700',
-      price: '0.1 ETH',
-      features: ['全部功能', 'API 访问', '优先客服', '合约监控'],
-    },
-  ];
+  const currentPlan = VIP_LEVELS.find(p => p.id === selectedPlan)!;
+  const currentPrice = currentPlan.price[billingCycle];
+  
+  // 计算节省比例
+  const getDiscount = () => {
+    if (billingCycle === 'year') return '省40%';
+    if (billingCycle === 'quarter') return '省20%';
+    return null;
+  };
 
-  const [selectedVip, setSelectedVip] = useState<number | null>(null);
+  const handleSubscribe = () => {
+    if (!wallet?.isConnected) {
+      alert('请先连接钱包');
+      return;
+    }
+    setShowPayment(true);
+  };
+
+  const confirmPayment = () => {
+    alert(`正在发起${currentPlan.name}订阅支付...\n支付方式: ${paymentMethod.toUpperCase()}\n金额: $${currentPrice}`);
+    setShowPayment(false);
+  };
 
   return (
     <Screen>
       <Stack.Screen
         options={{
-          title: '会员中心',
+          title: '会员速递',
           headerStyle: { backgroundColor: colors.background },
           headerTintColor: colors.neonCyan,
         }}
       />
 
-      {/* Tab 切换 */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'vip' && styles.tabActive]}
-          onPress={() => setActiveTab('vip')}
-        >
-          <FontAwesome6
-            name="crown"
-            size={16}
-            color={activeTab === 'vip' ? colors.neonCyan : colors.textSecondary}
-          />
-          <Text style={[styles.tabText, activeTab === 'vip' && styles.tabTextActive]}>
-            VIP 会员
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'contracts' && styles.tabActive]}
-          onPress={() => setActiveTab('contracts')}
-        >
-          <FontAwesome6
-            name="code"
-            size={16}
-            color={activeTab === 'contracts' ? colors.neonCyan : colors.textSecondary}
-          />
-          <Text style={[styles.tabText, activeTab === 'contracts' && styles.tabTextActive]}>
-            合约交互
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {activeTab === 'vip' ? (
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* 连接状态提示 */}
-          {!wallet.isConnected && (
-            <View style={styles.warningCard}>
-              <FontAwesome6 name="exclamation-triangle" size={20} color={colors.neonYellow} />
-              <Text style={styles.warningText}>
-                连接钱包以购买 VIP 会员，解锁更多高级功能
-              </Text>
-            </View>
-          )}
-
-          {/* 当前 VIP 状态 */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>当前会员</Text>
-            <View style={styles.currentVipCard}>
-              <View style={styles.currentVipInfo}>
-                <FontAwesome6 name="crown" size={24} color={colors.neonYellow} />
-                <View style={styles.currentVipText}>
-                  <Text style={styles.currentVipLabel}>免费用户</Text>
-                  <Text style={styles.currentVipDesc}>基础功能</Text>
-                </View>
-              </View>
-              {wallet?.address && (
-                <View style={styles.walletBadge}>
-                  <Text style={styles.walletBadgeText}>
-                    {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
-                  </Text>
-                </View>
-              )}
-            </View>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* 头部介绍 */}
+        <View style={styles.header}>
+          <View style={styles.headerIcon}>
+            <Ionicons name="diamond" size={28} color={colors.neonCyan} />
           </View>
+          <Text style={styles.headerTitle}>解锁高级功能</Text>
+          <Text style={styles.headerDesc}>专业级行情分析 + 智能跟单 + API接口</Text>
+        </View>
 
-          {/* VIP 套餐 */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>升级套餐</Text>
-            {vipLevels.map((vip) => (
+        {/* 订阅周期切换 */}
+        <View style={styles.billingContainer}>
+          <View style={styles.billingTabs}>
+            {(['month', 'quarter', 'year'] as BillingCycle[]).map(cycle => (
               <TouchableOpacity
-                key={vip.level}
+                key={cycle}
                 style={[
-                  styles.vipCard,
-                  selectedVip === vip.level && styles.vipCardSelected,
-                  { borderColor: selectedVip === vip.level ? vip.color : colors.border },
+                  styles.billingTab,
+                  billingCycle === cycle && styles.billingTabActive
                 ]}
-                onPress={() => setSelectedVip(vip.level)}
+                onPress={() => setBillingCycle(cycle)}
               >
-                <View style={styles.vipHeader}>
-                  <View style={styles.vipTitleRow}>
-                    <FontAwesome6 name="crown" size={20} color={vip.color} />
-                    <Text style={[styles.vipName, { color: vip.color }]}>{vip.name}</Text>
+                <Text style={[
+                  styles.billingTabText,
+                  billingCycle === cycle && styles.billingTabTextActive
+                ]}>
+                  {cycle === 'month' ? '月付' : cycle === 'quarter' ? '季付' : '年付'}
+                </Text>
+                {getDiscount() && cycle === 'year' && (
+                  <View style={styles.discountBadge}>
+                    <Text style={styles.discountText}>省40%</Text>
                   </View>
-                  <Text style={styles.vipPrice}>{vip.price}</Text>
-                </View>
-                <View style={styles.vipFeatures}>
-                  {vip.features.map((feature, index) => (
-                    <View key={index} style={styles.featureItem}>
-                      <FontAwesome6 name="check" size={12} color={colors.neonGreen} />
-                      <Text style={styles.featureText}>{feature}</Text>
-                    </View>
-                  ))}
-                </View>
-                {selectedVip === vip.level && (
-                  <View style={[styles.selectedBadge, { backgroundColor: vip.color }]}>
-                    <Text style={styles.selectedBadgeText}>已选择</Text>
+                )}
+                {cycle === 'quarter' && (
+                  <View style={styles.discountBadge}>
+                    <Text style={styles.discountText}>省20%</Text>
                   </View>
                 )}
               </TouchableOpacity>
             ))}
           </View>
+        </View>
 
-          {/* 购买按钮 */}
-          {selectedVip && (
-            <TouchableOpacity style={styles.purchaseButton}>
-              <FontAwesome6 name="shopping-cart" size={18} color={colors.text} />
-              <Text style={styles.purchaseButtonText}>立即购买</Text>
-            </TouchableOpacity>
-          )}
-
-          {/* 合约验证 */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>钱包验证</Text>
-            <View style={styles.verifyCard}>
-              <FontAwesome6 name="wallet" size={24} color={colors.neonCyan} />
-              <View style={styles.verifyInfo}>
-                <Text style={styles.verifyTitle}>签名验证</Text>
-                <Text style={styles.verifyDesc}>
-                  签名消息以验证您是钱包持有者
-                </Text>
+        {/* 会员等级选择 */}
+        <View style={styles.plansContainer}>
+          {VIP_LEVELS.map(plan => (
+            <TouchableOpacity
+              key={plan.id}
+              style={[
+                styles.planCard,
+                selectedPlan === plan.id && styles.planCardSelected,
+                { borderColor: selectedPlan === plan.id ? plan.color : colors.border }
+              ]}
+              onPress={() => setSelectedPlan(plan.id)}
+            >
+              {plan.tag && (
+                <View style={[styles.planTag, { backgroundColor: plan.color }]}>
+                  <Text style={styles.planTagText}>{plan.tag}</Text>
+                </View>
+              )}
+              
+              <View style={styles.planHeader}>
+                <View style={[styles.planIcon, { backgroundColor: plan.color + '20' }]}>
+                  <Ionicons name={plan.icon as any} size={24} color={plan.color} />
+                </View>
+                <View>
+                  <Text style={[styles.planName, { color: plan.color }]}>{plan.name}</Text>
+                  <Text style={styles.planSubtitle}>{plan.subtitle}</Text>
+                </View>
               </View>
+
+              <View style={styles.planPrice}>
+                <Text style={styles.priceSymbol}>$</Text>
+                <Text style={styles.priceValue}>{currentPrice}</Text>
+                <Text style={styles.priceUnit}>/{billingCycle === 'month' ? '月' : billingCycle === 'quarter' ? '季' : '年'}</Text>
+              </View>
+
+              <View style={styles.planFeatures}>
+                {plan.features.map((feature, idx) => (
+                  <View key={idx} style={styles.featureRow}>
+                    <Ionicons 
+                      name={feature.enabled ? 'checkmark-circle' : 'close-circle'} 
+                      size={16} 
+                      color={feature.enabled ? colors.neonGreen : colors.muted} 
+                    />
+                    <Text style={[
+                      styles.featureText,
+                      !feature.enabled && styles.featureDisabled
+                    ]}>
+                      {feature.text}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              {selectedPlan === plan.id && (
+                <View style={[styles.selectedIndicator, { backgroundColor: plan.color }]}>
+                  <Ionicons name="checkmark" size={16} color={colors.background} />
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* 支付方式 */}
+        <View style={styles.paymentSection}>
+          <Text style={styles.sectionTitle}>支付方式</Text>
+          <View style={styles.paymentMethods}>
+            {PAYMENT_METHODS.map(method => (
               <TouchableOpacity
-                style={styles.verifyButton}
-                disabled={!wallet.isConnected}
-                onPress={async () => {
-                  try {
-                    const message = `KAIROS VIP Verification\nWallet: ${wallet?.address}\nTimestamp: ${Date.now()}`;
-                    await signMessage(message);
-                  } catch (error) {
-                    console.error('Sign error:', error);
-                  }
-                }}
+                key={method.id}
+                style={[
+                  styles.paymentMethod,
+                  paymentMethod === method.id && styles.paymentMethodActive
+                ]}
+                onPress={() => setPaymentMethod(method.id)}
               >
-                <Text style={styles.verifyButtonText}>验证</Text>
+                <Ionicons name={method.icon as any} size={24} color={method.color} />
+                <Text style={styles.paymentMethodName}>{method.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* 订阅按钮 */}
+        <TouchableOpacity 
+          style={[styles.subscribeButton, { borderColor: currentPlan.color }]}
+          onPress={handleSubscribe}
+        >
+          <View style={[styles.buttonGlow, { backgroundColor: currentPlan.color + '30' }]} />
+          <Text style={styles.subscribeButtonText}>
+            {wallet?.isConnected ? `订阅 ${currentPlan.name}` : '连接钱包后订阅'}
+          </Text>
+          <View style={styles.priceTag}>
+            <Text style={styles.priceTagText}>${currentPrice}</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* 服务条款 */}
+        <View style={styles.terms}>
+          <Text style={styles.termsText}>
+            订阅即表示同意<Text style={styles.termsLink}>《服务条款》</Text>和<Text style={styles.termsLink}>《隐私政策》</Text>
+          </Text>
+          <Text style={styles.termsText}>支持 7 天无理由退款</Text>
+        </View>
+
+        {/* 功能对比表 */}
+        <View style={styles.compareSection}>
+          <Text style={styles.sectionTitle}>功能对比</Text>
+          <View style={styles.compareTable}>
+            <View style={styles.compareHeader}>
+              <Text style={[styles.compareCell, styles.compareFeature]}>功能</Text>
+              <Text style={[styles.compareCell, styles.compareCellCenter]}>基础版</Text>
+              <Text style={[styles.compareCell, styles.compareCellCenter]}>专业版</Text>
+              <Text style={[styles.compareCell, styles.compareCellCenter]}>尊享版</Text>
+            </View>
+            {[
+              ['赛道覆盖', '6大赛道', '全部赛道', '全部赛道'],
+              ['筛选条件', '30条', '无限', '无限'],
+              ['行情推送', '每日', '实时', '实时+预警'],
+              ['技术分析', '—', '基础工具', '高级工具'],
+              ['跟单功能', '—', '基础跟单', '智能跟单'],
+              ['API接口', '—', '—', '完整开放'],
+            ].map((row, idx) => (
+              <View key={idx} style={styles.compareRow}>
+                <Text style={[styles.compareCell, styles.compareFeature]}>{row[0]}</Text>
+                <Text style={[styles.compareCell, styles.compareCellCenter]}>{row[1]}</Text>
+                <Text style={[styles.compareCell, styles.compareCellCenter]}>{row[2]}</Text>
+                <Text style={[styles.compareCell, styles.compareCellCenter]}>{row[3]}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.footer} />
+      </ScrollView>
+
+      {/* 支付确认弹窗 */}
+      {showPayment && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>确认订阅</Text>
+              <TouchableOpacity onPress={() => setShowPayment(false)}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
-          </View>
+            
+            <View style={styles.modalContent}>
+              <View style={[styles.modalPlanIcon, { backgroundColor: currentPlan.color + '20' }]}>
+                <Ionicons name={currentPlan.icon as any} size={32} color={currentPlan.color} />
+              </View>
+              <Text style={styles.modalPlanName}>{currentPlan.name}</Text>
+              <Text style={styles.modalPrice}>${currentPrice}</Text>
+              <Text style={styles.modalCycle}>
+                {billingCycle === 'month' ? '月付' : billingCycle === 'quarter' ? '季付' : '年付'}
+              </Text>
+            </View>
 
-          <View style={styles.footer} />
-        </ScrollView>
-      ) : (
-        <ContractInteraction />
+            <View style={styles.modalPayment}>
+              <Text style={styles.modalPaymentLabel}>支付方式</Text>
+              <View style={styles.modalPaymentInfo}>
+                <Ionicons name={PAYMENT_METHODS.find(m => m.id === paymentMethod)?.icon as any} size={20} color={PAYMENT_METHODS.find(m => m.id === paymentMethod)?.color} />
+                <Text style={styles.modalPaymentMethod}>{paymentMethod.toUpperCase()}</Text>
+              </View>
+            </View>
+
+            <View style={styles.modalInfo}>
+              <View style={styles.modalInfoRow}>
+                <Text style={styles.modalInfoLabel}>钱包地址</Text>
+                <Text style={styles.modalInfoValue}>
+                  {wallet?.address ? `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}` : '未连接'}
+                </Text>
+              </View>
+              <View style={styles.modalInfoRow}>
+                <Text style={styles.modalInfoLabel}>订阅周期</Text>
+                <Text style={styles.modalInfoValue}>
+                  {billingCycle === 'month' ? '1个月' : billingCycle === 'quarter' ? '3个月' : '12个月'}
+                </Text>
+              </View>
+              <View style={styles.modalInfoRow}>
+                <Text style={styles.modalInfoLabel}>自动续费</Text>
+                <Text style={styles.modalInfoValue}>到期前3天自动扣款</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.confirmButton, { backgroundColor: currentPlan.color }]}
+              onPress={confirmPayment}
+            >
+              <Text style={styles.confirmButtonText}>确认支付</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  tabContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    backgroundColor: colors.card,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+  container: { flex: 1, backgroundColor: colors.background },
+  
+  // 头部
+  header: { alignItems: 'center', paddingVertical: 24, paddingHorizontal: 20 },
+  headerIcon: { 
+    width: 60, height: 60, borderRadius: 30, 
+    backgroundColor: colors.neonCyan + '20', 
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 16,
   },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
+  headerTitle: { fontSize: 22, fontWeight: '800', color: colors.text, marginBottom: 8 },
+  headerDesc: { fontSize: 14, color: colors.textSecondary },
+
+  // 周期切换
+  billingContainer: { paddingHorizontal: 20, marginBottom: 20 },
+  billingTabs: { 
+    flexDirection: 'row', 
+    backgroundColor: colors.card, 
+    borderRadius: 12, 
+    padding: 4 
+  },
+  billingTab: { 
+    flex: 1, 
+    paddingVertical: 12, 
+    alignItems: 'center', 
     borderRadius: 10,
-    gap: 8,
+    position: 'relative',
   },
-  tabActive: {
-    backgroundColor: colors.neonCyan + '20',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  tabTextActive: {
-    color: colors.neonCyan,
-  },
-  content: {
-    flex: 1,
-  },
-  warningCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.neonYellow + '20',
-    margin: 15,
-    padding: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.neonYellow + '40',
-  },
-  warningText: {
-    color: colors.neonYellow,
-    marginLeft: 10,
-    fontSize: 13,
-    flex: 1,
-  },
-  section: {
-    padding: 15,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  currentVipCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  currentVipInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  currentVipText: {
-    marginLeft: 12,
-  },
-  currentVipLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  currentVipDesc: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  walletBadge: {
-    backgroundColor: colors.neonCyan + '20',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+  billingTabActive: { backgroundColor: colors.neonCyan + '20' },
+  billingTabText: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
+  billingTabTextActive: { color: colors.neonCyan },
+  discountBadge: { 
+    position: 'absolute', top: -8, right: -8,
+    backgroundColor: colors.neonGreen,
+    paddingHorizontal: 6, paddingVertical: 2,
     borderRadius: 8,
   },
-  walletBadgeText: {
-    fontSize: 12,
-    color: colors.neonCyan,
-    fontFamily: 'monospace',
-  },
-  vipCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+  discountText: { fontSize: 10, fontWeight: '700', color: colors.background },
+
+  // 会员卡片
+  plansContainer: { paddingHorizontal: 20, gap: 12 },
+  planCard: { 
+    backgroundColor: colors.card, 
+    borderRadius: 16, 
+    padding: 16, 
     borderWidth: 2,
+    position: 'relative',
   },
-  vipCardSelected: {
+  planCardSelected: { backgroundColor: colors.cardAlt },
+  planTag: {
+    position: 'absolute', top: -10, right: 16,
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 10,
+  },
+  planTagText: { fontSize: 10, fontWeight: '700', color: colors.background },
+  planHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
+  planIcon: { width: 48, height: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  planName: { fontSize: 18, fontWeight: '800' },
+  planSubtitle: { fontSize: 12, color: colors.textSecondary },
+  planPrice: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 12 },
+  priceSymbol: { fontSize: 16, color: colors.textSecondary },
+  priceValue: { fontSize: 32, fontWeight: '800', color: colors.text },
+  priceUnit: { fontSize: 14, color: colors.textSecondary, marginLeft: 4 },
+  planFeatures: { gap: 8 },
+  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  featureText: { fontSize: 13, color: colors.text },
+  featureDisabled: { color: colors.muted, textDecorationLine: 'line-through' },
+  selectedIndicator: {
+    position: 'absolute', top: 16, left: 16,
+    width: 24, height: 24, borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center',
+  },
+
+  // 支付方式
+  paymentSection: { paddingHorizontal: 20, marginTop: 24, marginBottom: 16 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: 12 },
+  paymentMethods: { flexDirection: 'row', gap: 12 },
+  paymentMethod: {
+    flex: 1,
     backgroundColor: colors.card,
-  },
-  vipHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
-    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: colors.border,
   },
-  vipTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  vipName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  vipPrice: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  vipFeatures: {
-    gap: 8,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  featureText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  selectedBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  selectedBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: colors.background,
-  },
-  purchaseButton: {
+  paymentMethodActive: { borderColor: colors.neonCyan, backgroundColor: colors.neonCyan + '10' },
+  paymentMethodName: { fontSize: 13, fontWeight: '600', color: colors.text, marginTop: 8 },
+
+  // 订阅按钮
+  subscribeButton: {
+    marginHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.neonCyan,
-    marginHorizontal: 15,
-    marginVertical: 10,
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
-  },
-  purchaseButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.background,
-  },
-  verifyCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
     padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderRadius: 14,
+    borderWidth: 2,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  verifyInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  verifyTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  verifyDesc: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  verifyButton: {
-    backgroundColor: colors.neonPurple,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  buttonGlow: { position: 'absolute', inset: 0, borderRadius: 12 },
+  subscribeButtonText: { fontSize: 16, fontWeight: '700', color: colors.text, zIndex: 1 },
+  priceTag: {
+    position: 'absolute', right: 16,
+    backgroundColor: colors.neonGreen + '20',
+    paddingHorizontal: 10, paddingVertical: 4,
     borderRadius: 8,
+    zIndex: 1,
   },
-  verifyButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.text,
+  priceTagText: { fontSize: 13, fontWeight: '700', color: colors.neonGreen },
+
+  // 服务条款
+  terms: { alignItems: 'center', paddingHorizontal: 20, marginTop: 16, gap: 4 },
+  termsText: { fontSize: 11, color: colors.textSecondary, textAlign: 'center' },
+  termsLink: { color: colors.neonCyan },
+
+  // 功能对比
+  compareSection: { paddingHorizontal: 20, marginTop: 24 },
+  compareTable: { backgroundColor: colors.card, borderRadius: 12, overflow: 'hidden' },
+  compareHeader: { flexDirection: 'row', backgroundColor: colors.cardAlt, paddingVertical: 12 },
+  compareRow: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.border, paddingVertical: 10 },
+  compareCell: { flex: 1, fontSize: 11, color: colors.text, paddingHorizontal: 8 },
+  compareFeature: { flex: 1.5, color: colors.textSecondary },
+  compareCellCenter: { textAlign: 'center' },
+
+  // 底部
+  footer: { height: 40 },
+
+  // 弹窗
+  modalOverlay: {
+    position: 'absolute', inset: 0,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
-  footer: {
-    height: 50,
-  },
+  modal: { backgroundColor: colors.card, borderRadius: 20, padding: 20 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
+  modalContent: { alignItems: 'center', marginBottom: 20 },
+  modalPlanIcon: { width: 64, height: 64, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  modalPlanName: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 8 },
+  modalPrice: { fontSize: 36, fontWeight: '800', color: colors.neonGreen },
+  modalCycle: { fontSize: 14, color: colors.textSecondary },
+  modalPayment: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.border },
+  modalPaymentLabel: { fontSize: 14, color: colors.textSecondary },
+  modalPaymentInfo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  modalPaymentMethod: { fontSize: 14, fontWeight: '600', color: colors.text },
+  modalInfo: { marginTop: 16, gap: 8 },
+  modalInfoRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  modalInfoLabel: { fontSize: 13, color: colors.textSecondary },
+  modalInfoValue: { fontSize: 13, color: colors.text },
+  confirmButton: { marginTop: 20, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  confirmButtonText: { fontSize: 16, fontWeight: '700', color: colors.background },
 });

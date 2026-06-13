@@ -82,6 +82,19 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="vip"
+        options={{
+          title: '会员',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'diamond' : 'diamond-outline'} 
+              size={22} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="mine"
         options={{
           title: '我的',

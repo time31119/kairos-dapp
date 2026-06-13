@@ -15,6 +15,9 @@ import {
   getBalance,
   createSignMessage,
   verifySignature,
+  getSignatureNonce,
+  verifyWalletSignature,
+  performSignatureVerification,
   type WalletInfo,
 } from '@/services/web3';
 import {
@@ -63,6 +66,37 @@ interface Web3ContextType {
   initiateWalletConnect: () => Promise<string>;
   completeWalletConnect: (uri: string) => Promise<void>;
   cancelWalletConnect: () => void;
+  // 高级签名验证方法
+  getSignatureMessage: () => Promise<{
+    nonce: string;
+    message: string;
+    expiresIn: number;
+    timestamp: string;
+  }>;
+  verifyWalletSign: (
+    signature: string,
+    message: string,
+    network?: string
+  ) => Promise<{
+    address: string;
+    verified: boolean;
+    network: string;
+    verifiedAt: string;
+    sessionToken?: string;
+  }>;
+  performSignVerification: (
+    signature: string
+  ) => Promise<{
+    success: boolean;
+    result?: {
+      address: string;
+      verified: boolean;
+      network: string;
+      verifiedAt: string;
+      sessionToken?: string;
+    };
+    error?: string;
+  }>;
 }
 
 // 默认状态
@@ -238,6 +272,59 @@ export function Web3Provider({ children }: Web3ProviderProps) {
     return await verifySignature(wallet.address, signature);
   }, [wallet.address]);
 
+  // ===== 高级签名验证方法 =====
+
+  // 获取签名消息（从后端）
+  const getSignatureMessage = useCallback(async (): Promise<{
+    nonce: string;
+    message: string;
+    expiresIn: number;
+    timestamp: string;
+  }> => {
+    if (!wallet.address) {
+      throw new Error('Wallet not connected');
+    }
+    return await getSignatureNonce(wallet.address);
+  }, [wallet.address]);
+
+  // 验证签名（调用后端）
+  const verifyWalletSign = useCallback(async (
+    signature: string,
+    message: string,
+    network?: string
+  ): Promise<{
+    address: string;
+    verified: boolean;
+    network: string;
+    verifiedAt: string;
+    sessionToken?: string;
+  }> => {
+    if (!wallet.address) {
+      throw new Error('Wallet not connected');
+    }
+    return await verifyWalletSignature(wallet.address, signature, message, network);
+  }, [wallet.address]);
+
+  // 完整的签名验证流程
+  const performSignVerification = useCallback(async (
+    signature: string
+  ): Promise<{
+    success: boolean;
+    result?: {
+      address: string;
+      verified: boolean;
+      network: string;
+      verifiedAt: string;
+      sessionToken?: string;
+    };
+    error?: string;
+  }> => {
+    if (!wallet.address) {
+      throw new Error('Wallet not connected');
+    }
+    return await performSignatureVerification(wallet.address, signature, wallet.chain);
+  }, [wallet.address]);
+
   // ===== WalletConnect 专用方法 =====
 
   // 初始化 WalletConnect 连接
@@ -349,6 +436,9 @@ export function Web3Provider({ children }: Web3ProviderProps) {
     initiateWalletConnect,
     completeWalletConnect,
     cancelWalletConnect,
+    getSignatureMessage,
+    verifyWalletSign,
+    performSignVerification,
   };
 
   return (

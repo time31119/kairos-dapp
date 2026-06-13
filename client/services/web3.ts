@@ -625,3 +625,176 @@ export async function getTokenPrice(chain: ChainType): Promise<{
     return prices[chain];
   }
 }
+
+// ============ 签名验证 API 调用 ============
+
+// 签名验证结果类型
+export interface SignatureVerifyResult {
+  address: string;
+  verified: boolean;
+  network: string;
+  verifiedAt: string;
+  sessionToken?: string;
+}
+
+// Nonce 状态类型
+export interface NonceStatus {
+  hasActiveNonce: boolean;
+  remainingTime?: number;
+  expiresAt?: number;
+}
+
+// 获取 Nonce
+export async function getSignatureNonce(address: string): Promise<{
+  nonce: string;
+  message: string;
+  expiresIn: number;
+  timestamp: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/web3/signature/nonce/${address}`);
+    const data = await response.json();
+
+    if (data.code !== 0) {
+      throw new Error(data.message || '获取 Nonce 失败');
+    }
+
+    return data.data;
+  } catch (error) {
+    console.error('Get signature nonce error:', error);
+    // 生成本地 Nonce 作为兜底
+    const nonce = generateNonce();
+    const timestamp = new Date().toISOString();
+    const message = `Welcome to KAIROS DAPP!
+
+This request will not trigger a blockchain transaction or cost any gas fees.
+
+Wallet Address: ${address}
+Nonce: ${nonce}
+Timestamp: ${timestamp}
+Network: Ethereum Mainnet
+
+Please sign this message to verify your wallet ownership.`;
+
+    return {
+      nonce,
+      message,
+      expiresIn: 600,
+      timestamp,
+    };
+  }
+}
+
+// 验证签名
+export async function verifyWalletSignature(
+  address: string,
+  signature: string,
+  message: string,
+  network?: string
+): Promise<SignatureVerifyResult> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/web3/signature/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        address,
+        signature,
+        message,
+        network,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.code !== 0) {
+      throw new Error(data.message || '签名验证失败');
+    }
+
+    return data.data;
+  } catch (error) {
+    console.error('Verify signature error:', error);
+    throw error;
+  }
+}
+
+// 验证会话
+export async function verifySession(
+  address: string,
+  sessionToken: string
+): Promise<{
+  address: string;
+  sessionValid: boolean;
+  expiresIn: number;
+}> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/web3/signature/verify-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        address,
+        sessionToken,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.code !== 0) {
+      throw new Error(data.message || '会话验证失败');
+    }
+
+    return data.data;
+  } catch (error) {
+    console.error('Verify session error:', error);
+    throw error;
+  }
+}
+
+// 获取 Nonce 状态
+export async function getNonceStatus(address: string): Promise<NonceStatus> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/web3/signature/nonce-status/${address}`);
+    const data = await response.json();
+
+    if (data.code !== 0) {
+      throw new Error(data.message || '获取 Nonce 状态失败');
+    }
+
+    return data.data;
+  } catch (error) {
+    console.error('Get nonce status error:', error);
+    return { hasActiveNonce: false };
+  }
+}
+
+// 完整的签名验证流程
+export async function performSignatureVerification(
+  address: string,
+  signature: string,
+  network?: string
+): Promise<{
+  success: boolean;
+  result?: SignatureVerifyResult;
+  error?: string;
+}> {
+  try {
+    // 1. 获取签名消息
+    const { message, nonce } = await getSignatureNonce(address);
+
+    // 2. 验证签名
+    const result = await verifyWalletSignature(address, signature, message, network);
+
+    return {
+      success: result.verified,
+      result,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || '签名验证失败',
+    };
+  }
+}

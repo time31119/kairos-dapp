@@ -42,7 +42,7 @@ function generateNonce(): string {
 /**
  * 获取或创建用户的 Nonce
  */
-router.get('/signature/nonce/:address', async (req, res) => {
+router.get('/nonce/:address', async (req, res) => {
   try {
     const { address } = req.params;
     
@@ -98,7 +98,7 @@ const verifySignatureSchema = z.object({
 });
 
 // 签名验证
-router.post('/signature/verify', async (req, res) => {
+router.post('/verify', async (req, res) => {
   try {
     const { address, signature, message, network } = verifySignatureSchema.parse(req.body);
     
@@ -230,7 +230,7 @@ const verifySessionSchema = z.object({
 });
 
 // 验证会话
-router.post('/signature/verify-session', async (req, res) => {
+router.post('/verify-session', async (req, res) => {
   try {
     const { address, sessionToken } = verifySessionSchema.parse(req.body);
     
@@ -277,7 +277,7 @@ router.post('/signature/verify-session', async (req, res) => {
 // ============================================
 
 // 获取 Nonce 状态
-router.get('/signature/nonce-status/:address', async (req, res) => {
+router.get('/nonce-status/:address', async (req, res) => {
   try {
     const { address } = req.params;
     const normalizedAddress = address.toLowerCase();

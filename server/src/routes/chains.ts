@@ -165,7 +165,7 @@ async function getChainStatus(chainKey: string): Promise<any> {
 }
 
 // 获取所有链列表
-router.get('/chains', (req, res) => {
+router.get('/', (req, res) => {
   const chains = Object.entries(SUPPORTED_CHAINS).map(([key, info]) => ({
     key,
     ...info,
@@ -178,7 +178,7 @@ router.get('/chains', (req, res) => {
 });
 
 // 获取所有链状态
-router.get('/chains/status', async (req, res) => {
+router.get('/status', async (req, res) => {
   try {
     const statuses: any[] = [];
     const promises = Object.keys(SUPPORTED_CHAINS).map(async (key) => {

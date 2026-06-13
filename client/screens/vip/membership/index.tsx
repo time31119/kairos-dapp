@@ -33,7 +33,7 @@ const VIP_LEVELS = [
     subtitle: '新手入门',
     color: '#8B9DC3',
     icon: 'leaf-outline',
-    price: { month: 9.9, quarter: 24.9, year: 89.9 },
+    price: { month: 39.9, quarter: 99.9, year: 359.9 },
     features: [
       { text: '6大赛道行情', enabled: true },
       { text: '30条筛选条件', enabled: true },
@@ -50,7 +50,7 @@ const VIP_LEVELS = [
     subtitle: '交易必备',
     color: '#00F0FF',
     icon: 'trending-up-outline',
-    price: { month: 29.9, quarter: 79.9, year: 299.9 },
+    price: { month: 69.9, quarter: 179.9, year: 629.9 },
     features: [
       { text: '全部赛道行情', enabled: true },
       { text: '无限筛选条件', enabled: true },
@@ -67,13 +67,13 @@ const VIP_LEVELS = [
     subtitle: '机构级服务',
     color: '#FFD700',
     icon: 'diamond-outline',
-    price: { month: 99.9, quarter: 269.9, year: 999.9 },
+    price: { month: 199.9, quarter: 539.9, year: 1799.9 },
     features: [
       { text: '全部赛道行情', enabled: true },
       { text: '无限筛选条件', enabled: true },
       { text: '实时行情推送', enabled: true },
       { text: '高级技术分析', enabled: true },
-      { text: '高级跟单功能', enabled: true },
+      { text: '智能跟单功能', enabled: true },
       { text: '完整API接口', enabled: true },
     ],
     tag: '最佳价值',

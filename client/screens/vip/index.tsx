@@ -247,15 +247,15 @@ export default function VipScreen() {
                 <View style={styles.planRow}>
                   <View style={[styles.planItem, { borderColor: '#8B9DC3' }]}>
                     <Text style={[styles.planName, { color: '#8B9DC3' }]}>基础版</Text>
-                    <Text style={styles.planPrice}>$9.9/月</Text>
+                    <Text style={styles.planPrice}>$39.9/月</Text>
                   </View>
                   <View style={[styles.planItem, { borderColor: '#00F0FF' }]}>
                     <Text style={[styles.planName, { color: '#00F0FF' }]}>专业版</Text>
-                    <Text style={styles.planPrice}>$29.9/月</Text>
+                    <Text style={styles.planPrice}>$69.9/月</Text>
                   </View>
                   <View style={[styles.planItem, { borderColor: '#FFD700' }]}>
                     <Text style={[styles.planName, { color: '#FFD700' }]}>尊享版</Text>
-                    <Text style={styles.planPrice}>$99.9/月</Text>
+                    <Text style={styles.planPrice}>$199.9/月</Text>
                   </View>
                 </View>
               </View>

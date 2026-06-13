@@ -58,7 +58,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="follow"
         options={{
-          title: '关注',
+          title: '技术分析',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 
               name={focused ? 'eye' : 'eye-outline'} 

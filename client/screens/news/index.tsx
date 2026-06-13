@@ -1,7 +1,7 @@
 'use client';
 
 import { Screen } from '@/components/Screen';
-import { Text, View, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { Text, View, TouchableOpacity, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useCallback, useEffect } from 'react';
 import { apiRequest } from '@/utils/api';
@@ -200,9 +200,9 @@ export default function NewsScreen() {
           <Text className="text-xs text-gray-500 mt-1">实时行情资讯与市场快讯</Text>
         </View>
 
-        {/* Tab Switcher */}
+        {/* Tab Switcher - 暗黑科技风格 */}
         <View className="px-5 mb-4">
-          <View className="flex-row bg-gray-900/80 rounded-xl p-1">
+          <View className="bg-black/60 rounded-xl p-1 border border-gray-800/50">
             {[
               { key: 'news', label: '资讯', icon: 'newspaper-outline' },
               { key: 'hot', label: '热搜', icon: 'trending-up-outline' },
@@ -211,8 +211,8 @@ export default function NewsScreen() {
               <TouchableOpacity
                 key={tab.key}
                 onPress={() => setActiveTab(tab.key as any)}
-                className={`flex-1 py-2.5 rounded-lg flex-row items-center justify-center gap-2 ${
-                  activeTab === tab.key ? 'bg-cyan-500/20' : ''
+                className={`flex-1 py-3 rounded-lg flex-row items-center justify-center gap-2 ${
+                  activeTab === tab.key ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20' : ''
                 }`}
               >
                 <Ionicons
@@ -241,20 +241,32 @@ export default function NewsScreen() {
           <>
             {activeTab === 'news' && (
               <>
-                {/* Fear & Greed Index */}
+                {/* Fear & Greed Index - 优化配色 */}
                 <View className="px-5 mb-4">
                   <View 
                     className="rounded-2xl p-4 border"
                     style={{ 
                       borderColor: getFearGreedColor(fearGreedIndex),
                       backgroundColor: `${getFearGreedColor(fearGreedIndex)}10`,
+                      shadowColor: getFearGreedColor(fearGreedIndex),
+                      shadowOffset: { width: 0, height: 0 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 8,
+                      elevation: 4,
                     }}
                   >
                     <View className="flex-row items-center justify-between">
                       <View className="flex-row items-center gap-3">
                         <View 
                           className="w-14 h-14 rounded-full items-center justify-center"
-                          style={{ backgroundColor: getFearGreedColor(fearGreedIndex) }}
+                          style={{ 
+                            backgroundColor: getFearGreedColor(fearGreedIndex),
+                            shadowColor: getFearGreedColor(fearGreedIndex),
+                            shadowOffset: { width: 0, height: 0 },
+                            shadowOpacity: 0.5,
+                            shadowRadius: 10,
+                            elevation: 5,
+                          }}
                         >
                           <Text className="text-xl font-bold text-black">{fearGreedIndex}</Text>
                         </View>
@@ -268,19 +280,19 @@ export default function NewsScreen() {
                           </Text>
                         </View>
                       </View>
-                      <View className="flex-row items-center gap-1">
+                      <View className="flex-row items-center gap-1 bg-black/40 px-3 py-1.5 rounded-full">
                         <Ionicons 
                           name={fearGreedValue.startsWith('+') ? 'arrow-up' : 'arrow-down'} 
                           size={14} 
                           color="#22C55E" 
                         />
-                        <Text className="text-sm text-green-400">{fearGreedValue}</Text>
+                        <Text className="text-sm text-green-400 font-medium">{fearGreedValue}</Text>
                       </View>
                     </View>
                   </View>
                 </View>
 
-                {/* Category Filter */}
+                {/* Category Filter - 优化样式 */}
                 <View className="mb-4 px-5">
                   <ScrollView
                     horizontal
@@ -292,8 +304,8 @@ export default function NewsScreen() {
                       onPress={() => setActiveCategory(cat)}
                       className={`px-4 py-2 rounded-full mr-2 ${
                         activeCategory === cat
-                          ? 'bg-cyan-500/20 border border-cyan-500/50'
-                          : 'bg-gray-900/80 border border-gray-800'
+                          ? 'bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-500/50'
+                          : 'bg-black/60 border border-gray-800/50'
                       }`}
                     >
                       <Text
@@ -308,30 +320,37 @@ export default function NewsScreen() {
                 </ScrollView>
                 </View>
 
-                {/* News List */}
+                {/* News List - 统一暗黑风格 */}
                 <View className="px-5 pb-4 space-y-3">
                   {displayNews.map((item: any) => (
                     <TouchableOpacity
                       key={item.id}
-                      className="bg-gray-900/80 rounded-2xl p-4 border border-gray-800"
+                      className="bg-black/60 rounded-2xl p-4 border border-gray-800/50"
+                      style={{
+                        shadowColor: '#00F0FF',
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowOpacity: 0.05,
+                        shadowRadius: 4,
+                        elevation: 2,
+                      }}
                     >
                       <View className="flex-row items-start gap-3">
                         <View className="flex-1">
                           {/* Tags & Hot */}
                           <View className="flex-row items-center gap-2 mb-2">
                             {item.hot && (
-                              <View className="flex-row items-center gap-1 bg-red-500/20 px-2 py-0.5 rounded">
+                              <View className="flex-row items-center gap-1 bg-red-500/20 px-2 py-0.5 rounded border border-red-500/30">
                                 <Ionicons name="flame" size={10} color="#EF4444" />
                                 <Text className="text-xs text-red-400 font-medium">热门</Text>
                               </View>
                             )}
-                            <View className="bg-cyan-500/20 px-2 py-0.5 rounded">
+                            <View className="bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
                               <Text className="text-xs text-cyan-400">{item.category || '快讯'}</Text>
                             </View>
                             {item.tags?.slice(1).map((tag: string) => (
                               <View
                                 key={tag}
-                                className="bg-gray-800 px-2 py-0.5 rounded"
+                                className="bg-gray-800/50 px-2 py-0.5 rounded"
                               >
                                 <Text className="text-xs text-gray-400">{tag}</Text>
                               </View>
@@ -366,25 +385,31 @@ export default function NewsScreen() {
 
             {activeTab === 'hot' && (
               <>
-                {/* Hot Search List */}
+                {/* Hot Search List - 统一暗黑风格 */}
                 <View className="px-5 mb-4">
-                  <View className="bg-gray-900/80 rounded-2xl p-4 border border-gray-800">
+                  <View className="bg-black/60 rounded-2xl p-4 border border-gray-800/50">
                     <View className="flex-row items-center justify-between mb-4">
-                      <Text className="text-white font-semibold">热搜榜单</Text>
-                      <Text className="text-xs text-gray-500">实时更新</Text>
+                      <View className="flex-row items-center gap-2">
+                        <Ionicons name="trending-up" size={18} color="#00F0FF" />
+                        <Text className="text-white font-semibold">热搜榜单</Text>
+                      </View>
+                      <View className="flex-row items-center gap-1">
+                        <View className="w-2 h-2 rounded-full bg-green-400" />
+                        <Text className="text-xs text-gray-500">实时更新</Text>
+                      </View>
                     </View>
-                    <View className="space-y-3">
+                    <View className="space-y-1">
                       {displayHotSearch.map((item: any, index: number) => (
                         <View 
                           key={item.symbol || item.coin || index}
-                          className={`flex-row items-center justify-between py-2 ${
-                            index !== displayHotSearch.length - 1 ? 'border-b border-gray-800' : ''
+                          className={`flex-row items-center justify-between py-3 ${
+                            index !== displayHotSearch.length - 1 ? 'border-b border-gray-800/30' : ''
                           }`}
                         >
                           <View className="flex-row items-center gap-3">
                             <View 
-                              className={`w-6 h-6 rounded-full items-center justify-center ${
-                                index < 3 ? 'bg-cyan-500/20' : 'bg-gray-800'
+                              className={`w-7 h-7 rounded-full items-center justify-center ${
+                                index < 3 ? 'bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-500/30' : 'bg-gray-800/50'
                               }`}
                             >
                               <Text 
@@ -424,22 +449,22 @@ export default function NewsScreen() {
 
             {activeTab === 'market' && (
               <>
-                {/* Market Overview Cards */}
+                {/* Market Overview Cards - 统一暗黑风格 */}
                 <View className="px-5 mb-4 space-y-3">
                   {/* Top Row */}
                   <View className="flex-row gap-3">
-                    <View className="flex-1 bg-gray-900/80 rounded-2xl p-4 border border-gray-800">
+                    <View className="flex-1 bg-black/60 rounded-2xl p-4 border border-gray-800/50">
                       <Text className="text-xs text-gray-500 mb-1">总市值</Text>
-                      <Text className="text-lg font-bold text-white">{marketOverview?.totalMarketCap || '$2.42T'}</Text>
-                      <View className="flex-row items-center gap-1 mt-1">
+                      <Text className="text-lg font-bold text-white">$2.42T</Text>
+                      <View className="flex-row items-center gap-1 mt-1 bg-green-500/10 px-2 py-0.5 rounded-full self-start">
                         <Ionicons name="arrow-up" size={12} color="#22C55E" />
                         <Text className="text-xs text-green-400">+2.15%</Text>
                       </View>
                     </View>
-                    <View className="flex-1 bg-gray-900/80 rounded-2xl p-4 border border-gray-800">
+                    <View className="flex-1 bg-black/60 rounded-2xl p-4 border border-gray-800/50">
                       <Text className="text-xs text-gray-500 mb-1">24h 成交量</Text>
-                      <Text className="text-lg font-bold text-white">{marketOverview?.totalVolume24h || '$98.5B'}</Text>
-                      <View className="flex-row items-center gap-1 mt-1">
+                      <Text className="text-lg font-bold text-white">$98.5B</Text>
+                      <View className="flex-row items-center gap-1 mt-1 bg-red-500/10 px-2 py-0.5 rounded-full self-start">
                         <Ionicons name="arrow-down" size={12} color="#EF4444" />
                         <Text className="text-xs text-red-400">-0.45%</Text>
                       </View>
@@ -448,53 +473,66 @@ export default function NewsScreen() {
 
                   {/* Bottom Row */}
                   <View className="flex-row gap-3">
-                    <View className="flex-1 bg-gray-900/80 rounded-2xl p-4 border border-gray-800">
+                    <View className="flex-1 bg-black/60 rounded-2xl p-4 border border-cyan-500/20">
                       <Text className="text-xs text-gray-500 mb-1">BTC 占比</Text>
-                      <Text className="text-lg font-bold text-cyan-400">{marketOverview?.btcDominance || '52.4%'}</Text>
-                      <Text className="text-xs text-gray-500 mt-1">市值占比</Text>
+                      <Text className="text-lg font-bold text-cyan-400">52.4%</Text>
+                      <View className="w-full h-1 bg-gray-800 rounded-full mt-2">
+                        <View className="h-full bg-cyan-400 rounded-full" style={{ width: '52.4%' }} />
+                      </View>
                     </View>
-                    <View className="flex-1 bg-gray-900/80 rounded-2xl p-4 border border-gray-800">
+                    <View className="flex-1 bg-black/60 rounded-2xl p-4 border border-purple-500/20">
                       <Text className="text-xs text-gray-500 mb-1">ETH 占比</Text>
-                      <Text className="text-lg font-bold text-purple-400">{marketOverview?.ethDominance || '17.8%'}</Text>
-                      <Text className="text-xs text-gray-500 mt-1">市值占比</Text>
+                      <Text className="text-lg font-bold text-purple-400">17.8%</Text>
+                      <View className="w-full h-1 bg-gray-800 rounded-full mt-2">
+                        <View className="h-full bg-purple-400 rounded-full" style={{ width: '17.8%' }} />
+                      </View>
                     </View>
                   </View>
 
                   {/* DeFi TVL */}
-                  <View className="bg-gray-900/80 rounded-2xl p-4 border border-gray-800">
+                  <View className="bg-black/60 rounded-2xl p-4 border border-blue-500/20">
                     <View className="flex-row items-center justify-between">
-                      <View className="flex-row items-center gap-2">
-                        <View className="w-8 h-8 rounded-full bg-blue-500/20 items-center justify-center">
-                          <Ionicons name="layers" size={16} color="#3B82F6" />
+                      <View className="flex-row items-center gap-3">
+                        <View className="w-10 h-10 rounded-full bg-blue-500/20 items-center justify-center border border-blue-500/30">
+                          <Ionicons name="layers" size={18} color="#3B82F6" />
                         </View>
                         <View>
                           <Text className="text-sm text-white font-medium">DeFi 总锁仓量</Text>
                           <Text className="text-xs text-gray-500">DeFiLlama 数据</Text>
                         </View>
                       </View>
-                      <Text className="text-lg font-bold text-white">$128.5B</Text>
+                      <View className="text-right">
+                        <Text className="text-lg font-bold text-white">$128.5B</Text>
+                        <View className="flex-row items-center justify-end gap-1">
+                          <Ionicons name="arrow-up" size={12} color="#22C55E" />
+                          <Text className="text-xs text-green-400">+5.2%</Text>
+                        </View>
+                      </View>
                     </View>
                   </View>
                 </View>
 
-                {/* Gainers & Losers */}
+                {/* Gainers & Losers - 统一暗黑风格 */}
                 <View className="px-5 pb-4">
                   {/* Gainers */}
                   <View className="mb-4">
-                    <View className="flex-row items-center justify-between mb-3">
-                      <Text className="text-white font-semibold">涨幅榜</Text>
-                      <Ionicons name="trending-up" size={18} color="#22C55E" />
+                    <View className="flex-row items-center justify-between mb-3 px-1">
+                      <View className="flex-row items-center gap-2">
+                        <Ionicons name="trending-up" size={18} color="#22C55E" />
+                        <Text className="text-white font-semibold">涨幅榜</Text>
+                      </View>
+                      <Text className="text-xs text-gray-500">24h</Text>
                     </View>
-                    <View className="bg-gray-900/80 rounded-2xl border border-gray-800 overflow-hidden">
+                    <View className="bg-black/60 rounded-2xl border border-gray-800/50 overflow-hidden">
                       {displayGainers.map((item: any, index: number) => (
                         <View 
                           key={item.symbol || index}
                           className={`flex-row items-center justify-between p-3 ${
-                            index !== displayGainers.length - 1 ? 'border-b border-gray-800' : ''
+                            index !== displayGainers.length - 1 ? 'border-b border-gray-800/30' : ''
                           }`}
                         >
                           <View className="flex-row items-center gap-3">
-                            <View className="w-8 h-8 rounded-full bg-green-500/20 items-center justify-center">
+                            <View className="w-9 h-9 rounded-full bg-green-500/20 items-center justify-center border border-green-500/30">
                               <Text className="text-xs font-bold text-green-400">{(item.symbol || '?')[0]}</Text>
                             </View>
                             <View>
@@ -504,7 +542,9 @@ export default function NewsScreen() {
                           </View>
                           <View className="items-end">
                             <Text className="text-sm text-white">{item.price}</Text>
-                            <Text className="text-xs text-green-400">{item.change}</Text>
+                            <View className="bg-green-500/20 px-2 py-0.5 rounded">
+                              <Text className="text-xs text-green-400 font-medium">{item.change}</Text>
+                            </View>
                           </View>
                         </View>
                       ))}
@@ -513,20 +553,23 @@ export default function NewsScreen() {
 
                   {/* Losers */}
                   <View>
-                    <View className="flex-row items-center justify-between mb-3">
-                      <Text className="text-white font-semibold">跌幅榜</Text>
-                      <Ionicons name="trending-down" size={18} color="#EF4444" />
+                    <View className="flex-row items-center justify-between mb-3 px-1">
+                      <View className="flex-row items-center gap-2">
+                        <Ionicons name="trending-down" size={18} color="#EF4444" />
+                        <Text className="text-white font-semibold">跌幅榜</Text>
+                      </View>
+                      <Text className="text-xs text-gray-500">24h</Text>
                     </View>
-                    <View className="bg-gray-900/80 rounded-2xl border border-gray-800 overflow-hidden">
+                    <View className="bg-black/60 rounded-2xl border border-gray-800/50 overflow-hidden">
                       {displayLosers.map((item: any, index: number) => (
                         <View 
                           key={item.symbol || index}
                           className={`flex-row items-center justify-between p-3 ${
-                            index !== displayLosers.length - 1 ? 'border-b border-gray-800' : ''
+                            index !== displayLosers.length - 1 ? 'border-b border-gray-800/30' : ''
                           }`}
                         >
                           <View className="flex-row items-center gap-3">
-                            <View className="w-8 h-8 rounded-full bg-red-500/20 items-center justify-center">
+                            <View className="w-9 h-9 rounded-full bg-red-500/20 items-center justify-center border border-red-500/30">
                               <Text className="text-xs font-bold text-red-400">{(item.symbol || '?')[0]}</Text>
                             </View>
                             <View>
@@ -536,7 +579,9 @@ export default function NewsScreen() {
                           </View>
                           <View className="items-end">
                             <Text className="text-sm text-white">{item.price}</Text>
-                            <Text className="text-xs text-red-400">{item.change}</Text>
+                            <View className="bg-red-500/20 px-2 py-0.5 rounded">
+                              <Text className="text-xs text-red-400 font-medium">{item.change}</Text>
+                            </View>
                           </View>
                         </View>
                       ))}

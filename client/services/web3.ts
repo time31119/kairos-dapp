@@ -14,6 +14,7 @@ import {
   getSelectedChain,
   getChainInfo,
   formatAddress,
+  SUPPORTED_CHAINS,
   type ChainType,
   type WalletType,
 } from '@/services/metamask';
@@ -237,12 +238,164 @@ Nonce: ${nonce}
 This request will not trigger a blockchain transaction or cost any gas fees.`;
 }
 
-// 获取钱包余额（模拟）
+// 获取原生代币余额（通过 RPC）
+export async function getNativeBalance(
+  address: string,
+  chain: ChainType
+): Promise<string> {
+  try {
+    const chainInfo = getChainInfo(chain);
+    
+    // 构建 RPC 请求
+    const rpcPayload = {
+      jsonrpc: '2.0',
+      method: 'eth_getBalance',
+      params: [address, 'latest'],
+      id: 1,
+    };
+
+    const response = await fetch(chainInfo.rpcUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(rpcPayload),
+    });
+
+    const data = await response.json();
+    
+    if (data.result) {
+      // 将十六进制转换为十进制（以 wei/wei 为单位）
+      const balanceWei = BigInt(data.result);
+      const decimals = chainInfo.decimals || 18;
+      const divisor = BigInt(10 ** decimals);
+      
+      // 转换为可读格式
+      const balanceMain = balanceWei / divisor;
+      const remainder = balanceWei % divisor;
+      const decimalStr = remainder.toString().padStart(decimals, '0').slice(0, 4);
+      
+      return `${balanceMain}.${decimalStr}`;
+    }
+    
+    return '0';
+  } catch (error) {
+    console.error('Failed to get balance:', error);
+    return '0';
+  }
+}
+
+// 获取钱包余额（模拟，实际使用 getNativeBalance）
 export async function getBalance(address: string): Promise<string> {
-  // 实际应用中需要通过 RPC 获取
   // 模拟返回随机余额
   const balance = (Math.random() * 10).toFixed(4);
   return balance;
+}
+
+// 获取 Gas 价格
+export async function getGasPrice(chain: ChainType): Promise<string> {
+  try {
+    const chainInfo = getChainInfo(chain);
+    
+    const rpcPayload = {
+      jsonrpc: '2.0',
+      method: 'eth_gasPrice',
+      params: [],
+      id: 1,
+    };
+
+    const response = await fetch(chainInfo.rpcUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(rpcPayload),
+    });
+
+    const data = await response.json();
+    
+    if (data.result) {
+      // 将 hex 转换为 Gwei
+      const gasPriceWei = BigInt(data.result);
+      const gasPriceGwei = Number(gasPriceWei) / 1e9;
+      return gasPriceGwei.toFixed(2);
+    }
+    
+    return '0';
+  } catch (error) {
+    console.error('Failed to get gas price:', error);
+    return '0';
+  }
+}
+
+// 获取区块信息
+export async function getBlockNumber(chain: ChainType): Promise<number> {
+  try {
+    const chainInfo = getChainInfo(chain);
+    
+    const rpcPayload = {
+      jsonrpc: '2.0',
+      method: 'eth_blockNumber',
+      params: [],
+      id: 1,
+    };
+
+    const response = await fetch(chainInfo.rpcUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(rpcPayload),
+    });
+
+    const data = await response.json();
+    
+    if (data.result) {
+      return parseInt(data.result, 16);
+    }
+    
+    return 0;
+  } catch (error) {
+    console.error('Failed to get block number:', error);
+    return 0;
+  }
+}
+
+// 链状态信息
+export interface ChainStatus {
+  chain: ChainType;
+  blockNumber: number;
+  gasPrice: string;
+  isOnline: boolean;
+  latency: number;
+}
+
+// 获取链状态
+export async function getChainStatus(chain: ChainType): Promise<ChainStatus> {
+  const start = Date.now();
+  
+  try {
+    const [blockNumber, gasPrice] = await Promise.all([
+      getBlockNumber(chain),
+      getGasPrice(chain),
+    ]);
+    
+    return {
+      chain,
+      blockNumber,
+      gasPrice,
+      isOnline: true,
+      latency: Date.now() - start,
+    };
+  } catch (error) {
+    return {
+      chain,
+      blockNumber: 0,
+      gasPrice: '0',
+      isOnline: false,
+      latency: Date.now() - start,
+    };
+  }
 }
 
 // 生成模拟以太坊地址
@@ -366,4 +519,109 @@ export async function getSignMessage(address: string, message?: string): Promise
   }
   
   return createSignMessage(address, nonce);
+}
+
+// ============ 链状态 API 调用 ============
+
+// 获取链配置列表
+export async function getChainConfigs(): Promise<any[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/web3/chains`);
+    const data = await response.json();
+    
+    if (data.code !== 0) {
+      throw new Error(data.message || '获取链配置失败');
+    }
+    
+    return data.data;
+  } catch (error) {
+    console.error('Get chain configs error:', error);
+    // 返回本地配置作为兜底
+    return Object.entries(SUPPORTED_CHAINS).map(([key, info]) => ({
+      key,
+      ...info,
+    }));
+  }
+}
+
+// 获取所有链状态
+export async function getAllChainStatuses(): Promise<{
+  chains: ChainStatus[];
+  onlineCount: number;
+  totalCount: number;
+}> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/web3/chains/status`);
+    const data = await response.json();
+    
+    if (data.code !== 0) {
+      throw new Error(data.message || '获取链状态失败');
+    }
+    
+    return data.data;
+  } catch (error) {
+    console.error('Get all chain statuses error:', error);
+    // 返回本地获取的状态作为兜底
+    const statuses: ChainStatus[] = [];
+    for (const chain of Object.keys(SUPPORTED_CHAINS)) {
+      const status = await getChainStatus(chain as ChainType);
+      statuses.push(status);
+    }
+    
+    return {
+      chains: statuses,
+      onlineCount: statuses.filter(s => s.isOnline).length,
+      totalCount: statuses.length,
+    };
+  }
+}
+
+// 获取单个链状态
+export async function getChainStatusFromBackend(chain: ChainType): Promise<ChainStatus> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/web3/chains/${chain}/status`);
+    const data = await response.json();
+    
+    if (data.code !== 0) {
+      throw new Error(data.message || '获取链状态失败');
+    }
+    
+    return data.data;
+  } catch (error) {
+    console.error('Get chain status error:', error);
+    // 返回本地获取的状态作为兜底
+    return getChainStatus(chain);
+  }
+}
+
+// 获取代币价格
+export async function getTokenPrice(chain: ChainType): Promise<{
+  symbol: string;
+  usd: number;
+  change24h: number;
+}> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/v1/web3/price/${chain}`);
+    const data = await response.json();
+    
+    if (data.code !== 0) {
+      throw new Error(data.message || '获取代币价格失败');
+    }
+    
+    return data.data;
+  } catch (error) {
+    console.error('Get token price error:', error);
+    // 返回模拟价格作为兜底
+    const prices: Record<ChainType, { symbol: string; usd: number; change24h: number }> = {
+      ethereum: { symbol: 'ETH', usd: 3450, change24h: 2.5 },
+      sepolia: { symbol: 'ETH', usd: 3450, change24h: 0 },
+      bsc: { symbol: 'BNB', usd: 605, change24h: -1.2 },
+      bscTestnet: { symbol: 'BNB', usd: 605, change24h: 0 },
+      polygon: { symbol: 'MATIC', usd: 0.85, change24h: 3.8 },
+      arbitrum: { symbol: 'ETH', usd: 3.45, change24h: 1.5 },
+      optimism: { symbol: 'ETH', usd: 3.45, change24h: 1.2 },
+    };
+    
+    return prices[chain];
+  }
 }

@@ -20,12 +20,16 @@ const CATEGORIES = [
   { id: 'layer2', title: 'Layer2', icon: 'layers-outline', color: '#FF6B6B' },
 ];
 
-// 技术分析场景
+// 技术分析场景 - 完善版本
 const TECHNICAL_SCENARIOS = [
-  { id: '1h_up', title: '1H上涨', icon: 'trending-up', color: '#00F0FF', desc: '短期爆发' },
-  { id: '4h_up', title: '4H上涨', icon: 'trending-up', color: '#00FF88', desc: '波段延续' },
-  { id: 'macd', title: 'MACD金叉', icon: 'sync', color: '#9370DB', desc: '趋势转折' },
-  { id: '1h_down', title: '1H下跌', icon: 'trending-down', color: '#FF4444', desc: '做空机会' },
+  { id: '1h_up', title: '1H上涨', icon: 'trending-up', color: '#00F0FF', desc: '短期爆发', signal: '强多', signalColor: '#00FF88' },
+  { id: '4h_up', title: '4H上涨', icon: 'trending-up', color: '#00FF88', desc: '波段延续', signal: '看多', signalColor: '#00FF88' },
+  { id: 'macd', title: 'MACD金叉', icon: 'sync', color: '#9370DB', desc: '趋势转折', signal: '买入', signalColor: '#00FF88' },
+  { id: '1h_down', title: '1H下跌', icon: 'trending-down', color: '#FF4444', desc: '做空机会', signal: '看空', signalColor: '#FF4444' },
+  { id: 'rsi', title: 'RSI超卖', icon: 'speedometer', color: '#FFA500', desc: '超卖反弹', signal: '关注', signalColor: '#FFA500' },
+  { id: 'volume', title: '成交量异动', icon: 'pulse', color: '#FF69B4', desc: '资金涌入', signal: '放量', signalColor: '#FF69B4' },
+  { id: 'bollinger', title: '布林下轨', icon: 'radio-button-on', color: '#00CED1', desc: '支撑反弹', signal: '回踩', signalColor: '#00CED1' },
+  { id: 'golden', title: '均线金叉', icon: 'git-merge', color: '#FFD700', desc: '多头发散', signal: '多头', signalColor: '#00FF88' },
 ];
 
 function TokenRow({ token, rank }: { token: any; rank: number }) {
@@ -70,10 +74,18 @@ function CategorySection({ category }: { category: any }) {
 
 function TechCard({ scenario }: { scenario: any }) {
   return (
-    <Pressable style={[styles.techCard, { borderColor: scenario.color }]}>
-      <Ionicons name={scenario.icon} size={20} color={scenario.color} />
+    <Pressable 
+      style={[styles.techCard, { borderColor: scenario.color + '40' }]}
+      onPress={() => {}}
+    >
+      <View style={[styles.techIconWrap, { backgroundColor: scenario.color + '15' }]}>
+        <Ionicons name={scenario.icon} size={18} color={scenario.color} />
+      </View>
       <Text style={styles.techTitle}>{scenario.title}</Text>
       <Text style={styles.techDesc}>{scenario.desc}</Text>
+      <View style={[styles.signalBadge, { backgroundColor: scenario.signalColor + '20' }]}>
+        <Text style={[styles.signalText, { color: scenario.signalColor }]}>{scenario.signal}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -120,12 +132,22 @@ export default function HomeScreen() {
 
         {/* 技术分析场景 */}
         <View style={styles.techSection}>
-          <Text style={styles.sectionLabel}>技术分析</Text>
+          <View style={styles.techHeader}>
+            <Text style={styles.sectionLabel}>技术分析</Text>
+            <View style={styles.techStats}>
+              <Text style={styles.statsText}>实时监控</Text>
+              <View style={styles.liveDot} />
+            </View>
+          </View>
           <View style={styles.techGrid}>
             {TECHNICAL_SCENARIOS.map(s => (
               <TechCard key={s.id} scenario={s} />
             ))}
           </View>
+          <Pressable style={styles.techMore}>
+            <Text style={styles.techMoreText}>查看全部技术指标</Text>
+            <Ionicons name="chevron-forward" size={16} color="#00F0FF" />
+          </Pressable>
         </View>
 
         {/* 热门精选 */}
@@ -161,18 +183,26 @@ const styles = StyleSheet.create({
   
   // 技术分析
   techSection: { padding: 16 },
+  techHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  techStats: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statsText: { fontSize: 12, color: '#6B7280' },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#00FF88' },
   techGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   techCard: {
     width: '48%',
     backgroundColor: '#12121A',
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     padding: 14,
     marginBottom: 10,
-    alignItems: 'center',
   },
-  techTitle: { fontSize: 13, fontWeight: '600', color: '#FFF', marginTop: 8 },
-  techDesc: { fontSize: 11, color: '#6B7280', marginTop: 2 },
+  techIconWrap: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  techTitle: { fontSize: 13, fontWeight: '600', color: '#FFF', marginBottom: 2 },
+  techDesc: { fontSize: 11, color: '#6B7280', marginBottom: 8 },
+  signalBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  signalText: { fontSize: 10, fontWeight: '700' },
+  techMore: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 8, paddingVertical: 10 },
+  techMoreText: { fontSize: 13, color: '#00F0FF' },
   
   // 热门精选
   featuredSection: { padding: 16 },

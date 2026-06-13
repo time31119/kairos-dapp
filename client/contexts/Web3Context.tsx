@@ -1,6 +1,7 @@
 /**
  * Web3 Context
  * 全局钱包状态管理
+ * 支持 MetaMask 和 WalletConnect
  */
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
@@ -23,6 +24,18 @@ import {
   type ChainType,
   type WalletType,
 } from '@/services/metamask';
+import {
+  connectWalletConnect,
+  disconnectWalletConnect,
+  hasActiveSession,
+  openWalletConnectWallet,
+  getConnectedAccounts,
+  getConnectedChainId,
+  storeWCUri,
+  getWCUri,
+  clearWCUri,
+  type WCSession,
+} from '@/services/walletconnect';
 
 // 钱包状态接口
 export interface WalletState {
@@ -32,6 +45,8 @@ export interface WalletState {
   walletType: WalletType | null;
   isConnected: boolean;
   isConnecting: boolean;
+  isWalletConnectConnecting: boolean;
+  wcUri: string | null;
   error: string | null;
 }
 
@@ -44,6 +59,10 @@ interface Web3ContextType {
   refreshBalance: () => Promise<void>;
   signMessage: (message?: string) => Promise<string>;
   verifySign: (signature: string) => Promise<boolean>;
+  // WalletConnect 专用方法
+  initiateWalletConnect: () => Promise<string>;
+  completeWalletConnect: (uri: string) => Promise<void>;
+  cancelWalletConnect: () => void;
 }
 
 // 默认状态
@@ -54,6 +73,8 @@ const defaultState: WalletState = {
   walletType: null,
   isConnected: false,
   isConnecting: false,
+  isWalletConnectConnecting: false,
+  wcUri: null,
   error: null,
 };
 
@@ -73,6 +94,7 @@ export function Web3Provider({ children }: Web3ProviderProps) {
   useEffect(() => {
     const restoreConnection = async () => {
       try {
+        // 检查常规钱包连接
         const info = await getWalletInfo();
         const type = await getWalletType();
 
@@ -86,8 +108,32 @@ export function Web3Provider({ children }: Web3ProviderProps) {
             walletType: type,
             isConnected: true,
             isConnecting: false,
+            isWalletConnectConnecting: false,
+            wcUri: null,
             error: null,
           });
+        } else {
+          // 检查 WalletConnect Session
+          const hasWC = await hasActiveSession();
+          if (hasWC) {
+            const accounts = await getConnectedAccounts();
+            const chainId = await getConnectedChainId();
+            
+            if (accounts.length > 0) {
+              const chain = getChainTypeFromChainId(chainId || 1);
+              setWallet({
+                address: accounts[0],
+                chain,
+                balance: '0',
+                walletType: 'walletconnect',
+                isConnected: true,
+                isConnecting: false,
+                isWalletConnectConnecting: false,
+                wcUri: null,
+                error: null,
+              });
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to restore connection:', error);
@@ -99,6 +145,11 @@ export function Web3Provider({ children }: Web3ProviderProps) {
 
   // 连接钱包
   const connect = useCallback(async (type: WalletType) => {
+    // WalletConnect 需要特殊处理
+    if (type === 'walletconnect') {
+      return; // WalletConnect 使用 initiateWalletConnect
+    }
+
     setWallet(prev => ({ ...prev, isConnecting: true, error: null }));
 
     try {
@@ -112,6 +163,8 @@ export function Web3Provider({ children }: Web3ProviderProps) {
         walletType: type,
         isConnected: true,
         isConnecting: false,
+        isWalletConnectConnecting: false,
+        wcUri: null,
         error: null,
       });
     } catch (error: any) {
@@ -127,6 +180,10 @@ export function Web3Provider({ children }: Web3ProviderProps) {
   // 断开连接
   const disconnectWallet = useCallback(async () => {
     try {
+      // 如果是 WalletConnect，断开 WC 连接
+      if (wallet.walletType === 'walletconnect') {
+        await disconnectWalletConnect();
+      }
       await disconnect();
       setWallet(defaultState);
     } catch (error: any) {
@@ -135,7 +192,7 @@ export function Web3Provider({ children }: Web3ProviderProps) {
         error: error.message || 'Failed to disconnect',
       }));
     }
-  }, []);
+  }, [wallet.walletType]);
 
   // 切换链
   const switchChain = useCallback(async (chain: ChainType) => {
@@ -181,6 +238,106 @@ export function Web3Provider({ children }: Web3ProviderProps) {
     return await verifySignature(wallet.address, signature);
   }, [wallet.address]);
 
+  // ===== WalletConnect 专用方法 =====
+
+  // 初始化 WalletConnect 连接
+  const initiateWalletConnect = useCallback(async (): Promise<string> => {
+    setWallet(prev => ({
+      ...prev,
+      isConnecting: true,
+      isWalletConnectConnecting: true,
+      error: null,
+    }));
+
+    try {
+      const { uri } = await connectWalletConnect();
+      setWallet(prev => ({
+        ...prev,
+        wcUri: uri,
+        isConnecting: false,
+      }));
+      
+      // 尝试打开钱包
+      await openWalletConnectWallet(uri);
+      
+      return uri;
+    } catch (error: any) {
+      setWallet(prev => ({
+        ...prev,
+        isConnecting: false,
+        isWalletConnectConnecting: false,
+        error: error.message || 'Failed to initiate WalletConnect',
+      }));
+      throw error;
+    }
+  }, []);
+
+  // 完成 WalletConnect 连接
+  const completeWalletConnect = useCallback(async (uri: string) => {
+    setWallet(prev => ({ ...prev, isConnecting: true, error: null }));
+
+    try {
+      // 存储 URI 并等待连接
+      await storeWCUri(uri);
+      
+      // 模拟连接成功（实际需要监听钱包响应）
+      // 这里简化处理，实际应使用 WalletConnect SDK
+      const accounts = await getConnectedAccounts();
+      const chainId = await getConnectedChainId();
+      
+      if (accounts.length > 0) {
+        const chain = getChainTypeFromChainId(chainId || 1);
+        setWallet({
+          address: accounts[0],
+          chain,
+          balance: '0',
+          walletType: 'walletconnect',
+          isConnected: true,
+          isConnecting: false,
+          isWalletConnectConnecting: false,
+          wcUri: null,
+          error: null,
+        });
+      } else {
+        throw new Error('No accounts connected');
+      }
+    } catch (error: any) {
+      setWallet(prev => ({
+        ...prev,
+        isConnecting: false,
+        isWalletConnectConnecting: false,
+        error: error.message || 'Failed to complete WalletConnect',
+      }));
+      throw error;
+    }
+  }, []);
+
+  // 取消 WalletConnect 连接
+  const cancelWalletConnect = useCallback(() => {
+    clearWCUri();
+    setWallet(prev => ({
+      ...prev,
+      isConnecting: false,
+      isWalletConnectConnecting: false,
+      wcUri: null,
+      error: null,
+    }));
+  }, []);
+
+  // 辅助函数：根据链 ID 获取链类型
+  const getChainTypeFromChainId = (chainId: number): ChainType => {
+    const chainMap: Record<number, ChainType> = {
+      1: 'ethereum',
+      11155111: 'sepolia',
+      137: 'polygon',
+      56: 'bsc',
+      42161: 'arbitrum',
+      10: 'optimism',
+      97: 'bscTestnet',
+    };
+    return chainMap[chainId] || 'ethereum';
+  };
+
   const value: Web3ContextType = {
     wallet,
     connect,
@@ -189,6 +346,9 @@ export function Web3Provider({ children }: Web3ProviderProps) {
     refreshBalance,
     signMessage,
     verifySign,
+    initiateWalletConnect,
+    completeWalletConnect,
+    cancelWalletConnect,
   };
 
   return (

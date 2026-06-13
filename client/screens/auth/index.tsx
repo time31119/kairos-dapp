@@ -15,6 +15,7 @@ import {
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useWeb3 } from '@/contexts/Web3Context';
+import WalletConnectQR from '@/components/WalletConnectQR';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
@@ -55,9 +56,11 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
 
 export default function LoginScreen() {
   const router = useSafeRouter();
-  const { wallet, connect, disconnect, signMessage } = useWeb3();
+  const { wallet, connect, disconnect, signMessage, initiateWalletConnect, completeWalletConnect, cancelWalletConnect } = useWeb3();
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showWCQR, setShowWCQR] = useState(false);
+  const [wcUri, setWcUri] = useState('');
 
   // 钱包连接后自动登录
   useEffect(() => {
@@ -115,10 +118,29 @@ export default function LoginScreen() {
     setShowModal(false);
     
     try {
-      await connect("metamask");
+      if (walletType === 'walletconnect') {
+        // 启动 WalletConnect 连接
+        const uri = await initiateWalletConnect();
+        setWcUri(uri);
+        setShowWCQR(true);
+      } else {
+        // 其他钱包使用普通连接
+        await connect(walletType as any);
+      }
     } catch (error: any) {
       Alert.alert('连接失败', error.message || '请重试');
     }
+  };
+
+  // 处理 WalletConnect URI 变化
+  const handleWCUriChange = (uri: string) => {
+    setWcUri(uri);
+  };
+
+  // 关闭 WalletConnect QR
+  const handleWCClose = () => {
+    setShowWCQR(false);
+    cancelWalletConnect();
   };
 
   // 跳过登录（游客模式）
@@ -285,6 +307,14 @@ export default function LoginScreen() {
             <Text style={styles.loadingText}>验证签名中...</Text>
           </View>
         )}
+
+        {/* WalletConnect QR 码 */}
+        <WalletConnectQR
+          visible={showWCQR}
+          uri={wcUri || wallet.wcUri || ''}
+          onClose={handleWCClose}
+          onUriChange={handleWCUriChange}
+        />
       </View>
     </Screen>
   );

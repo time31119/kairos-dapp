@@ -13,7 +13,7 @@ const ABOUT_ITEMS = [
 
 export default function AboutScreen() {
   const handleContact = () => {
-    Linking.openURL('mailto:support@kairos.app');
+    Linking.openURL('mailto:support@dapp.app');
   };
 
   return (
@@ -29,7 +29,7 @@ export default function AboutScreen() {
           <View className="w-20 h-20 rounded-3xl bg-gradient-to-br from-cyan-500 to-purple-600 items-center justify-center mb-4 shadow-lg shadow-cyan-500/30">
             <Ionicons name="flash" size={40} color="white" />
           </View>
-          <Text className="text-2xl font-bold text-white mb-1">KAIROS</Text>
+          <Text className="text-2xl font-bold text-white mb-1">DAPP</Text>
           <Text className="text-sm text-gray-500">行情筛选器 v1.0.0</Text>
         </View>
 
@@ -64,21 +64,21 @@ export default function AboutScreen() {
                 <Ionicons name="mail-outline" size={20} color="#10B981" />
                 <Text className="text-sm text-white">邮箱</Text>
               </View>
-              <Text className="text-sm text-gray-400">support@kairos.app</Text>
+              <Text className="text-sm text-gray-400">support@dapp.app</Text>
             </TouchableOpacity>
             <TouchableOpacity className="flex-row items-center justify-between px-4 py-4 border-b border-gray-800">
               <View className="flex-row items-center gap-3">
                 <Ionicons name="logo-twitter" size={20} color="#3B82F6" />
                 <Text className="text-sm text-white">Twitter</Text>
               </View>
-              <Text className="text-sm text-gray-400">@kairos_app</Text>
+              <Text className="text-sm text-gray-400">@dapp_app</Text>
             </TouchableOpacity>
             <TouchableOpacity className="flex-row items-center justify-between px-4 py-4">
               <View className="flex-row items-center gap-3">
                 <Ionicons name="logo-discord" size={20} color="#8B5CF6" />
                 <Text className="text-sm text-white">Discord</Text>
               </View>
-              <Text className="text-sm text-gray-400">KAIROS Community</Text>
+              <Text className="text-sm text-gray-400">DAPP Community</Text>
             </TouchableOpacity>
           </View>
         </View>

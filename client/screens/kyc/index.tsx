@@ -1,6 +1,6 @@
 /**
  * KYC 实名认证页面
- * KAIROS 行情筛选器
+ * DAPP 行情筛选器
  */
 
 import React, { useState } from 'react';

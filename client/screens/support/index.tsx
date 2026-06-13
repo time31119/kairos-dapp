@@ -1,6 +1,6 @@
 /**
  * 客服帮助页面
- * KAIROS 行情筛选器
+ * DAPP 行情筛选器
  */
 
 import React, { useState } from 'react';
@@ -63,7 +63,7 @@ const faqData: FAQItem[] = [
   {
     id: '6',
     question: '如何联系客服？',
-    answer: '您可以通过以下方式联系我们：1. 在线客服（工作时间 9:00-21:00）；2. 发送邮件至 support@kairos.com',
+    answer: '您可以通过以下方式联系我们：1. 在线客服（工作时间 9:00-21:00）；2. 发送邮件至 support@dapp.com',
   },
   {
     id: '7',
@@ -97,7 +97,7 @@ export default function SupportScreen() {
         setShowContactModal(true);
         break;
       case 'email':
-        Alert.alert('提示', '请发送邮件至 support@kairos.com');
+        Alert.alert('提示', '请发送邮件至 support@dapp.com');
         break;
       case 'phone':
         Alert.alert('提示', '客服热线：400-888-8888');
@@ -134,7 +134,7 @@ export default function SupportScreen() {
       id: 'email',
       icon: 'mail-outline',
       title: '邮件联系',
-      description: 'support@kairos.com',
+      description: 'support@dapp.com',
       action: () => handleServiceClick('email'),
     },
     {
@@ -229,8 +229,8 @@ export default function SupportScreen() {
 
         {/* Version Info */}
         <View style={styles.versionInfo}>
-          <Text style={styles.versionText}>KAIROS v1.0.0</Text>
-          <Text style={styles.copyrightText}>© 2024 KAIROS. All rights reserved.</Text>
+          <Text style={styles.versionText}>DAPP v1.0.0</Text>
+          <Text style={styles.copyrightText}>© 2024 DAPP. All rights reserved.</Text>
         </View>
       </ScrollView>
 

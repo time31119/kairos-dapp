@@ -49,22 +49,22 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       [
         "expo-image-picker",
         {
-          "photosPermission": `允许KAIROS 币势预测访问您的相册，以便您上传或保存图片。`,
-          "cameraPermission": `允许KAIROS 币势预测使用您的相机，以便您直接拍摄照片上传。`,
-          "microphonePermission": `允许KAIROS 币势预测访问您的麦克风，以便您拍摄带有声音的视频。`
+          "photosPermission": `允许DAPP 币势预测访问您的相册，以便您上传或保存图片。`,
+          "cameraPermission": `允许DAPP 币势预测使用您的相机，以便您直接拍摄照片上传。`,
+          "microphonePermission": `允许DAPP 币势预测访问您的麦克风，以便您拍摄带有声音的视频。`
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": `KAIROS 币势预测需要访问您的位置以提供周边服务及导航功能。`
+          "locationWhenInUsePermission": `DAPP 币势预测需要访问您的位置以提供周边服务及导航功能。`
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": `KAIROS 币势预测需要访问相机以拍摄照片和视频。`,
-          "microphonePermission": `KAIROS 币势预测需要访问麦克风以录制视频声音。`,
+          "cameraPermission": `DAPP 币势预测需要访问相机以拍摄照片和视频。`,
+          "microphonePermission": `DAPP 币势预测需要访问麦克风以录制视频声音。`,
           "recordAudioAndroid": true
         }
       ]

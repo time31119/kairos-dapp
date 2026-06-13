@@ -8,7 +8,7 @@ export default function DemoScreen() {
   return (
     <Screen>
       <View style={styles.container}>
-        <Text style={styles.title}>KAIROS Demo</Text>
+        <Text style={styles.title}>DAPP Demo</Text>
         <Text style={styles.subtitle}>行情筛选器示例页面</Text>
         
         <TouchableOpacity 

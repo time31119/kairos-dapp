@@ -87,7 +87,7 @@ export default function MineScreen() {
                 <View className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-800 to-gray-700 items-center justify-center mb-4">
                   <FontAwesome6 name="user" size={36} color="#6B7280" />
                 </View>
-                <Text className="text-lg font-semibold text-white mb-1">登录 KAIROS</Text>
+                <Text className="text-lg font-semibold text-white mb-1">登录 DAPP</Text>
                 <Text className="text-sm text-gray-500 mb-4">
                   登录后解锁更多功能
                 </Text>
@@ -110,7 +110,7 @@ export default function MineScreen() {
                 <Ionicons name="ribbon" size={22} color="#FFD700" />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-yellow-400">KAIROS 会员</Text>
+                <Text className="text-sm font-semibold text-yellow-400">DAPP 会员</Text>
                 <Text className="text-xs text-gray-500">解锁全部高级功能</Text>
               </View>
               <View className="bg-yellow-500 px-3 py-1 rounded-full">
@@ -189,7 +189,7 @@ export default function MineScreen() {
 
         {/* App Version */}
         <View className="items-center pb-8">
-          <Text className="text-xs text-gray-600">KAIROS v1.0.0</Text>
+          <Text className="text-xs text-gray-600">DAPP v1.0.0</Text>
         </View>
       </ScrollView>
     </Screen>

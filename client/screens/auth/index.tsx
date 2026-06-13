@@ -1,6 +1,6 @@
 /**
  * 登录注册页面
- * KAIROS 行情筛选器
+ * DAPP 行情筛选器
  */
 
 import { useState, useEffect, useRef } from 'react';
@@ -213,7 +213,7 @@ export default function LoginScreen() {
             <View style={styles.logoIconContainer}>
               <Ionicons name="flash" size={40} color="#00F0FF" />
             </View>
-            <Text style={styles.logoText}>KAIROS</Text>
+            <Text style={styles.logoText}>DAPP</Text>
             <Text style={styles.subtitle}>智能行情筛选器</Text>
           </View>
 

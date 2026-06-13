@@ -1,6 +1,6 @@
 /**
  * 跟单设置页面
- * KAIROS 行情筛选器
+ * DAPP 行情筛选器
  */
 
 'use client';

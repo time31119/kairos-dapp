@@ -133,7 +133,7 @@ export default function SettingsScreen() {
 
         {/* App Version */}
         <View className="items-center pb-8">
-          <Text className="text-xs text-gray-600">KAIROS v1.0.0</Text>
+          <Text className="text-xs text-gray-600">DAPP v1.0.0</Text>
         </View>
       </ScrollView>
     </Screen>

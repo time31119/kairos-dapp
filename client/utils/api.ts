@@ -1,5 +1,5 @@
 /**
- * KAIROS API 服务
+ * DAPP API 服务
  * 统一的 API 调用接口
  */
 

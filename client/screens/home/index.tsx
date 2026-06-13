@@ -76,12 +76,20 @@ export default function HomeScreen() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchData = () => {
+    setLoading(true);
     fetch(API_URL + '/api/v1/screener/featured')
       .then(r => r.json())
       .then(r => { if (r.success) setData(r.data); })
       .catch(console.error)
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchData();
+    // 每 30 秒自动刷新
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   return (

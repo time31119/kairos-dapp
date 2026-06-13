@@ -303,6 +303,96 @@ export default function Membership() {
           </View>
         </View>
 
+        {/* 分享激励计划 */}
+        <View style={styles.referralSection}>
+          <View style={styles.referralHeader}>
+            <Ionicons name="gift" size={24} color={colors.neonCyan} />
+            <Text style={styles.referralTitle}>分享激励计划</Text>
+          </View>
+          
+          <Text style={styles.referralDesc}>
+            邀请好友订阅，双方均可获得奖励
+          </Text>
+
+          {/* 奖励规则 */}
+          <View style={styles.rewardRules}>
+            {[
+              { level: '1', invited: '1-5人', reward: '+7天基础版', icon: 'person-add-outline' },
+              { level: '2', invited: '6-15人', reward: '+1月专业版', icon: 'trending-up-outline' },
+              { level: '3', invited: '16-30人', reward: '+3月专业版', icon: 'diamond-outline' },
+              { level: '4', invited: '30+人', reward: '+1年尊享版', icon: 'trophy-outline' },
+            ].map((rule, idx) => (
+              <View key={idx} style={styles.rewardRule}>
+                <View style={styles.rewardLevel}>
+                  <Ionicons name={rule.icon as any} size={20} color={colors.neonYellow} />
+                  <Text style={styles.rewardLevelText}>{rule.level}</Text>
+                </View>
+                <View style={styles.rewardInfo}>
+                  <Text style={styles.rewardInvited}>邀请 {rule.invited}</Text>
+                  <Text style={styles.rewardValue}>{rule.reward}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          {/* 我的邀请统计 */}
+          <View style={styles.referralStats}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>12</Text>
+              <Text style={styles.statLabel}>已邀请</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={[styles.statValue, { color: colors.neonGreen }]}>8</Text>
+              <Text style={styles.statLabel}>有效邀请</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={[styles.statValue, { color: colors.neonCyan }]}>+2月</Text>
+              <Text style={styles.statLabel}>待领取</Text>
+            </View>
+          </View>
+
+          {/* 邀请链接 */}
+          <View style={styles.inviteLinkContainer}>
+            <View style={styles.inviteLinkBox}>
+              <Text style={styles.inviteLinkText} numberOfLines={1}>
+                https://kairos.app/r/0x7a9...f3c2
+              </Text>
+            </View>
+            <TouchableOpacity style={styles.copyButton}>
+              <Ionicons name="copy-outline" size={18} color={colors.background} />
+              <Text style={styles.copyButtonText}>复制</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* 分享按钮 */}
+          <View style={styles.shareButtons}>
+            <TouchableOpacity style={[styles.shareBtn, { backgroundColor: '#1DA1F2' }]}>
+              <Ionicons name="logo-twitter" size={20} color="#FFF" />
+              <Text style={styles.shareBtnText}>Twitter</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.shareBtn, { backgroundColor: '#25D366' }]}>
+              <Ionicons name="logo-whatsapp" size={20} color="#FFF" />
+              <Text style={styles.shareBtnText}>WhatsApp</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.shareBtn, { backgroundColor: colors.neonCyan }]}>
+              <Ionicons name="share-social-outline" size={20} color={colors.background} />
+              <Text style={[styles.shareBtnText, { color: colors.background }]}>更多</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* 邀请排行榜入口 */}
+          <TouchableOpacity style={styles.leaderboardLink}>
+            <View style={styles.leaderboardLeft}>
+              <Ionicons name="podium-outline" size={20} color={colors.neonYellow} />
+              <Text style={styles.leaderboardText}>邀请排行榜</Text>
+            </View>
+            <View style={styles.leaderboardRank}>
+              <Text style={styles.leaderboardRankText}>你当前第 28 名</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            </View>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.footer} />
       </ScrollView>
 
@@ -523,4 +613,58 @@ const styles = StyleSheet.create({
   modalInfoValue: { fontSize: 13, color: colors.text },
   confirmButton: { marginTop: 20, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
   confirmButtonText: { fontSize: 16, fontWeight: '700', color: colors.background },
+
+  // 分享激励
+  referralSection: { paddingHorizontal: 20, marginTop: 24, marginBottom: 20 },
+  referralHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  referralTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
+  referralDesc: { fontSize: 13, color: colors.textSecondary, marginBottom: 16 },
+  
+  rewardRules: { backgroundColor: colors.card, borderRadius: 16, padding: 16, gap: 12 },
+  rewardRule: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  rewardLevel: { 
+    width: 36, height: 36, borderRadius: 18, 
+    backgroundColor: colors.neonYellow + '20', 
+    justifyContent: 'center', alignItems: 'center',
+  },
+  rewardLevelText: { fontSize: 14, fontWeight: '700', color: colors.neonYellow, position: 'absolute' },
+  rewardInfo: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  rewardInvited: { fontSize: 13, color: colors.textSecondary },
+  rewardValue: { fontSize: 13, fontWeight: '600', color: colors.neonGreen },
+  
+  referralStats: { flexDirection: 'row', gap: 12, marginTop: 16 },
+  statCard: { 
+    flex: 1, backgroundColor: colors.card, borderRadius: 12, 
+    padding: 16, alignItems: 'center' 
+  },
+  statValue: { fontSize: 22, fontWeight: '800', color: colors.neonYellow },
+  statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 4 },
+  
+  inviteLinkContainer: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  inviteLinkBox: { 
+    flex: 1, backgroundColor: colors.card, borderRadius: 10, 
+    paddingHorizontal: 14, paddingVertical: 12 
+  },
+  inviteLinkText: { fontSize: 13, color: colors.textSecondary, fontFamily: 'monospace' },
+  copyButton: { 
+    backgroundColor: colors.neonCyan, borderRadius: 10, 
+    paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center',
+  },
+  copyButtonText: { fontSize: 13, fontWeight: '600', color: colors.background, marginTop: 2 },
+  
+  shareButtons: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  shareBtn: { 
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', 
+    paddingVertical: 12, borderRadius: 10, gap: 6 
+  },
+  shareBtnText: { fontSize: 13, fontWeight: '600', color: '#FFF' },
+  
+  leaderboardLink: { 
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: colors.card, borderRadius: 12, padding: 14, marginTop: 16,
+  },
+  leaderboardLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  leaderboardText: { fontSize: 14, fontWeight: '600', color: colors.text },
+  leaderboardRank: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  leaderboardRankText: { fontSize: 12, color: colors.textSecondary },
 });

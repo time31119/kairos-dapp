@@ -39,6 +39,8 @@ export default function NewsScreen() {
   const [hotSearch, setHotSearch] = useState<any[]>([]);
   const [gainers, setGainers] = useState<any[]>([]);
   const [losers, setLosers] = useState<any[]>([]);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [isLive, setIsLive] = useState(true);
 
   // 获取市场概览
   const fetchMarketOverview = async () => {
@@ -63,8 +65,10 @@ export default function NewsScreen() {
       const data = result.data as any;
       if (Array.isArray(data)) {
         setNews(data);
+        setLastUpdate(new Date());
       } else if (data.articles) {
         setNews(data.articles);
+        setLastUpdate(new Date());
       }
     }
   };
@@ -105,6 +109,14 @@ export default function NewsScreen() {
   useEffect(() => {
     setLoading(true);
     loadData().finally(() => setLoading(false));
+    
+    // 5秒实时刷新
+    const interval = setInterval(() => {
+      fetchNews();
+      setLastUpdate(new Date());
+    }, 5000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const onRefresh = useCallback(async () => {
@@ -196,9 +208,24 @@ export default function NewsScreen() {
         }
       >
         {/* Header */}
-        <View className="px-5 pt-3 pb-4">
-          <Text className="text-xl font-bold" style={{ color: '#FFFFFF' }}>资讯</Text>
-          <Text className="text-xs mt-1" style={{ color: '#6B7280' }}>实时行情资讯与市场快讯</Text>
+        <View className="px-5 pt-3 pb-4 flex-row items-center justify-between">
+          <View>
+            <Text className="text-xl font-bold" style={{ color: '#FFFFFF' }}>资讯</Text>
+            <Text className="text-xs mt-1" style={{ color: '#6B7280' }}>实时行情资讯与市场快讯</Text>
+          </View>
+          <View className="flex-row items-center gap-2">
+            {isLive && (
+              <View className="flex-row items-center gap-1 px-2 py-1 rounded-full" style={{ backgroundColor: '#00FF8815', borderWidth: 1, borderColor: '#00FF8830' }}>
+                <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#00FF88' }} />
+                <Text className="text-xs font-medium" style={{ color: '#00FF88' }}>实时</Text>
+              </View>
+            )}
+            {lastUpdate && (
+              <Text className="text-xs" style={{ color: '#6B7280' }}>
+                {lastUpdate.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </Text>
+            )}
+          </View>
         </View>
 
         {/* Tab Switcher - 统一暗黑科技风格 */}

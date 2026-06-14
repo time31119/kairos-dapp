@@ -7,6 +7,7 @@ import authRouter from "./routes/auth";
 import chainsRouter from "./routes/chains";
 import contractsRouter from "./routes/contracts";
 import signatureRouter from "./routes/signature";
+import newsRouter from "./routes/news";
 
 const app = express();
 const port = process.env.PORT || 9091;
@@ -29,6 +30,7 @@ app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/web3/chains', chainsRouter);
 app.use('/api/v1/web3/contracts', contractsRouter);
 app.use('/api/v1/web3/signature', signatureRouter);
+app.use('/api/v1/news', newsRouter);
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}/`);

@@ -528,26 +528,95 @@ export default function VipScreen() {
     </View>
   );
 
+  // 会员订阅套餐数据
+  const plans = [
+    { id: 'basic', name: '基础版', price: '$39.9', period: '/月', features: ['6大赛道', '30条筛选', '每日推送'], color: '#00F0FF' },
+    { id: 'pro', name: '专业版', price: '$69.9', period: '/月', features: ['全部赛道', '无限筛选', '实时推送', '基础跟单'], color: '#FFD700', recommended: true },
+    { id: 'vip', name: '尊享版', price: '$199.9', period: '/月', features: ['高级分析', '智能跟单', '完整API'], color: '#FF6B35' },
+  ];
+
   const renderNewsTab = () => (
     <ScrollView style={styles.content}>
-      {[
-        { type: '预警', color: '#FF3B30', bg: '#FF3B3015', title: 'BTC 15分钟涨幅超5%，注意回调风险', time: '2分钟前', desc: '根据技术分析，BTC已突破关键阻力位，短期可能出现回调。建议设置止盈位。' },
-        { type: '信号', color: '#FFD700', bg: '#FFD70015', title: 'ETH 均线金叉形成，看涨信号', time: '5分钟前', desc: 'ETH 4小时图显示MA5上穿MA20，形成金叉。建议关注$3,800阻力位。' },
-        { type: '快讯', color: '#00F0FF', bg: '#00F0FF15', title: '币安将于今日上线新币MINA', time: '10分钟前', desc: '币安创新区将上线Mina Protocol，支持USDT交易对。' },
-        { type: '信号', color: '#FFD700', bg: '#FFD70015', title: 'AI板块持续强势，FET领涨', time: '15分钟前', desc: 'AI赛道继续保持强势，FET 24小时涨幅达22%。建议关注AGIX和RNDR。' },
-        { type: '快讯', color: '#00F0FF', bg: '#00F0FF15', title: '以太坊Gas费创月内新低', time: '30分钟前', desc: '以太坊网络Gas费降至12 Gwei，为近一个月最低水平。' },
-      ].map((news, idx) => (
-        <View key={idx} style={styles.newsCard}>
-          <View style={styles.newsHeader}>
-            <View style={[styles.newsType, { backgroundColor: news.bg }]}>
-              <Text style={[styles.newsTypeText, { color: news.color }]}>{news.type}</Text>
-            </View>
-            <Text style={styles.newsTime}>{news.time}</Text>
-          </View>
-          <Text style={styles.newsTitle}>{news.title}</Text>
-          <Text style={styles.newsDesc}>{news.desc}</Text>
+      {/* 升级Banner */}
+      <View style={styles.upgradeBanner}>
+        <View style={styles.upgradeContent}>
+          <Text style={styles.upgradeTitle}>解锁高级会员权益</Text>
+          <Text style={styles.upgradeDesc}>尊享专业版额外功能：智能跟单、实时推送、高级分析</Text>
         </View>
-      ))}
+        <TouchableOpacity style={styles.upgradeBtn} onPress={() => router.push('/vip/membership')}>
+          <Text style={styles.upgradeBtnText}>立即升级</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* 套餐选择 */}
+      <Text style={styles.sectionTitle}>选择套餐</Text>
+      <View style={styles.plansContainer}>
+        {plans.map((plan) => (
+          <View key={plan.id} style={[styles.planCard, plan.recommended && styles.planCardRecommended]}>
+            {plan.recommended && <View style={styles.recommendedBadge}><Text style={styles.recommendedText}>推荐</Text></View>}
+            <Text style={[styles.planName, { color: plan.color }]}>{plan.name}</Text>
+            <View style={styles.planPriceRow}>
+              <Text style={styles.planPrice}>{plan.price}</Text>
+              <Text style={styles.planPeriod}>{plan.period}</Text>
+            </View>
+            <View style={styles.planFeatures}>
+              {plan.features.map((feature, idx) => (
+                <View key={idx} style={styles.featureItem}>
+                  <Ionicons name="checkmark-circle" size={14} color={plan.color} />
+                  <Text style={styles.featureText}>{feature}</Text>
+                </View>
+              ))}
+            </View>
+            <TouchableOpacity 
+              style={[styles.planBtn, { backgroundColor: plan.color + '20', borderColor: plan.color }]}
+              onPress={() => router.push('/vip/membership')}
+            >
+              <Text style={[styles.planBtnText, { color: plan.color }]}>选择</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+
+      {/* 权益对比 */}
+      <Text style={styles.sectionTitle}>会员权益</Text>
+      <View style={styles.benefitsCard}>
+        {[
+          { icon: 'trending-up', title: '实时行情', desc: '毫秒级延迟数据' },
+          { icon: 'analytics', title: '智能筛选', desc: '多维度条件组合' },
+          { icon: 'people', title: '跟单交易', desc: '一键跟随高手' },
+          { icon: 'ribbon', title: '专属客服', desc: '7×24小时支持' },
+          { icon: 'flash', title: '快讯推送', desc: '市场动态实时通知' },
+          { icon: 'code-slash', title: 'API接口', desc: '程序化交易支持' },
+        ].map((item, idx) => (
+          <View key={idx} style={styles.benefitItem}>
+            <View style={styles.benefitIcon}>
+              <Ionicons name={item.icon} size={20} color="#00F0FF" />
+            </View>
+            <View style={styles.benefitInfo}>
+              <Text style={styles.benefitTitle}>{item.title}</Text>
+              <Text style={styles.benefitDesc}>{item.desc}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* 支付方式 */}
+      <Text style={styles.sectionTitle}>支付方式</Text>
+      <View style={styles.paymentMethods}>
+        {['USDT', 'ETH', '银行卡'].map((method, idx) => (
+          <View key={idx} style={styles.paymentMethod}>
+            <Ionicons name="card" size={20} color="#00F0FF" />
+            <Text style={styles.paymentText}>{method}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* 安全保障 */}
+      <View style={styles.securityCard}>
+        <Ionicons name="shield-checkmark" size={20} color="#00FF88" />
+        <Text style={styles.securityText}>7天无理由退款 · 安全加密支付</Text>
+      </View>
+
       <View style={{ height: 20 }} />
     </ScrollView>
   );

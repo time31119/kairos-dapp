@@ -662,7 +662,7 @@ export default function VipScreen() {
         )}
       </View>
       <View style={styles.bottomPadding} />
-    </ScrollView>
+    </View>
   );
 
   // 渲染会员订阅Tab

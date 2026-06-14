@@ -94,8 +94,18 @@ export default function CategoriesScreen() {
                   {globalGainers.map((token, idx) => (
                     <View key={token.symbol + '-g'} style={styles.billboardRow}>
                       <View style={styles.billboardLeft}>
-                        <View style={[styles.rankCircle, idx < 3 && styles.rankCircleTop3]}>
-                          <Text style={[styles.rankText, idx < 3 && styles.rankTextTop3]}>{idx + 1}</Text>
+                        <View style={[
+                          styles.rankCircle, 
+                          idx === 0 && styles.rankCircleGold,
+                          idx === 1 && styles.rankCircleSilver,
+                          idx === 2 && styles.rankCircleBronze,
+                        ]}>
+                          <Text style={[
+                            styles.rankText, 
+                            idx === 0 && styles.rankTextGold,
+                            idx === 1 && styles.rankTextSilver,
+                            idx === 2 && styles.rankTextBronze,
+                          ]}>{idx + 1}</Text>
                         </View>
                         <View style={styles.billboardInfo}>
                           <Text style={styles.billboardSymbol}>{token.symbol}</Text>
@@ -126,8 +136,18 @@ export default function CategoriesScreen() {
                   {globalLosers.map((token, idx) => (
                     <View key={token.symbol + '-l'} style={styles.billboardRow}>
                       <View style={styles.billboardLeft}>
-                        <View style={[styles.rankCircle, idx < 3 && styles.rankCircleTop3]}>
-                          <Text style={[styles.rankText, idx < 3 && styles.rankTextTop3]}>{idx + 1}</Text>
+                        <View style={[
+                          styles.rankCircle, 
+                          idx === 0 && styles.rankCircleGold,
+                          idx === 1 && styles.rankCircleSilver,
+                          idx === 2 && styles.rankCircleBronze,
+                        ]}>
+                          <Text style={[
+                            styles.rankText, 
+                            idx === 0 && styles.rankTextGold,
+                            idx === 1 && styles.rankTextSilver,
+                            idx === 2 && styles.rankTextBronze,
+                          ]}>{idx + 1}</Text>
                         </View>
                         <View style={styles.billboardInfo}>
                           <Text style={styles.billboardSymbol}>{token.symbol}</Text>
@@ -290,16 +310,23 @@ const styles = StyleSheet.create({
   // 排行榜样式
   billboardSection: {
     flexDirection: 'row',
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 16,
     gap: 12,
   },
   billboardCard: {
     flex: 1,
-    backgroundColor: '#13131A',
+    backgroundColor: '#0F0F18',
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#1F1F2E',
+    borderColor: '#1A1A28',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   billboardHeader: {
     flexDirection: 'row',
@@ -307,7 +334,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#1F1F2E',
+    borderBottomColor: '#1A1A28',
   },
   billboardHeaderLeft: {
     flexDirection: 'row',
@@ -315,25 +342,30 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   billboardTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   billboardCount: {
-    fontSize: 11,
-    color: '#6B7280',
-    fontWeight: '600',
+    fontSize: 10,
+    color: '#4B5563',
+    fontWeight: '700',
+    backgroundColor: '#1A1A28',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
   billboardList: {
-    paddingVertical: 4,
+    paddingVertical: 6,
   },
   billboardRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#0A0A0F',
+    borderBottomColor: '#0A0A12',
   },
   billboardLeft: {
     flexDirection: 'row',
@@ -342,23 +374,40 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rankCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#1F1F2E',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#151520',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#252535',
   },
-  rankCircleTop3: {
-    backgroundColor: '#00F0FF20',
+  rankCircleGold: {
+    backgroundColor: '#FFD70030',
+    borderColor: '#FFD700',
+  },
+  rankCircleSilver: {
+    backgroundColor: '#C0C0C030',
+    borderColor: '#C0C0C0',
+  },
+  rankCircleBronze: {
+    backgroundColor: '#CD7F3230',
+    borderColor: '#CD7F32',
   },
   rankText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
+    fontWeight: '700',
+    color: '#4B5563',
   },
-  rankTextTop3: {
-    color: '#00F0FF',
+  rankTextGold: {
+    color: '#FFD700',
+  },
+  rankTextSilver: {
+    color: '#C0C0C0',
+  },
+  rankTextBronze: {
+    color: '#CD7F32',
   },
   billboardInfo: {
     flex: 1,
@@ -367,11 +416,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
   billboardScenario: {
     fontSize: 10,
-    color: '#6B7280',
-    marginTop: 1,
+    color: '#4B5563',
+    marginTop: 2,
   },
   billboardRight: {
     flexDirection: 'row',
@@ -379,34 +429,41 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   billboardPrice: {
-    fontSize: 11,
-    color: '#6B7280',
+    fontSize: 10,
+    color: '#4B5563',
+    fontWeight: '500',
   },
   changeTagGreen: {
-    backgroundColor: '#00FF8820',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    minWidth: 60,
+    backgroundColor: '#00FF8825',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    minWidth: 68,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#00FF8830',
   },
   changeTagRed: {
-    backgroundColor: '#FF444420',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    minWidth: 60,
+    backgroundColor: '#FF444425',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    minWidth: 68,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FF444430',
   },
   changeTagText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#00FF88',
+    letterSpacing: 0.3,
   },
   changeTagTextRed: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#FF4444',
+    letterSpacing: 0.3,
   },
   
   // 赛道列表样式

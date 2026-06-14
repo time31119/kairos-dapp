@@ -42,7 +42,7 @@ export default function RootLayout() {
         <Stack.Screen name="kyc" options={{ title: "实名认证" }} />
         <Stack.Screen name="support" options={{ title: "帮助与客服" }} />
         <Stack.Screen name="vip" options={{ title: "会员中心", headerShown: true, headerStyle: { backgroundColor: '#0A0A0F' }, headerTintColor: '#00F0FF' }} />
-        <Stack.Screen name="vip/membership" options={{ title: "会员订阅", headerShown: true, headerStyle: { backgroundColor: '#0A0A0F' }, headerTintColor: '#00F0FF' }} />
+        <Stack.Screen name="vip/membership" options={{ title: "会员订阅", headerShown: false }} />
       </Stack>
       </Web3Provider>
       <Toast />

@@ -4,9 +4,9 @@
  */
 
 import { Screen } from '@/components/Screen';
-import { Stack } from 'expo-router';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useState } from 'react';
 import { useWeb3 } from '@/contexts/Web3Context';
 import { VIP_PLANS, PAYMENT_METHODS, BillingCycle } from '@/utils/vipPlans';
@@ -28,6 +28,7 @@ const colors = {
 
 export default function Membership() {
   const { wallet } = useWeb3();
+  const router = useSafeRouter();
   const [selectedPlan, setSelectedPlan] = useState<string>('pro');
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('year');
   const [paymentMethod, setPaymentMethod] = useState<string>('usdt');
@@ -58,6 +59,16 @@ export default function Membership() {
 
   return (
     <Screen>
+      {/* 自定义顶部导航栏 */}
+      <View style={styles.customHeader}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={24} color="#00F0FF" />
+          <Text style={styles.backText}>返回</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>会员订阅</Text>
+        <View style={{ width: 60 }} />
+      </View>
+
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* 头部介绍 */}
         <View style={styles.header}>
@@ -322,6 +333,30 @@ export default function Membership() {
 }
 
 const styles = StyleSheet.create({
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#0A0A0F',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1F1F2E',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backText: {
+    color: '#00F0FF',
+    fontSize: 16,
+    marginLeft: 2,
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
   container: {
     flex: 1,
     backgroundColor: '#0A0A0F',

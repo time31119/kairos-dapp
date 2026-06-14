@@ -6,8 +6,8 @@
 import { Screen } from '@/components/Screen';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeRouter } from '@/hooks/useSafeRouter';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { useWeb3 } from '@/contexts/Web3Context';
 import { VIP_PLANS, PAYMENT_METHODS, BillingCycle } from '@/utils/vipPlans';
 import PaymentModal from '@/components/payment/PaymentModal';
@@ -299,53 +299,49 @@ export default function Membership() {
               <Text style={styles.statLabel}>有效邀请</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={[styles.statValue, { color: colors.neonCyan }]}>+2月</Text>
-              <Text style={styles.statLabel}>待领取</Text>
+              <Text style={[styles.statValue, { color: colors.neonYellow }]}>+56天</Text>
+              <Text style={styles.statLabel}>获得时长</Text>
             </View>
           </View>
 
-          {/* 邀请链接 */}
-          <View style={styles.inviteLinkContainer}>
-            <View style={styles.inviteLinkBox}>
-              <Text style={styles.inviteLinkText} numberOfLines={1}>
-                https://kairos.app/r/0x7a9...f3c2
-              </Text>
-            </View>
-            <TouchableOpacity style={styles.copyButton}>
-              <Ionicons name="copy-outline" size={18} color={colors.background} />
-              <Text style={styles.copyButtonText}>复制</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* 分享按钮 */}
-          <View style={styles.shareButtons}>
-            <TouchableOpacity style={[styles.shareBtn, { backgroundColor: '#1DA1F2' }]}>
-              <Ionicons name="logo-twitter" size={18} color="#FFFFFF" />
-              <Text style={styles.shareBtnText}>Twitter</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.shareBtn, { backgroundColor: '#25D366' }]}>
-              <Ionicons name="logo-whatsapp" size={18} color="#FFFFFF" />
-              <Text style={styles.shareBtnText}>WhatsApp</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.shareBtn, { backgroundColor: colors.card }]}>
-              <Ionicons name="link-outline" size={18} color="#FFFFFF" />
-              <Text style={styles.shareBtnText}>更多</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.shareButton}>
+            <Ionicons name="share-social-outline" size={20} color={colors.neonCyan} />
+            <Text style={styles.shareButtonText}>分享邀请链接</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* 底部安全区 */}
-        <View style={{ height: 40 }} />
+        {/* 常见问题 */}
+        <View style={styles.faqSection}>
+          <Text style={styles.sectionTitle}>常见问题</Text>
+          {[
+            { q: '订阅后可以退款吗？', a: '支持7天内无理由退款，超出期限不予退款。' },
+            { q: '如何取消自动续费？', a: '您可以在“我的订阅”中随时取消，自动续费到期后不再扣除。' },
+            { q: '支持哪些支付方式？', a: '目前支持USDT (TRC20)和USDT (BNB Chain)支付。' },
+            { q: '订阅到期后数据保留吗？', a: '订阅到期后，您的数据会保留7天，续费后可继续使用。' },
+          ].map((item, idx) => (
+            <View key={idx} style={styles.faqItem}>
+              <Text style={styles.faqQuestion}>Q: {item.q}</Text>
+              <Text style={styles.faqAnswer}>A: {item.a}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.bottomPadding} />
       </ScrollView>
 
       {/* 支付弹窗 */}
-      <PaymentModal
-        visible={showPayment}
-        plan={currentPlan}
-        billingCycle={billingCycle}
-        onClose={() => setShowPayment(false)}
-        onSuccess={confirmPayment}
-      />
+      {showPayment && (
+        <PaymentModal
+          visible={showPayment}
+          onClose={() => setShowPayment(false)}
+          onConfirm={confirmPayment}
+          planId={selectedPlan}
+          planName={currentPlan.name}
+          billingCycle={billingCycle}
+          amount={currentPrice}
+          paymentMethod={paymentMethod}
+        />
+      )}
     </Screen>
   );
 }
@@ -359,7 +355,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: '#0A0A0F',
     borderBottomWidth: 1,
-    borderBottomColor: '#1F1F2E',
+    borderBottomColor: '#1A1A24',
   },
   backButton: {
     flexDirection: 'row',
@@ -368,12 +364,7 @@ const styles = StyleSheet.create({
   backText: {
     color: '#00F0FF',
     fontSize: 16,
-    marginLeft: 2,
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    marginLeft: 4,
   },
   container: {
     flex: 1,
@@ -382,20 +373,16 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingVertical: 24,
+    paddingHorizontal: 20,
   },
   headerIcon: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#00F0FF15',
-    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 240, 255, 0.15)',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  headerDesc: {
-    fontSize: 14,
-    color: '#8A8A9A',
-    marginTop: 4,
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   billingContainer: {
     paddingHorizontal: 16,
@@ -403,7 +390,7 @@ const styles = StyleSheet.create({
   },
   billingTabs: {
     flexDirection: 'row',
-    backgroundColor: '#13131A',
+    backgroundColor: '#12121A',
     borderRadius: 12,
     padding: 4,
   },
@@ -416,41 +403,42 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   billingTabActive: {
-    backgroundColor: '#00F0FF20',
+    backgroundColor: '#1A1A24',
   },
   billingTabText: {
-    fontSize: 14,
     color: '#8A8A9A',
+    fontSize: 14,
   },
   billingTabTextActive: {
-    color: '#00F0FF',
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   discountBadge: {
-    backgroundColor: '#00FF8820',
+    backgroundColor: '#FF4444',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
     marginLeft: 4,
   },
   discountText: {
+    color: '#FFFFFF',
     fontSize: 10,
-    color: '#00FF88',
     fontWeight: '600',
   },
   plansContainer: {
     paddingHorizontal: 16,
+    gap: 12,
   },
   planCard: {
-    backgroundColor: '#13131A',
+    backgroundColor: '#12121A',
     borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
     borderWidth: 2,
     borderColor: '#2A2A3A',
+    marginBottom: 12,
   },
   planCardSelected: {
-    backgroundColor: '#1A1A24',
+    borderWidth: 2,
   },
   planTag: {
     position: 'absolute',
@@ -458,11 +446,11 @@ const styles = StyleSheet.create({
     right: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   planTagText: {
-    fontSize: 11,
     color: '#0A0A0F',
+    fontSize: 11,
     fontWeight: '700',
   },
   planHeader: {
@@ -474,18 +462,18 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
   },
   planName: {
     fontSize: 18,
     fontWeight: '700',
+    marginBottom: 2,
   },
   planSubtitle: {
     fontSize: 12,
     color: '#8A8A9A',
-    marginTop: 2,
   },
   planPrice: {
     flexDirection: 'row',
@@ -493,86 +481,87 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   priceSymbol: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#FFFFFF',
+    fontWeight: '600',
   },
   priceValue: {
     fontSize: 32,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#FFFFFF',
   },
   priceUnit: {
     fontSize: 14,
     color: '#8A8A9A',
-    marginLeft: 2,
+    marginLeft: 4,
   },
-  planFeatures: {},
+  planFeatures: {
+    gap: 8,
+  },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    gap: 8,
   },
   featureText: {
     fontSize: 13,
-    color: '#FFFFFF',
-    marginLeft: 8,
+    color: '#8A8A9A',
   },
   featureDisabled: {
     color: '#4A4A5A',
   },
   selectedIndicator: {
     position: 'absolute',
-    bottom: 12,
-    right: 12,
+    top: 12,
+    left: 12,
     width: 24,
     height: 24,
     borderRadius: 12,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   paymentSection: {
     paddingHorizontal: 16,
-    marginTop: 16,
+    marginTop: 24,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 12,
   },
   paymentMethods: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 12,
   },
   paymentMethod: {
     flex: 1,
-    backgroundColor: '#13131A',
+    backgroundColor: '#12121A',
     borderRadius: 12,
-    paddingVertical: 16,
+    padding: 16,
     alignItems: 'center',
-    marginHorizontal: 4,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: '#2A2A3A',
   },
   paymentMethodActive: {
     borderColor: '#00F0FF',
   },
   paymentMethodName: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#FFFFFF',
-    marginTop: 6,
+    marginTop: 8,
   },
   subscribeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: 16,
-    marginTop: 24,
     paddingVertical: 16,
-    borderRadius: 16,
-    backgroundColor: '#13131A',
+    borderRadius: 12,
     borderWidth: 2,
     overflow: 'hidden',
+    marginBottom: 16,
   },
   buttonGlow: {
     position: 'absolute',
@@ -582,44 +571,44 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   subscribeButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
     color: '#FFFFFF',
-    flex: 1,
-    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '700',
+    zIndex: 1,
   },
   priceTag: {
-    position: 'absolute',
-    right: 16,
-    backgroundColor: '#00F0FF',
+    backgroundColor: 'rgba(0, 240, 255, 0.2)',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 8,
+    marginLeft: 12,
+    zIndex: 1,
   },
   priceTagText: {
+    color: '#00F0FF',
     fontSize: 14,
     fontWeight: '700',
-    color: '#0A0A0F',
   },
   terms: {
     alignItems: 'center',
-    marginTop: 16,
     paddingHorizontal: 16,
+    marginBottom: 24,
   },
   termsText: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#8A8A9A',
     textAlign: 'center',
+    marginBottom: 4,
   },
   termsLink: {
     color: '#00F0FF',
   },
   compareSection: {
     paddingHorizontal: 16,
-    marginTop: 32,
+    marginBottom: 24,
   },
   compareTable: {
-    backgroundColor: '#13131A',
+    backgroundColor: '#12121A',
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -627,35 +616,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#1A1A24',
     paddingVertical: 12,
+    paddingHorizontal: 8,
   },
   compareRow: {
     flexDirection: 'row',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     borderTopWidth: 1,
     borderTopColor: '#2A2A3A',
-    paddingVertical: 10,
   },
   compareCell: {
     flex: 1,
     fontSize: 11,
-    color: '#FFFFFF',
+    color: '#8A8A9A',
     textAlign: 'center',
   },
   compareFeature: {
-    flex: 1.5,
     textAlign: 'left',
-    paddingLeft: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   compareCellCenter: {
     textAlign: 'center',
   },
   referralSection: {
     paddingHorizontal: 16,
-    marginTop: 32,
+    marginBottom: 24,
   },
   referralHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   referralTitle: {
     fontSize: 18,
@@ -664,119 +655,104 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   referralDesc: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#8A8A9A',
     marginBottom: 16,
   },
-  rewardRules: {},
+  rewardRules: {
+    gap: 12,
+  },
   rewardRule: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#13131A',
+    backgroundColor: '#12121A',
     borderRadius: 12,
     padding: 12,
-    marginBottom: 8,
   },
   rewardLevel: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFD70020',
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 16,
   },
   rewardLevelText: {
-    position: 'absolute',
-    bottom: -2,
-    fontSize: 10,
-    fontWeight: '700',
     color: '#FFD700',
+    fontSize: 14,
+    fontWeight: '700',
+    marginLeft: 4,
   },
   rewardInfo: {
-    marginLeft: 12,
     flex: 1,
   },
   rewardInvited: {
-    fontSize: 13,
-    color: '#FFFFFF',
+    fontSize: 12,
+    color: '#8A8A9A',
   },
   rewardValue: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#00FF88',
-    marginTop: 2,
+    fontWeight: '600',
   },
   referralStats: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     marginTop: 16,
+    gap: 12,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#13131A',
+    backgroundColor: '#12121A',
     borderRadius: 12,
-    padding: 12,
+    padding: 16,
     alignItems: 'center',
-    marginHorizontal: 4,
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
     color: '#FFFFFF',
+    marginBottom: 4,
   },
   statLabel: {
-    fontSize: 11,
-    color: '#8A8A9A',
-    marginTop: 4,
-  },
-  inviteLinkContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  inviteLinkBox: {
-    flex: 1,
-    backgroundColor: '#13131A',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    marginRight: 8,
-  },
-  inviteLinkText: {
     fontSize: 12,
-    color: '#00F0FF',
+    color: '#8A8A9A',
   },
-  copyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#00F0FF',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  copyButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0A0A0F',
-    marginLeft: 4,
-  },
-  shareButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
-  },
-  shareBtn: {
-    flex: 1,
+  shareButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#12121A',
     borderRadius: 12,
-    paddingVertical: 12,
-    marginHorizontal: 4,
+    paddingVertical: 14,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#00F0FF',
   },
-  shareBtnText: {
-    fontSize: 13,
+  shareButtonText: {
+    color: '#00F0FF',
+    fontSize: 15,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  faqSection: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  faqItem: {
+    backgroundColor: '#12121A',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
+  },
+  faqQuestion: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
-    marginLeft: 6,
+    marginBottom: 8,
+  },
+  faqAnswer: {
+    fontSize: 13,
+    color: '#8A8A9A',
+    lineHeight: 18,
+  },
+  bottomPadding: {
+    height: 40,
   },
 });

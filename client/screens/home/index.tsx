@@ -3,7 +3,7 @@
  * 完善版本：增强交互和内容展示
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { Link } from 'expo-router';
@@ -22,16 +22,32 @@ const CATEGORIES = [
   { id: 'layer2', title: 'Layer2', icon: 'layers-outline', color: '#FF6B6B', desc: '二层扩容方案', count: 312 },
 ];
 
-// 技术分析场景 - 完整版本
+// 技术分析场景 - 完整版本（带更多数据）
 const TECHNICAL_SCENARIOS = [
-  { id: '1h_up', title: '1H上涨', icon: 'trending-up', color: '#00F0FF', desc: '短期爆发信号', signal: '强多', signalColor: '#00FF88', count: 23 },
-  { id: '4h_up', title: '4H上涨', icon: 'trending-up', color: '#00FF88', desc: '波段延续信号', signal: '看多', signalColor: '#00FF88', count: 18 },
-  { id: 'macd', title: 'MACD金叉', icon: 'sync', color: '#9370DB', desc: '趋势转折信号', signal: '买入', signalColor: '#00FF88', count: 31 },
-  { id: '1h_down', title: '1H下跌', icon: 'trending-down', color: '#FF4444', desc: '做空机会信号', signal: '看空', signalColor: '#FF4444', count: 15 },
-  { id: 'rsi', title: 'RSI超卖', icon: 'speedometer', color: '#FFA500', desc: '超卖反弹信号', signal: '关注', signalColor: '#FFA500', count: 27 },
-  { id: 'volume', title: '成交量异动', icon: 'pulse', color: '#FF69B4', desc: '资金涌入信号', signal: '放量', signalColor: '#FF69B4', count: 42 },
-  { id: 'bollinger', title: '布林下轨', icon: 'radio-button-on', color: '#00CED1', desc: '支撑反弹信号', signal: '回踩', signalColor: '#00CED1', count: 19 },
-  { id: 'golden', title: '均线金叉', icon: 'git-merge', color: '#FFD700', desc: '多头发散信号', signal: '多头', signalColor: '#00FF88', count: 24 },
+  { id: '1h_up', title: '1H上涨', icon: 'trending-up', color: '#00F0FF', desc: '短期爆发信号', signal: '强多', signalColor: '#00FF88', count: 23, winRate: 78, period: '1H' },
+  { id: '4h_up', title: '4H上涨', icon: 'trending-up', color: '#00FF88', desc: '波段延续信号', signal: '看多', signalColor: '#00FF88', count: 18, winRate: 82, period: '4H' },
+  { id: 'macd', title: 'MACD金叉', icon: 'sync', color: '#9370DB', desc: '趋势转折信号', signal: '买入', signalColor: '#00FF88', count: 31, winRate: 75, period: '多周期' },
+  { id: 'rsi', title: 'RSI超卖', icon: 'speedometer', color: '#FFA500', desc: '超卖反弹信号', signal: '关注', signalColor: '#FFA500', count: 27, winRate: 71, period: '4H' },
+  { id: 'volume', title: '成交量异动', icon: 'pulse', color: '#FF69B4', desc: '资金涌入信号', signal: '放量', signalColor: '#FF69B4', count: 42, winRate: 68, period: '1H' },
+  { id: 'golden', title: '均线金叉', icon: 'git-merge', color: '#FFD700', desc: '多头发散信号', signal: '多头', signalColor: '#00FF88', count: 24, winRate: 79, period: '日线' },
+  { id: 'bollinger', title: '布林下轨', icon: 'radio-button-on', color: '#00CED1', desc: '支撑反弹信号', signal: '回踩', signalColor: '#00CED1', count: 19, winRate: 73, period: '4H' },
+  { id: '1h_down', title: '1H下跌', icon: 'trending-down', color: '#FF4444', desc: '做空机会信号', signal: '做空', signalColor: '#FF4444', count: 15, winRate: 65, period: '1H' },
+  { id: 'kdj', title: 'KDJ超买', icon: 'analytics', color: '#FF6347', desc: '超买回调信号', signal: '警惕', signalColor: '#FF6347', count: 12, winRate: 62, period: '1H' },
+  { id: 'vol_down', title: '缩量整理', icon: 'contract', color: '#808080', desc: '横盘蓄势信号', signal: '观望', signalColor: '#808080', count: 36, winRate: 0, period: '日线' },
+];
+
+// 技术分析筛选标签
+const TECH_FILTER_TAGS = [
+  { id: 'all', title: '全部' },
+  { id: 'bull', title: '做多信号' },
+  { id: 'bear', title: '做空信号' },
+  { id: 'neutral', title: '观望信号' },
+];
+
+// 技术分析排序方式
+const TECH_SORT_OPTIONS = [
+  { id: 'count', title: '币种数量' },
+  { id: 'winRate', title: '胜率' },
 ];
 
 // 热门赛道标签
@@ -42,41 +58,6 @@ const FEATURED_TAGS = [
   { id: 'ai', title: 'AI' },
   { id: 'layer2', title: 'L2' },
 ];
-
-// 代币行情卡片
-function TokenCard({ token, rank }: { token: any; rank: number }) {
-  const isUp = token.change >= 0;
-  const router = useSafeRouter();
-  
-  return (
-    <Pressable 
-      style={styles.tokenCard}
-      onPress={() => router.push('/coin', { symbol: token.symbol })}
-    >
-      <View style={styles.tokenLeft}>
-        <Text style={styles.rank}>#{rank}</Text>
-        <View style={[styles.tokenIcon, { backgroundColor: getColorForSymbol(token.symbol) + '20' }]}>
-          <Text style={[styles.tokenEmoji, { color: getColorForSymbol(token.symbol) }]}>
-            {token.symbol.charAt(0)}
-          </Text>
-        </View>
-        <View style={styles.tokenInfo}>
-          <Text style={styles.symbol}>{token.symbol}</Text>
-          <Text style={styles.name}>{token.name}</Text>
-        </View>
-      </View>
-      <View style={styles.tokenRight}>
-        <Text style={styles.price}>${formatPrice(token.price)}</Text>
-        <View style={[styles.changeBadge, { backgroundColor: isUp ? '#00FF8820' : '#FF444420' }]}>
-          <Ionicons name={isUp ? 'arrow-up' : 'arrow-down'} size={10} color={isUp ? '#00FF88' : '#FF4444'} />
-          <Text style={[styles.changeText, { color: isUp ? '#00FF88' : '#FF4444' }]}>
-            {Math.abs(token.change).toFixed(1)}%
-          </Text>
-        </View>
-      </View>
-    </Pressable>
-  );
-}
 
 // 赛道区块
 function CategorySection({ category, onPress }: { category: any; onPress: () => void }) {
@@ -114,25 +95,56 @@ function CategorySection({ category, onPress }: { category: any; onPress: () => 
   );
 }
 
-// 技术指标卡片
+// 技术指标卡片 - 完善版
 function TechCard({ scenario, onPress }: { scenario: any; onPress: () => void }) {
+  const isBullish = scenario.signalColor === '#00FF88' || scenario.signalColor === '#00CED1';
+  const isBearish = scenario.signalColor === '#FF4444';
+  
   return (
     <Pressable 
       style={[styles.techCard, { borderColor: scenario.color + '40' }]}
       onPress={onPress}
     >
-      <View style={[styles.techIconWrap, { backgroundColor: scenario.color + '15' }]}>
-        <Ionicons name={scenario.icon} size={18} color={scenario.color} />
-      </View>
-      <View style={styles.techContent}>
-        <Text style={styles.techTitle}>{scenario.title}</Text>
-        <Text style={styles.techDesc}>{scenario.desc}</Text>
-      </View>
-      <View style={styles.techRight}>
-        <View style={[styles.signalBadge, { backgroundColor: scenario.signalColor + '20' }]}>
-          <Text style={[styles.signalText, { color: scenario.signalColor }]}>{scenario.signal}</Text>
+      {/* 左侧：图标和标题 */}
+      <View style={styles.techLeft}>
+        <View style={[styles.techIconWrap, { backgroundColor: scenario.color + '15' }]}>
+          <Ionicons name={scenario.icon} size={22} color={scenario.color} />
         </View>
-        <Text style={styles.techCount}>{scenario.count}个</Text>
+        <View style={styles.techContent}>
+          <View style={styles.techTitleRow}>
+            <Text style={styles.techTitle}>{scenario.title}</Text>
+            <View style={[styles.periodBadge, { backgroundColor: scenario.color + '20' }]}>
+              <Text style={[styles.periodText, { color: scenario.color }]}>{scenario.period}</Text>
+            </View>
+          </View>
+          <Text style={styles.techDesc}>{scenario.desc}</Text>
+          <View style={styles.techStats}>
+            <View style={styles.statItem}>
+              <Ionicons name="cube-outline" size={12} color="#6B7280" />
+              <Text style={styles.statText}>{scenario.count}个币种</Text>
+            </View>
+            {scenario.winRate > 0 && (
+              <View style={styles.statItem}>
+                <Ionicons name="trophy-outline" size={12} color={scenario.winRate >= 70 ? '#FFD700' : '#6B7280'} />
+                <Text style={[styles.statText, { color: scenario.winRate >= 70 ? '#FFD700' : '#6B7280' }]}>
+                  {scenario.winRate}%胜率
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
+      
+      {/* 右侧：信号标签 */}
+      <View style={styles.techRight}>
+        <View style={[styles.signalBadgeLarge, { backgroundColor: scenario.signalColor + '20', borderColor: scenario.signalColor + '40' }]}>
+          <Text style={[styles.signalTextLarge, { color: scenario.signalColor }]}>{scenario.signal}</Text>
+        </View>
+        <View style={styles.directionIcon}>
+          {isBullish && <Ionicons name="arrow-up" size={16} color="#00FF88" />}
+          {isBearish && <Ionicons name="arrow-down" size={16} color="#FF4444" />}
+          {!isBullish && !isBearish && <Ionicons name="remove" size={16} color="#808080" />}
+        </View>
       </View>
     </Pressable>
   );
@@ -155,15 +167,6 @@ function CategoryCard({ cat, onPress }: { cat: any; onPress: () => void }) {
 }
 
 // 辅助函数
-function getColorForSymbol(symbol: string): string {
-  const colors = ['#00F0FF', '#FFD700', '#FF69B4', '#00FF7F', '#9370DB', '#FF6B6B'];
-  let hash = 0;
-  for (let i = 0; i < symbol.length; i++) {
-    hash = symbol.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
-}
-
 function formatPrice(price: number): string {
   if (price >= 1000) return price.toFixed(0);
   if (price >= 1) return price.toFixed(2);
@@ -175,16 +178,19 @@ export default function HomeScreen() {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTag, setSelectedTag] = useState('all');
+  const [techFilter, setTechFilter] = useState('all');
+  const [techSort, setTechSort] = useState('count');
+  const [showSortMenu, setShowSortMenu] = useState(false);
   const [countdown, setCountdown] = useState(30);
 
-  const fetchData = () => {
+  const fetchData = useCallback(() => {
     setLoading(true);
     fetch(API_URL + '/api/v1/screener/featured')
       .then(r => r.json())
       .then(r => { if (r.success) setData(r.data); })
       .catch(console.error)
       .finally(() => setLoading(false));
-  };
+  }, []);
 
   // 30秒自动刷新
   useEffect(() => {
@@ -199,12 +205,36 @@ export default function HomeScreen() {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchData]);
 
   // 过滤数据
   const filteredData = selectedTag === 'all' 
     ? data 
     : data.filter((d: any) => d.scenario === selectedTag);
+
+  // 过滤技术指标
+  const getFilteredTechScenarios = () => {
+    let filtered = [...TECHNICAL_SCENARIOS];
+    
+    if (techFilter === 'bull') {
+      filtered = filtered.filter(s => s.signalColor === '#00FF88' || s.signalColor === '#00CED1');
+    } else if (techFilter === 'bear') {
+      filtered = filtered.filter(s => s.signalColor === '#FF4444');
+    } else if (techFilter === 'neutral') {
+      filtered = filtered.filter(s => s.signalColor === '#808080' || s.signalColor === '#FFA500' || s.signalColor === '#FF69B4' || s.signalColor === '#FF6347');
+    }
+    
+    // 排序
+    if (techSort === 'winRate') {
+      filtered.sort((a, b) => (b.winRate || 0) - (a.winRate || 0));
+    } else {
+      filtered.sort((a, b) => b.count - a.count);
+    }
+    
+    return filtered;
+  };
+
+  const filteredTechScenarios = getFilteredTechScenarios();
 
   return (
     <Screen>
@@ -265,8 +295,9 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* 技术分析场景 */}
+        {/* ========== 技术分析板块 ========== */}
         <View style={styles.techSection}>
+          {/* 板块标题 */}
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrap}>
               <Text style={styles.sectionLabel}>技术分析</Text>
@@ -275,15 +306,70 @@ export default function HomeScreen() {
                 <Text style={styles.liveText}>实时监控</Text>
               </View>
             </View>
-            <Link href="/analysis" asChild>
-              <Pressable style={styles.moreBtn}>
-                <Text style={styles.moreBtnText}>全部</Text>
-                <Ionicons name="chevron-forward" size={14} color="#00F0FF" />
-              </Pressable>
-            </Link>
+            <View style={styles.headerRight}>
+              <Text style={styles.techCountText}>{filteredTechScenarios.length}个指标</Text>
+              <Link href="/analysis" asChild>
+                <Pressable style={styles.moreBtn}>
+                  <Text style={styles.moreBtnText}>全部</Text>
+                  <Ionicons name="chevron-forward" size={14} color="#00F0FF" />
+                </Pressable>
+              </Link>
+            </View>
           </View>
+
+          {/* 筛选和排序 */}
+          <View style={styles.techFilterRow}>
+            {/* 信号筛选标签 */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.techFilterScroll}>
+              {TECH_FILTER_TAGS.map(tag => (
+                <Pressable
+                  key={tag.id}
+                  style={[styles.techFilterTag, techFilter === tag.id && styles.techFilterTagActive]}
+                  onPress={() => setTechFilter(tag.id)}
+                >
+                  <Text style={[styles.techFilterTagText, techFilter === tag.id && styles.techFilterTagTextActive]}>
+                    {tag.title}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            
+            {/* 排序按钮 */}
+            <TouchableOpacity 
+              style={styles.sortBtn}
+              onPress={() => setShowSortMenu(!showSortMenu)}
+            >
+              <Ionicons name="swap-vertical" size={16} color="#6B7280" />
+              <Text style={styles.sortBtnText}>排序</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* 排序菜单 */}
+          {showSortMenu && (
+            <View style={styles.sortMenu}>
+              {TECH_SORT_OPTIONS.map(opt => (
+                <Pressable
+                  key={opt.id}
+                  style={[styles.sortMenuItem, techSort === opt.id && styles.sortMenuItemActive]}
+                  onPress={() => {
+                    setTechSort(opt.id);
+                    setShowSortMenu(false);
+                  }}
+                >
+                  <Text style={[styles.sortMenuText, techSort === opt.id && styles.sortMenuTextActive]}>
+                    {opt.title}
+                  </Text>
+                  {techSort === opt.id && (
+                    <Ionicons name="checkmark" size={16} color="#00F0FF" />
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          )}
+
+          {/* 技术指标列表 */}
           <View style={styles.techGrid}>
-            {TECHNICAL_SCENARIOS.map(s => (
+            {filteredTechScenarios.map(s => (
               <TechCard 
                 key={s.id} 
                 scenario={s} 
@@ -291,9 +377,29 @@ export default function HomeScreen() {
               />
             ))}
           </View>
+
+          {/* 统计概览 */}
+          <View style={styles.techSummary}>
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>{TECHNICAL_SCENARIOS.filter(s => s.signalColor === '#00FF88').length}</Text>
+              <Text style={styles.summaryLabel}>做多信号</Text>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>{TECHNICAL_SCENARIOS.filter(s => s.signalColor === '#FF4444').length}</Text>
+              <Text style={styles.summaryLabel}>做空信号</Text>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryItem}>
+              <Text style={styles.summaryValue}>
+                {Math.round(TECHNICAL_SCENARIOS.reduce((acc, s) => acc + (s.winRate || 0), 0) / TECHNICAL_SCENARIOS.filter(s => s.winRate > 0).length)}%
+              </Text>
+              <Text style={styles.summaryLabel}>平均胜率</Text>
+            </View>
+          </View>
         </View>
 
-        {/* 热门精选 */}
+        {/* ========== 热门精选板块 ========== */}
         <View style={styles.featuredSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionLabel}>热门精选</Text>
@@ -349,7 +455,7 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* 赛道分类 */}
+        {/* ========== 赛道分类板块 ========== */}
         <View style={styles.catSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionLabel}>赛道分类</Text>
@@ -399,32 +505,67 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sectionTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   sectionLabel: { fontSize: 17, fontWeight: '700', color: '#FFF' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  techCountText: { fontSize: 12, color: '#6B7280' },
   moreBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   moreBtnText: { fontSize: 13, color: '#00F0FF' },
   bottomGap: { height: 100 },
   
-  // 技术分析
+  // ========== 技术分析板块 ==========
   techSection: { padding: 16 },
   liveIndicator: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#00FF88' },
   liveText: { fontSize: 11, color: '#6B7280' },
+  
+  // 筛选和排序
+  techFilterRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8 },
+  techFilterScroll: { flex: 1 },
+  techFilterTag: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: '#1A1A24', marginRight: 8 },
+  techFilterTagActive: { backgroundColor: '#00F0FF20', borderWidth: 1, borderColor: '#00F0FF40' },
+  techFilterTagText: { fontSize: 12, color: '#9CA3AF' },
+  techFilterTagTextActive: { color: '#00F0FF', fontWeight: '600' },
+  sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#1A1A24', borderRadius: 16 },
+  sortBtnText: { fontSize: 12, color: '#6B7280' },
+  
+  // 排序菜单
+  sortMenu: { backgroundColor: '#1A1A24', borderRadius: 12, padding: 8, marginBottom: 12, borderWidth: 1, borderColor: '#2D2D3A' },
+  sortMenuItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8 },
+  sortMenuItemActive: { backgroundColor: '#00F0FF15' },
+  sortMenuText: { fontSize: 13, color: '#9CA3AF' },
+  sortMenuTextActive: { color: '#00F0FF', fontWeight: '600' },
+  
+  // 技术指标卡片
   techGrid: { gap: 10 },
   techCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#12121A',
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     padding: 14,
   },
-  techIconWrap: { width: 40, height: 40, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  techLeft: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  techIconWrap: { width: 48, height: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
   techContent: { flex: 1 },
-  techTitle: { fontSize: 14, fontWeight: '600', color: '#FFF', marginBottom: 2 },
-  techDesc: { fontSize: 12, color: '#6B7280' },
-  techRight: { alignItems: 'flex-end' },
-  signalBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginBottom: 4 },
-  signalText: { fontSize: 11, fontWeight: '700' },
-  techCount: { fontSize: 10, color: '#6B7280' },
+  techTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  techTitle: { fontSize: 15, fontWeight: '700', color: '#FFF' },
+  periodBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  periodText: { fontSize: 10, fontWeight: '600' },
+  techDesc: { fontSize: 12, color: '#6B7280', marginBottom: 6 },
+  techStats: { flexDirection: 'row', gap: 12 },
+  statItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  statText: { fontSize: 11, color: '#6B7280' },
+  techRight: { alignItems: 'center', marginLeft: 12 },
+  signalBadgeLarge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, borderWidth: 1, marginBottom: 6 },
+  signalTextLarge: { fontSize: 13, fontWeight: '700' },
+  directionIcon: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#1A1A24', justifyContent: 'center', alignItems: 'center' },
+  
+  // 统计概览
+  techSummary: { flexDirection: 'row', backgroundColor: '#12121A', borderRadius: 12, padding: 16, marginTop: 16, borderWidth: 1, borderColor: '#1F2937' },
+  summaryItem: { flex: 1, alignItems: 'center' },
+  summaryValue: { fontSize: 22, fontWeight: '800', color: '#FFF', marginBottom: 4 },
+  summaryLabel: { fontSize: 11, color: '#6B7280' },
+  summaryDivider: { width: 1, backgroundColor: '#2D2D3A' },
   
   // 热门精选
   featuredSection: { padding: 16 },
@@ -471,18 +612,4 @@ const styles = StyleSheet.create({
   catIcon: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
   catTitle: { fontSize: 13, fontWeight: '600', color: '#FFF', marginBottom: 2 },
   catCount: { fontSize: 11, color: '#6B7280' },
-  
-  // 代币卡片
-  tokenCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1A1A24', padding: 12, borderRadius: 12, marginBottom: 8 },
-  tokenLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  rank: { width: 24, fontSize: 12, fontWeight: '600', color: '#6B7280' },
-  tokenIcon: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  tokenEmoji: { fontSize: 16, fontWeight: '700' },
-  tokenInfo: { flex: 1 },
-  symbol: { fontSize: 14, fontWeight: '700', color: '#FFF' },
-  name: { fontSize: 12, color: '#6B7280' },
-  tokenRight: { alignItems: 'flex-end' },
-  price: { fontSize: 14, fontWeight: '600', color: '#FFF', marginBottom: 4 },
-  changeBadge: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4 },
-  changeText: { fontSize: 11, fontWeight: '700' },
 });

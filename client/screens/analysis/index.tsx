@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { Link } from 'expo-router';
+import { useSafeRouter } from '@/hooks/useSafeRouter';
 
 const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
 export default function AnalysisScreen() {
+  const router = useSafeRouter();
   const [analysisData, setAnalysisData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -76,11 +78,9 @@ export default function AnalysisScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Link href="/" asChild>
-          <Pressable style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={24} color="#fff" />
-          </Pressable>
-        </Link>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={24} color="#fff" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>技术分析</Text>
         <View style={styles.headerRight} />
       </View>

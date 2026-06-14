@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
-import { Link } from 'expo-router';
+import { useSafeRouter } from '@/hooks/useSafeRouter';
 
 const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
@@ -17,6 +17,7 @@ const CATEGORIES = [
 ];
 
 export default function CategoriesScreen() {
+  const router = useSafeRouter();
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -63,11 +64,9 @@ export default function CategoriesScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Link href="/" asChild>
-          <Pressable style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={24} color="#fff" />
-          </Pressable>
-        </Link>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="chevron-back" size={24} color="#fff" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>赛道分类</Text>
         <View style={styles.headerRight} />
       </View>

@@ -605,7 +605,7 @@ export default function VipScreen() {
               <Ionicons name="newspaper" size={22} color={activeTab === 'news' ? '#00F0FF' : '#8B8B9A'} />
             </View>
             <Text style={[styles.tabText, { color: activeTab === 'news' ? '#00F0FF' : '#8B8B9A' }]}>
-              会员速递
+              会员订阅
             </Text>
           </TouchableOpacity>
         </View>

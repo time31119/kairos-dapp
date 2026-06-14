@@ -100,6 +100,20 @@ function TechCard({ scenario, onPress }: { scenario: any; onPress: () => void })
   const isBullish = scenario.signalColor === '#00FF88' || scenario.signalColor === '#00CED1';
   const isBearish = scenario.signalColor === '#FF4444';
   
+  // 图标映射
+  const iconMap: Record<string, string> = {
+    'trending-up': 'trending-up',
+    'trending-down': 'trending-down',
+    'sync': 'sync',
+    'speedometer': 'speedometer',
+    'pulse': 'pulse',
+    'git-merge': 'git-merge',
+    'radio-button-on': 'radio-button-on',
+    'analytics': 'analytics',
+    'contract': 'contract',
+  };
+  const iconName = iconMap[scenario.icon] || 'ellipse';
+  
   return (
     <Pressable 
       style={[styles.techCard, { borderColor: scenario.color + '40' }]}
@@ -108,7 +122,7 @@ function TechCard({ scenario, onPress }: { scenario: any; onPress: () => void })
       {/* 左侧：图标和标题 */}
       <View style={styles.techLeft}>
         <View style={[styles.techIconWrap, { backgroundColor: scenario.color + '15' }]}>
-          <Ionicons name={scenario.icon} size={22} color={scenario.color} />
+          <Ionicons name={iconName as any} size={22} color={scenario.color} />
         </View>
         <View style={styles.techContent}>
           <View style={styles.techTitleRow}>

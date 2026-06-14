@@ -41,25 +41,34 @@ export default function AnalysisScreen() {
 
   const getSignalLabel = (signal: string) => signal;
 
-  const getDirectionIcon = (direction: string) => {
-    switch (direction) {
-      case 'bullish': return 'trending-up';
-      case 'bearish': return 'trending-down';
-      default: return 'remove';
-    }
+  const getDirectionIcon = (direction: string, icon: string) => {
+    // 优先使用 API 返回的 icon 字段
+    const iconMap: Record<string, string> = {
+      'trending-up': 'trending-up',
+      'trending-down': 'trending-down',
+      'stats-chart': 'stats-chart',
+      'pulse': 'pulse',
+      'bar-chart': 'bar-chart',
+      'git-network': 'git-network',
+      'bulb': 'bulb',
+      'speedometer': 'speedometer',
+      'resize': 'resize',
+      'ellipse': 'ellipse',
+    };
+    return (iconMap[icon] || iconMap[direction] || 'ellipse') as any;
   };
 
   const filteredData = analysisData.filter(item => {
     if (filterSignal === 'all') return true;
-    if (filterSignal === 'bullish') return item.direction === 'bullish';
-    if (filterSignal === 'bearish') return item.direction === 'bearish';
-    if (filterSignal === 'neutral') return item.direction === 'neutral';
+    if (filterSignal === 'bullish') return item.signal.includes('多') || item.signal.includes('买') || item.signal.includes('回') || item.signal.includes('放');
+    if (filterSignal === 'bearish') return item.signal.includes('空') || item.signal.includes('警');
+    if (filterSignal === 'neutral') return item.signal.includes('观') || item.signal.includes('整');
     return true;
   });
 
-  const bullishCount = analysisData.filter(item => item.direction === 'bullish').length;
-  const bearishCount = analysisData.filter(item => item.direction === 'bearish').length;
-  const neutralCount = analysisData.filter(item => item.direction === 'neutral').length;
+  const bullishCount = analysisData.filter(item => item.signal.includes('多') || item.signal.includes('买') || item.signal.includes('回') || item.signal.includes('放')).length;
+  const bearishCount = analysisData.filter(item => item.signal.includes('空') || item.signal.includes('警')).length;
+  const neutralCount = analysisData.filter(item => item.signal.includes('观') || item.signal.includes('整')).length;
   const avgWinRate = analysisData.length > 0 
     ? Math.round(analysisData.reduce((sum, item) => sum + (item.winRate || 0), 0) / analysisData.length)
     : 0;
@@ -139,13 +148,13 @@ export default function AnalysisScreen() {
                 <View style={styles.cardHeader}>
                   <View style={[styles.iconContainer, { backgroundColor: getSignalColor(item.signal) + '20' }]}>
                     <Ionicons 
-                      name={getDirectionIcon(item.direction)} 
+                      name={getDirectionIcon(item.direction, item.icon)} 
                       size={22} 
                       color={getSignalColor(item.signal)} 
                     />
                   </View>
                   <View style={styles.cardInfo}>
-                    <Text style={styles.cardTitle}>{item.name}</Text>
+                    <Text style={styles.cardTitle}>{item.title}</Text>
                     <Text style={styles.cardDesc}>{item.desc}</Text>
                   </View>
                   <View style={[styles.signalBadge, { backgroundColor: getSignalColor(item.signal) + '20' }]}>

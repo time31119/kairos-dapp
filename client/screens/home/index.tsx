@@ -173,7 +173,7 @@ function getIconName(icon: string): keyof typeof Ionicons.glyphMap {
   return iconMap[icon] || 'ellipse';
 }
 
-// 赛道快捷卡片
+// 赛道快捷卡片（用于热门精选）
 function CategoryCard({ cat, onPress }: { cat: any; onPress: () => void }) {
   return (
     <Pressable 
@@ -185,6 +185,27 @@ function CategoryCard({ cat, onPress }: { cat: any; onPress: () => void }) {
       </View>
       <Text style={styles.catTitle}>{cat.title}</Text>
       <Text style={styles.catCount}>{cat.count}个</Text>
+    </Pressable>
+  );
+}
+
+// 赛道分类实时卡片（用于赛道分类板块）
+function CategoryCardV2({ cat, flash, onPress }: { cat: any; flash: boolean; onPress: () => void }) {
+  return (
+    <Pressable 
+      style={[styles.catCard, flash && styles.catCardFlash]}
+      onPress={onPress}
+    >
+      <View style={[styles.catIcon, { backgroundColor: cat.color + '20' }]}>
+        <Ionicons name={getIconName(cat.icon || cat.id)} size={22} color={cat.color} />
+      </View>
+      <Text style={styles.catTitle}>{cat.name}</Text>
+      <Text style={styles.catCount}>{cat.tokenCount} 代币</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 }}>
+        <Text style={[styles.catChange, cat.stats?.avgChange >= 0 ? { color: '#00FF88' } : { color: '#FF4444' }]}>
+          {cat.stats?.avgChange >= 0 ? '+' : ''}{cat.stats?.avgChange || 0}%
+        </Text>
+      </View>
     </Pressable>
   );
 }
@@ -645,32 +666,14 @@ export default function HomeScreen() {
                 <Text style={{ color: '#6B7280', fontSize: 14 }}>加载中...</Text>
               </View>
             ) : (
-              categoryData.map((cat: any) => {
-                const CategoryCard = () => (
-                  <View 
-                    style={[
-                      styles.catCard, 
-                      categoryFlash && styles.catCardFlash
-                    ]}
-                  >
-                    <View style={[styles.catIcon, { backgroundColor: cat.color + '20' }]}>
-                      <Ionicons name={getIconName(cat.icon || cat.id)} size={22} color={cat.color} />
-                    </View>
-                    <Text style={styles.catTitle}>{cat.name}</Text>
-                    <Text style={styles.catCount}>{cat.tokenCount} 代币</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 }}>
-                      <Text style={[styles.catChange, cat.stats?.avgChange >= 0 ? { color: '#00FF88' } : { color: '#FF4444' }]}>
-                        {cat.stats?.avgChange >= 0 ? '+' : ''}{cat.stats?.avgChange || 0}%
-                      </Text>
-                    </View>
-                  </View>
-                );
-                return (
-                  <Pressable key={cat.id} onPress={() => router.push('/screener/' + cat.id)}>
-                    <CategoryCard />
-                  </Pressable>
-                );
-              })
+              categoryData.map((cat: any) => (
+                <CategoryCardV2 
+                  key={cat.id} 
+                  cat={cat} 
+                  flash={categoryFlash}
+                  onPress={() => router.push('/screener/' + cat.id)} 
+                />
+              ))
             )}
           </View>
           {/* 实时更新状态 */}

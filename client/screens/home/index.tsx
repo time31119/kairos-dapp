@@ -909,10 +909,10 @@ export default function HomeScreen() {
       {/* 代币兑换弹窗 */}
       <SwapModal
         visible={swapModalVisible}
-        token={selectedToken}
+        token={selectedSwapToken}
         onClose={() => {
           setSwapModalVisible(false);
-          setSelectedToken(null);
+          setSelectedSwapToken(null);
         }}
       />
     </Screen>

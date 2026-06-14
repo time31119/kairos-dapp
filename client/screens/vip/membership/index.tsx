@@ -144,7 +144,7 @@ export default function Membership() {
 
               <View style={styles.planPrice}>
                 <Text style={styles.priceSymbol}>$</Text>
-                <Text style={styles.priceValue}>{currentPrice}</Text>
+                <Text style={styles.priceValue}>{plan.price[billingCycle]}</Text>
                 <Text style={styles.priceUnit}>/{billingCycle === 'month' ? '月' : billingCycle === 'quarter' ? '季' : '年'}</Text>
               </View>
 

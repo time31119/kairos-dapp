@@ -56,7 +56,7 @@ router.post('/create-order', async (req, res) => {
     // 收款地址配置
     const PAYMENT_ADDRESSES = {
       USDT_TRC20: 'TSV8UGKBeXrj26PUiBUhhLunfzVSmvyqWq',
-      ETH: 'ETH_ADDRESS_PENDING',
+      ETH: '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d', // Ethereum
       BNB: '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d', // BNB Chain (BEP20)
     };
     

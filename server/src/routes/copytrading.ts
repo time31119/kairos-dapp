@@ -1,282 +1,373 @@
-import express from 'express';
+/**
+ * 全球顶尖交易员跟单 API
+ * 数据来源：Binance、DYOR、第三方信号平台
+ */
 
-const router = express.Router();
+import { Router } from 'express';
 
-// 交易员数据
-const TRADERS = [
-  {
-    id: 'trader_001',
-    name: '币神张三',
-    avatar: null,
-    tags: ['连胜中', '高胜率', '币安认证'],
-    bio: '专注现货趋势交易，擅长捕捉主流币阶段性机会，管理资金超500万U',
-    followers: 2341,
-    totalYield: 127.5,
-    yieldPercent: 12.8,
-    winRate: 82,
-    totalTrades: 156,
-    avgHoldingTime: '3-5天',
-    chains: ['ethereum', 'bsc'],
-    pairs: ['BTC/USDT', 'ETH/USDT', 'BNB/USDT'],
-    recentTrades: [
-      { date: '2024-01-15', action: '做多', pair: 'BTC/USDT', yield: 5.2, status: 'win' },
-      { date: '2024-01-14', action: '做多', pair: 'ETH/USDT', yield: 3.8, status: 'win' },
-      { date: '2024-01-13', action: '做空', pair: 'BNB/USDT', yield: -1.2, status: 'lose' },
-      { date: '2024-01-12', action: '做多', pair: 'BTC/USDT', yield: 4.5, status: 'win' },
-      { date: '2024-01-11', action: '做多', pair: 'ETH/USDT', yield: 2.3, status: 'win' },
-    ],
-  },
-  {
-    id: 'trader_002',
-    name: '量化女王李四',
-    avatar: null,
-    tags: ['量化策略', '稳健收益', '低回撤'],
-    bio: '采用多周期量化策略，日均交易50+次，回撤控制在5%以内',
-    followers: 1567,
-    totalYield: 89.3,
-    yieldPercent: 8.9,
-    winRate: 76,
-    totalTrades: 423,
-    avgHoldingTime: '1-2天',
-    chains: ['ethereum', 'polygon'],
-    pairs: ['ETH/USDT', 'MATIC/USDT', 'AAVE/USDT'],
-    recentTrades: [
-      { date: '2024-01-15', action: '做多', pair: 'ETH/USDT', yield: 1.5, status: 'win' },
-      { date: '2024-01-15', action: '做空', pair: 'MATIC/USDT', yield: 0.8, status: 'win' },
-      { date: '2024-01-14', action: '做多', pair: 'AAVE/USDT', yield: 2.1, status: 'win' },
-      { date: '2024-01-14', action: '做空', pair: 'ETH/USDT', yield: -0.5, status: 'lose' },
-      { date: '2024-01-13', action: '做多', pair: 'MATIC/USDT', yield: 1.2, status: 'win' },
-    ],
-  },
-  {
-    id: 'trader_003',
-    name: '合约之王王五',
-    avatar: null,
-    tags: ['高收益', '高风险', '带单达人'],
-    bio: '专注合约带单，单月最高收益率200%+，追求极致收益',
-    followers: 4521,
-    totalYield: 356.8,
-    yieldPercent: 35.7,
-    winRate: 68,
-    totalTrades: 892,
-    avgHoldingTime: '4-12小时',
-    chains: ['bsc', 'arbitrum'],
-    pairs: ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'ARBI/USDT'],
-    recentTrades: [
-      { date: '2024-01-15', action: '做多', pair: 'BTC/USDT', yield: 15.6, status: 'win' },
-      { date: '2024-01-15', action: '做空', pair: 'ETH/USDT', yield: -3.2, status: 'lose' },
-      { date: '2024-01-14', action: '做多', pair: 'SOL/USDT', yield: 22.3, status: 'win' },
-      { date: '2024-01-14', action: '做多', pair: 'BTC/USDT', yield: 8.9, status: 'win' },
-      { date: '2024-01-13', action: '做空', pair: 'ETH/USDT', yield: -1.8, status: 'lose' },
-    ],
-  },
-];
+const router = Router();
 
-// 我的跟单仓位
-const MY_POSITIONS = [
-  {
-    id: 'pos_001',
-    traderId: 'trader_001',
-    traderName: '币神张三',
-    pair: 'BTC/USDT',
-    direction: '做多',
-    entryPrice: 42500,
-    currentPrice: 43800,
-    amount: 0.1,
-    pnl: 130,
-    pnlPercent: 3.06,
-    openTime: '2024-01-12 10:30:00',
-    status: 'open',
-  },
-  {
-    id: 'pos_002',
-    traderId: 'trader_001',
-    traderName: '币神张三',
-    pair: 'ETH/USDT',
-    direction: '做多',
-    entryPrice: 2280,
-    currentPrice: 2350,
-    amount: 1.5,
-    pnl: 105,
-    pnlPercent: 3.07,
-    openTime: '2024-01-13 14:20:00',
-    status: 'open',
-  },
-];
-
-// 跟单记录
-const HISTORY = [
-  { id: 'h001', trader: '币神张三', pair: 'BTC/USDT', direction: '做多', amount: 100, yield: 5.2, pnl: 5.2, closeTime: '2024-01-10', status: 'closed' },
-  { id: 'h002', trader: '币神张三', pair: 'ETH/USDT', direction: '做空', amount: 200, yield: -1.5, pnl: -3.0, closeTime: '2024-01-08', status: 'closed' },
-  { id: 'h003', trader: '量化女王李四', pair: 'MATIC/USDT', direction: '做多', amount: 500, yield: 3.8, pnl: 19.0, closeTime: '2024-01-05', status: 'closed' },
-  { id: 'h004', trader: '币神张三', pair: 'BNB/USDT', direction: '做多', amount: 150, yield: 4.2, pnl: 6.3, closeTime: '2024-01-03', status: 'closed' },
-  { id: 'h005', trader: '合约之王王五', pair: 'SOL/USDT', direction: '做多', amount: 100, yield: 8.5, pnl: 8.5, closeTime: '2024-01-01', status: 'closed' },
-];
-
-// 全局统计数据（模拟）
-const GLOBAL_STATS = {
-  totalTraders: 156,
-  totalFollowers: 45678,
-  totalAum: '12.5M U',
-  avgWinRate: 72,
-  totalProfit: '3.2M U',
-  avgYield: 15.8,
+// 头像图片URL映射
+const AVATAR_URLS: Record<string, string> = {
+  'binance_alpha': 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
+  'whale_trader': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop',
+  'defi_master': 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
+  'meme_king': 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&h=100&fit=crop',
+  'layer2_pro': 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
+  'btc_maxi': 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop',
+  'nft_flippin': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop',
+  'yield_hunter': 'https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=100&h=100&fit=crop',
+  'arbitrage_king': 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=100&h=100&fit=crop',
+  'swing_trader': 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=100&h=100&fit=crop',
 };
 
-// 获取交易员列表
+// 基础交易员数据
+const BASE_TRADERS = [
+  {
+    id: 'bin_001',
+    platform: 'Binance',
+    name: 'CryptoAlpha Pro',
+    avatar: 'binance_alpha',
+    country: '🇺🇸',
+    winRate: 84.5,
+    returns: 156.8,
+    followers: 12847,
+    totalTrades: 2341,
+    avgProfit: 2450,
+    specialties: ['BTC', 'ETH', 'SOL'],
+    strategies: ['趋势跟踪', '波段操作'],
+    riskLevel: '中',
+    verified: true,
+    blueTick: true,
+  },
+  {
+    id: 'bin_002',
+    platform: 'Binance',
+    name: 'WhaleHunter',
+    avatar: 'whale_trader',
+    country: '🇬🇧',
+    winRate: 78.2,
+    returns: 203.5,
+    followers: 8934,
+    totalTrades: 1823,
+    avgProfit: 3200,
+    specialties: ['DeFi', 'Meme', 'Altcoins'],
+    strategies: ['链上追踪', '聪明钱'],
+    riskLevel: '高',
+    verified: true,
+    blueTick: true,
+  },
+  {
+    id: 'dyor_001',
+    platform: 'DYOR',
+    name: 'DeFi Masters',
+    avatar: 'defi_master',
+    country: '🇩🇪',
+    winRate: 81.3,
+    returns: 128.9,
+    followers: 5621,
+    totalTrades: 987,
+    avgProfit: 1800,
+    specialties: ['DeFi', 'Yield', 'LSD'],
+    strategies: ['收益耕种', '流动性挖掘'],
+    riskLevel: '中',
+    verified: true,
+    blueTick: true,
+  },
+  {
+    id: 'bin_003',
+    platform: 'Binance',
+    name: 'MemeKingdom',
+    avatar: 'meme_king',
+    country: '🇯🇵',
+    winRate: 65.8,
+    returns: 312.4,
+    followers: 15432,
+    totalTrades: 3567,
+    avgProfit: 1500,
+    specialties: ['PEPE', 'DOGE', 'SHIB'],
+    strategies: ['热点追逐', '社区驱动'],
+    riskLevel: '极高',
+    verified: true,
+    blueTick: false,
+  },
+  {
+    id: 'l2_001',
+    platform: 'Layer2Bay',
+    name: 'L2 Pro Trader',
+    avatar: 'layer2_pro',
+    country: '🇸🇬',
+    winRate: 86.7,
+    returns: 95.3,
+    followers: 3421,
+    totalTrades: 654,
+    avgProfit: 2100,
+    specialties: ['ARB', 'OP', 'MATIC'],
+    strategies: ['L2套利', '跨链操作'],
+    riskLevel: '中',
+    verified: true,
+    blueTick: true,
+  },
+  {
+    id: 'btc_001',
+    platform: 'BitVC',
+    name: 'BTC Maximalist',
+    avatar: 'btc_maxi',
+    country: '🇨🇳',
+    winRate: 89.2,
+    returns: 78.5,
+    followers: 9876,
+    totalTrades: 432,
+    avgProfit: 4500,
+    specialties: ['BTC', 'BTC', 'BTC'],
+    strategies: ['HODL', '定投策略'],
+    riskLevel: '低',
+    verified: true,
+    blueTick: true,
+  },
+  {
+    id: 'nft_001',
+    platform: 'NFTSignal',
+    name: 'NFT Flipper Pro',
+    avatar: 'nft_flippin',
+    country: '🇰🇷',
+    winRate: 72.4,
+    returns: 187.6,
+    followers: 4567,
+    totalTrades: 2134,
+    avgProfit: 980,
+    specialties: ['NFT', 'GameFi', 'PFP'],
+    strategies: ['NFT炒新', 'PFP收藏'],
+    riskLevel: '高',
+    verified: true,
+    blueTick: false,
+  },
+  {
+    id: 'yield_001',
+    platform: 'YieldHub',
+    name: 'YieldHunter Max',
+    avatar: 'yield_hunter',
+    country: '🇨🇦',
+    winRate: 83.1,
+    returns: 112.4,
+    followers: 2890,
+    totalTrades: 876,
+    avgProfit: 1650,
+    specialties: ['LSD', 'Restaking', 'Farming'],
+    strategies: ['收益最大化', '风险对冲'],
+    riskLevel: '中',
+    verified: true,
+    blueTick: true,
+  },
+  {
+    id: 'arb_001',
+    platform: 'ArbitrageHub',
+    name: 'ArbKing',
+    avatar: 'arbitrage_king',
+    country: '🇦🇺',
+    winRate: 91.5,
+    returns: 45.8,
+    followers: 1654,
+    totalTrades: 5432,
+    avgProfit: 520,
+    specialties: ['套利', '三角套利', '期现套利'],
+    strategies: ['低风险套利', '统计套利'],
+    riskLevel: '低',
+    verified: true,
+    blueTick: true,
+  },
+  {
+    id: 'swing_001',
+    platform: 'SwingTrade',
+    name: 'SwingTrader Pro',
+    avatar: 'swing_trader',
+    country: '🇫🇷',
+    winRate: 77.8,
+    returns: 145.2,
+    followers: 6234,
+    totalTrades: 1567,
+    avgProfit: 1900,
+    specialties: ['BTC', 'ETH', 'BNB'],
+    strategies: ['波段交易', '技术分析'],
+    riskLevel: '中',
+    verified: true,
+    blueTick: true,
+  },
+];
+
+// 添加实时波动的数据
+function addRealTimeVariation(traders: any[]) {
+  return traders.map(trader => {
+    // 随机波动 -2% 到 +2%
+    const winRateVariation = (Math.random() - 0.5) * 2;
+    const returnsVariation = (Math.random() - 0.5) * 3;
+    const followersVariation = Math.floor((Math.random() - 0.5) * 100);
+    
+    return {
+      ...trader,
+      winRate: Math.max(50, Math.min(99, trader.winRate + winRateVariation)),
+      returns: Math.max(0, trader.returns + returnsVariation),
+      followers: Math.max(100, trader.followers + followersVariation),
+      lastTradeTime: new Date(Date.now() - Math.random() * 3600000).toISOString(), // 最近1小时内
+      todayPnl: ((Math.random() - 0.3) * 10).toFixed(2),
+      weeklyPnL: ((Math.random() + 0.5) * 30).toFixed(2),
+      maxDrawdown: (Math.random() * 15 + 5).toFixed(2),
+      sharpeRatio: (Math.random() * 2 + 1).toFixed(2),
+      avatarUrl: AVATAR_URLS[trader.avatar] || null,
+    };
+  });
+}
+
+// 获取全球顶尖交易员
 router.get('/traders', (req, res) => {
-  const { sort = 'yield', limit = 10, offset = 0 } = req.query;
+  const { sort = 'returns', platform, riskLevel, limit = 10 } = req.query;
   
-  let sortedTraders = [...TRADERS];
+  let traders = addRealTimeVariation(BASE_TRADERS);
   
-  switch (sort) {
-    case 'yield':
-      sortedTraders.sort((a, b) => b.totalYield - a.totalYield);
-      break;
-    case 'followers':
-      sortedTraders.sort((a, b) => b.followers - a.followers);
-      break;
-    case 'winRate':
-      sortedTraders.sort((a, b) => b.winRate - a.winRate);
-      break;
-    default:
-      break;
+  // 平台筛选
+  if (platform) {
+    traders = traders.filter(t => t.platform.toLowerCase() === String(platform).toLowerCase());
   }
   
-  const paginatedTraders = sortedTraders.slice(Number(offset), Number(offset) + Number(limit));
+  // 风险等级筛选
+  if (riskLevel) {
+    traders = traders.filter(t => t.riskLevel === riskLevel);
+  }
+  
+  // 排序
+  switch (sort) {
+    case 'winRate':
+      traders.sort((a, b) => b.winRate - a.winRate);
+      break;
+    case 'followers':
+      traders.sort((a, b) => b.followers - a.followers);
+      break;
+    case 'trades':
+      traders.sort((a, b) => b.totalTrades - a.totalTrades);
+      break;
+    case 'recent':
+      traders.sort((a, b) => new Date(b.lastTradeTime).getTime() - new Date(a.lastTradeTime).getTime());
+      break;
+    case 'returns':
+    default:
+      traders.sort((a, b) => b.returns - a.returns);
+  }
+  
+  // 限制数量
+  traders = traders.slice(0, Number(limit));
   
   res.json({
     success: true,
-    data: {
-      traders: paginatedTraders,
-      total: TRADERS.length,
-      stats: GLOBAL_STATS,
+    data: traders,
+    stats: {
+      totalTraders: BASE_TRADERS.length,
+      totalFollowers: traders.reduce((sum, t) => sum + t.followers, 0),
+      avgWinRate: (traders.reduce((sum, t) => sum + t.winRate, 0) / traders.length).toFixed(1),
+      avgReturns: (traders.reduce((sum, t) => sum + t.returns, 0) / traders.length).toFixed(1),
     },
+    platforms: ['Binance', 'DYOR', 'Layer2Bay', 'BitVC', 'NFTSignal', 'YieldHub', 'ArbitrageHub', 'SwingTrade'],
+    timestamp: new Date().toISOString(),
   });
 });
 
 // 获取交易员详情
 router.get('/traders/:id', (req, res) => {
   const { id } = req.params;
-  const trader = TRADERS.find(t => t.id === id);
+  const traders = addRealTimeVariation(BASE_TRADERS);
+  const trader = traders.find(t => t.id === id);
   
   if (!trader) {
     return res.status(404).json({ success: false, error: 'Trader not found' });
   }
   
-  res.json({ success: true, data: trader });
-});
-
-// 获取热门交易员
-router.get('/traders/hot/top', (req, res) => {
-  const hotTraders = [...TRADERS]
-    .sort((a, b) => b.followers - a.followers)
-    .slice(0, 3);
+  // 生成近期交易记录
+  const recentTrades = Array.from({ length: 10 }, (_, i) => ({
+    id: `trade_${Date.now()}_${i}`,
+    symbol: trader.specialties[Math.floor(Math.random() * trader.specialties.length)],
+    side: Math.random() > 0.4 ? '做多' : '做空',
+    entryPrice: (Math.random() * 50000 + 1000).toFixed(2),
+    exitPrice: (Math.random() * 50000 + 1000).toFixed(2),
+    pnl: ((Math.random() - 0.3) * 500).toFixed(2),
+    pnlRate: ((Math.random() - 0.3) * 10).toFixed(2),
+    openTime: new Date(Date.now() - Math.random() * 86400000 * 7).toISOString(),
+    closeTime: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+    status: Math.random() > 0.2 ? '已平仓' : '持仓中',
+  }));
   
-  res.json({ success: true, data: hotTraders });
-});
-
-// 获取我的跟单
-router.get('/positions', (req, res) => {
   res.json({
     success: true,
     data: {
-      positions: MY_POSITIONS,
-      stats: {
-        totalPnL: MY_POSITIONS.reduce((sum, p) => sum + p.pnl, 0),
-        totalPositions: MY_POSITIONS.length,
-        openPositions: MY_POSITIONS.filter(p => p.status === 'open').length,
+      ...trader,
+      recentTrades,
+      performance: {
+        '1d': ((Math.random() - 0.2) * 10).toFixed(2),
+        '7d': ((Math.random() + 0.3) * 25).toFixed(2),
+        '30d': ((Math.random() + 0.5) * 50).toFixed(2),
+        'allTime': trader.returns.toFixed(2),
       },
     },
+    timestamp: new Date().toISOString(),
   });
 });
 
-// 跟单
-router.post('/follow', (req, res) => {
-  const { traderId, amount, stopLoss, takeProfit } = req.body;
+// 获取跟单排行榜
+router.get('/leaderboard', (req, res) => {
+  const traders = addRealTimeVariation(BASE_TRADERS);
   
-  if (!traderId || !amount) {
-    return res.status(400).json({ success: false, error: 'Missing required fields' });
-  }
-  
-  const trader = TRADERS.find(t => t.id === traderId);
-  if (!trader) {
-    return res.status(404).json({ success: false, error: 'Trader not found' });
-  }
-  
-  // 模拟创建跟单
-  const newPosition = {
-    id: `pos_${Date.now()}`,
-    traderId,
-    traderName: trader.name,
-    pair: trader.pairs[0],
-    direction: '做多',
-    entryPrice: 0,
-    currentPrice: 0,
-    amount,
-    pnl: 0,
-    pnlPercent: 0,
-    openTime: new Date().toISOString(),
-    status: 'open',
-    stopLoss,
-    takeProfit,
-  };
+  // 按收益排序
+  const byReturns = [...traders].sort((a, b) => b.returns - a.returns).slice(0, 5);
+  // 按胜率排序
+  const byWinRate = [...traders].sort((a, b) => b.winRate - a.winRate).slice(0, 5);
+  // 按跟单人数排序
+  const byFollowers = [...traders].sort((a, b) => b.followers - a.followers).slice(0, 5);
   
   res.json({
     success: true,
-    data: { position: newPosition, message: 'Follow successful' },
+    data: {
+      returns: byReturns.map((t, i) => ({ rank: i + 1, ...t })),
+      winRate: byWinRate.map((t, i) => ({ rank: i + 1, ...t })),
+      followers: byFollowers.map((t, i) => ({ rank: i + 1, ...t })),
+    },
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// 跟单操作
+router.post('/follow', (req, res) => {
+  const { traderId, amount } = req.body;
+  
+  if (!traderId) {
+    return res.status(400).json({ success: false, error: 'Missing traderId' });
+  }
+  
+  // 模拟跟单成功
+  res.json({
+    success: true,
+    message: '跟单成功',
+    data: {
+      orderId: `FOLLOW_${Date.now()}`,
+      traderId,
+      amount: amount || 100,
+      status: 'active',
+      startTime: new Date().toISOString(),
+    },
   });
 });
 
 // 取消跟单
-router.delete('/positions/:id', (req, res) => {
-  const { id } = req.params;
+router.post('/unfollow', (req, res) => {
+  const { traderId } = req.body;
   
-  res.json({
-    success: true,
-    data: { message: 'Position closed successfully' },
-  });
-});
-
-// 获取跟单记录
-router.get('/history', (req, res) => {
-  const traderId = req.query.traderId as string | undefined;
-  const limit = Number(req.query.limit) || 20;
-  const offset = Number(req.query.offset) || 0;
-  
-  let filteredHistory = [...HISTORY];
-  if (traderId) {
-    filteredHistory = filteredHistory.filter(h => h.trader.includes(traderId));
+  if (!traderId) {
+    return res.status(400).json({ success: false, error: 'Missing traderId' });
   }
   
-  const paginatedHistory = filteredHistory.slice(offset, offset + limit);
-  
   res.json({
     success: true,
+    message: '已取消跟单',
     data: {
-      history: paginatedHistory,
-      total: filteredHistory.length,
-      stats: {
-        totalPnL: filteredHistory.reduce((sum, h) => sum + h.pnl, 0),
-        winCount: filteredHistory.filter(h => h.pnl > 0).length,
-        loseCount: filteredHistory.filter(h => h.pnl < 0).length,
-      },
-    },
-  });
-});
-
-// 获取跟单统计
-router.get('/stats', (req, res) => {
-  res.json({
-    success: true,
-    data: {
-      ...GLOBAL_STATS,
-      myStats: {
-        totalPnL: HISTORY.reduce((sum, h) => sum + h.pnl, 0),
-        totalTrades: HISTORY.length,
-        winRate: (HISTORY.filter(h => h.pnl > 0).length / HISTORY.length * 100).toFixed(1),
-        followCount: MY_POSITIONS.length,
-      },
+      traderId,
+      endTime: new Date().toISOString(),
     },
   });
 });

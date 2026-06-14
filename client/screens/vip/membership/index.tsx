@@ -10,6 +10,7 @@ import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useState } from 'react';
 import { useWeb3 } from '@/contexts/Web3Context';
 import { VIP_PLANS, PAYMENT_METHODS, BillingCycle } from '@/utils/vipPlans';
+import PaymentModal from '@/components/payment/PaymentModal';
 
 const colors = {
   background: '#0A0A0F',
@@ -328,6 +329,15 @@ export default function Membership() {
         {/* 底部安全区 */}
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* 支付弹窗 */}
+      <PaymentModal
+        visible={showPayment}
+        plan={currentPlan}
+        billingCycle={billingCycle === 'month' ? 'monthly' : billingCycle === 'quarter' ? 'quarterly' : 'yearly'}
+        onClose={() => setShowPayment(false)}
+        onSuccess={confirmPayment}
+      />
     </Screen>
   );
 }

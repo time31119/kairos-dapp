@@ -205,7 +205,7 @@ export default function VipScreen() {
         <View style={styles.benefitsGrid}>
           {BENEFITS.map((benefit, idx) => (
             <View key={idx} style={styles.benefitItem}>
-              <Ionicons name={benefit.icon as any} size={24} color="#00F0FF" />
+              <Ionicons name="checkmark-circle" size={24} color="#00F0FF" />
               <Text style={styles.benefitText}>{benefit.text}</Text>
             </View>
           ))}

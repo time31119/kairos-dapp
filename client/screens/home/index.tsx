@@ -243,21 +243,36 @@ function CategoryCard({ cat, onPress }: { cat: any; onPress: () => void }) {
 
 // 赛道分类实时卡片（用于赛道分类板块）
 function CategoryCardV2({ cat, flash, onPress }: { cat: any; flash: boolean; onPress: () => void }) {
+  const avgChange = cat.avgChange ?? cat.stats?.avgChange ?? 0;
+  const isPositive = avgChange >= 0;
+  
   return (
     <Pressable 
       style={[styles.catCard, flash && styles.catCardFlash]}
       onPress={onPress}
     >
-      <View style={[styles.catIcon, { backgroundColor: cat.color + '20' }]}>
-        <Ionicons name={getIconName(cat.icon || cat.id)} size={22} color={cat.color} />
+      {/* 排名标签 */}
+      {cat.changeRank && cat.changeRank <= 10 && (
+        <View style={[styles.rankTag, isPositive ? { backgroundColor: '#00FF88' } : { backgroundColor: '#FF4444' }]}>
+          <Text style={styles.rankText}>#{cat.changeRank}</Text>
+        </View>
+      )}
+      <View style={[styles.catIcon, { backgroundColor: (cat.color || '#00F0FF') + '20' }]}>
+        <Ionicons name={getIconName(cat.icon || cat.id)} size={22} color={cat.color || '#00F0FF'} />
       </View>
       <Text style={styles.catTitle}>{cat.name}</Text>
-      <Text style={styles.catCount}>{cat.tokenCount} 代币</Text>
+      <Text style={styles.catCount}>{cat.topTokens?.length || cat.tokenCount || 0} 代币</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 }}>
-        <Text style={[styles.catChange, cat.stats?.avgChange >= 0 ? { color: '#00FF88' } : { color: '#FF4444' }]}>
-          {cat.stats?.avgChange >= 0 ? '+' : ''}{cat.stats?.avgChange || 0}%
+        <Text style={[styles.catChange, isPositive ? { color: '#00FF88' } : { color: '#FF4444' }]}>
+          {isPositive ? '+' : ''}{avgChange.toFixed(2)}%
         </Text>
       </View>
+      {/* 热度指示 */}
+      {cat.hotCount > 0 && (
+        <View style={styles.hotBadge}>
+          <Text style={styles.hotText}>HOT {cat.hotCount}</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -912,6 +927,36 @@ const styles = StyleSheet.create({
   catCardFlash: {
     borderColor: '#00F0FF',
     borderWidth: 1,
+  },
+  // 排名标签
+  rankTag: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    zIndex: 1,
+  },
+  rankText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#0A0A0F',
+  },
+  // 热度标签
+  hotBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: '#FF444420',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  hotText: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#FF4444',
   },
   catIcon: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
   catTitle: { fontSize: 13, fontWeight: '600', color: '#FFF', marginBottom: 2 },

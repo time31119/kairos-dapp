@@ -65,36 +65,110 @@ const generateTokens = (scenario: ScenarioType) => {
   return tokens[scenario] || tokens.defi;
 };
 
+// 赛道代币映射（定义每个赛道包含哪些代币）
+const SCENARIO_TOKENS: Record<ScenarioType, string[]> = {
+  defi: ['UNI', 'AAVE', 'CRV', 'MKR', 'SNX', 'COMP'],
+  meme: ['DOGE', 'SHIB', 'PEPE', 'FLOKI', 'BONK'],
+  ai: ['AGIX', 'FET', 'OCEAN', 'RENDER', 'AI16Z'],
+  gaming: ['AXS', 'GALA', 'IMX', 'MANA', 'SAND'],
+  infrastructure: ['ETH', 'MATIC', 'ARB', 'OP', 'LINK'],
+  layer2: ['ARB', 'OP', 'MATIC', 'ZK', 'STARK'],
+};
+
 // 获取所有场景（支持实时数据更新）
 router.get('/scenarios/realtime', (req, res) => {
-  const scenarios = Object.entries(SCENARIO_CONFIG).map(([key, config]) => {
-    const baseTokens = generateTokens(key as ScenarioType);
-    // 添加实时波动（5秒内小幅波动）
-    const tokens = baseTokens.map(token => ({
-      ...token,
-      price: parseFloat((token.price * (1 + (Math.random() - 0.5) * 0.002)).toFixed(token.price > 1 ? 2 : 6)),
-      change: parseFloat((token.change + (Math.random() - 0.5) * 0.3).toFixed(2)),
-      volume: Math.floor(token.volume * (1 + (Math.random() - 0.5) * 0.05)),
-    }));
+  // 1. 收集所有代币数据，添加实时波动
+  const allTokens: Array<{
+    symbol: string;
+    name: string;
+    price: number;
+    change: number;
+    volume: number;
+    marketCap: number;
+    scenario: ScenarioType;
+  }> = [];
+
+  (Object.keys(SCENARIO_TOKENS) as ScenarioType[]).forEach(scenario => {
+    const baseTokens = generateTokens(scenario);
+    baseTokens.forEach(token => {
+      // 添加实时波动
+      const priceWith波动 = token.price * (1 + (Math.random() - 0.5) * 0.002);
+      const changeWith波动 = token.change + (Math.random() - 0.5) * 0.3;
+      
+      allTokens.push({
+        ...token,
+        price: parseFloat(priceWith波动.toFixed(token.price > 1 ? 2 : 6)),
+        change: parseFloat(changeWith波动.toFixed(2)),
+        volume: Math.floor(token.volume * (1 + (Math.random() - 0.5) * 0.05)),
+        scenario,
+      });
+    });
+  });
+
+  // 2. 按涨跌幅排序，取前10名
+  const top10ByChange = [...allTokens]
+    .sort((a, b) => b.change - a.change)
+    .slice(0, 10);
+
+  // 3. 根据前10名代币统计各赛道出现次数，动态选择最热门的6大赛道
+  const scenarioCounts: Record<string, number> = {};
+  top10ByChange.forEach(token => {
+    scenarioCounts[token.scenario] = (scenarioCounts[token.scenario] || 0) + 1;
+  });
+
+  // 动态排序赛道（按在前10中的出现次数）
+  const sortedScenarios = (Object.keys(SCENARIO_CONFIG) as ScenarioType[])
+    .sort((a, b) => (scenarioCounts[b] || 0) - (scenarioCounts[a] || 0))
+    .slice(0, 6);
+
+  // 4. 构建6大赛道数据
+  const scenarios = sortedScenarios.map(scenario => {
+    const config = SCENARIO_CONFIG[scenario];
+    const scenarioTokens = allTokens.filter(t => t.scenario === scenario);
     
+    // 该赛道涨跌幅前3名
+    const topTokens = [...scenarioTokens]
+      .sort((a, b) => b.change - a.change)
+      .slice(0, 3);
+
     return {
-      id: key,
-      ...config,
-      tokenCount: tokens.length,
-      stats: {
-        avgChange: parseFloat((tokens.reduce((sum, t) => sum + t.change, 0) / tokens.length).toFixed(2)),
-        totalVolume: tokens.reduce((sum, t) => sum + t.volume, 0),
-        bullishCount: tokens.filter(t => t.change > 0).length,
-        bearishCount: tokens.filter(t => t.change < 0).length,
-        totalMarketCap: tokens.reduce((sum, t) => sum + t.marketCap, 0),
-      },
+      id: scenario,
+      name: config.name,
+      color: config.color,
+      description: config.description,
+      // 涨跌幅排名（该赛道在前10中的排名）
+      changeRank: top10ByChange.findIndex(t => t.scenario === scenario) + 1,
+      // 该赛道在前10中出现的次数
+      hotCount: scenarioCounts[scenario] || 0,
+      // 前10涨跌幅
+      avgChange: topTokens.length > 0 
+        ? parseFloat((topTokens.reduce((sum, t) => sum + t.change, 0) / topTokens.length).toFixed(2))
+        : 0,
+      // 前3名代币
+      topTokens: topTokens.map(t => ({
+        symbol: t.symbol,
+        name: t.name,
+        price: t.price,
+        change: t.change,
+        rank: top10ByChange.indexOf(t) + 1,
+      })),
       updatedAt: new Date().toISOString(),
     };
   });
-  
+
   res.json({
     success: true,
     data: scenarios,
+    // 额外数据：涨跌幅前10
+    top10: top10ByChange.map((t, index) => ({
+      rank: index + 1,
+      symbol: t.symbol,
+      name: t.name,
+      change: t.change,
+      price: t.price,
+      scenario: t.scenario,
+      scenarioName: SCENARIO_CONFIG[t.scenario].name,
+    })),
     timestamp: Date.now(),
     updatedAt: new Date().toISOString(),
   });

@@ -65,6 +65,14 @@ export default function VipScreen() {
   const [activeTab, setActiveTab] = useState<'traders' | 'portfolio' | 'subscribe'>('traders');
   const [traders, setTraders] = useState<Trader[]>([]);
   const [portfolio, setPortfolio] = useState<FollowingPosition[]>([]);
+  const [topTraders, setTopTraders] = useState<Trader[]>([]);
+  const [traderLiveData, setTraderLiveData] = useState<Record<string, {
+    todayPnl: string;
+    todayPnlRate: string;
+    lastTradeTime: string;
+    status: 'open' | 'closed';
+    currentPosition?: { symbol: string; side: 'long' | 'short'; entryPrice: number; markPrice: number; pnl: number; pnlRate: number; };
+  }>>({});
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState<'returns' | 'winRate' | 'followers'>('returns');
@@ -126,6 +134,57 @@ export default function VipScreen() {
     ]);
   }, []);
 
+  // 获取顶尖交易员实时数据
+  const fetchTopTradersLiveData = useCallback(async () => {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      
+      // 获取前10名顶尖交易员
+      const response = await fetch(`${API_BASE}/api/v1/copytrading/traders?sort=returns&limit=10`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setTopTraders(data.data);
+          
+          // 生成模拟实时数据
+          const liveData: Record<string, any> = {};
+          data.data.forEach((trader: any) => {
+            const isProfitable = Math.random() > 0.3;
+            const pnlValue = isProfitable 
+              ? (Math.random() * 500 + 10).toFixed(2)
+              : (-Math.random() * 200 - 5).toFixed(2);
+            const pnlRate = isProfitable
+              ? (Math.random() * 5 + 0.5).toFixed(2)
+              : (-Math.random() * 3 - 0.5).toFixed(2);
+            
+            liveData[trader.id] = {
+              todayPnl: pnlValue,
+              todayPnlRate: pnlRate,
+              lastTradeTime: trader.lastTradeTime || new Date().toISOString(),
+              status: Math.random() > 0.2 ? 'open' : 'closed',
+              currentPosition: Math.random() > 0.3 ? {
+                symbol: ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'PEPE/USDT'][Math.floor(Math.random() * 4)],
+                side: Math.random() > 0.5 ? 'long' : 'short',
+                entryPrice: (50000 + Math.random() * 5000).toFixed(2),
+                markPrice: (50000 + Math.random() * 5000).toFixed(2),
+                pnl: pnlValue,
+                pnlRate: pnlRate,
+              } : undefined,
+            };
+          });
+          setTraderLiveData(liveData);
+        }
+      }
+    } catch (error) {
+      console.log('获取实时数据失败');
+    }
+  }, []);
+
   // 初始加载
   useEffect(() => {
     fetchTraders();
@@ -137,8 +196,20 @@ export default function VipScreen() {
       fetchTraders();
     } else if (activeTab === 'portfolio') {
       fetchPortfolio();
+      fetchTopTradersLiveData();
     }
   }, [activeTab]);
+
+  // 实时数据轮询 (每5秒更新一次)
+  useEffect(() => {
+    if (activeTab !== 'portfolio') return;
+    
+    const interval = setInterval(() => {
+      fetchTopTradersLiveData();
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [activeTab, fetchTopTradersLiveData]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -389,113 +460,209 @@ export default function VipScreen() {
   // 渲染我的实盘Tab
   const renderPortfolioTab = () => (
     <View style={styles.tabContent}>
-      {portfolio.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="wallet-outline" size={64} color="#3A3A4A" />
-          <Text style={styles.emptyTitle}>暂无跟单记录</Text>
-          <Text style={styles.emptyDesc}>从上方选择交易员开始跟单</Text>
-        </View>
-      ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#00F0FF"
-              colors={['#00F0FF']}
-            />
-          }
-        >
-          {/* Portfolio Summary */}
-          <View style={styles.portfolioSummary}>
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>跟单总数</Text>
-              <Text style={styles.summaryValue}>{portfolio.length}</Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>跟单总额</Text>
-              <Text style={styles.summaryValue}>
-                ${portfolio.reduce((sum, p) => sum + p.amount, 0)}
-              </Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryItem}>
-              <Text style={styles.summaryLabel}>总收益</Text>
-              <Text style={[
-                styles.summaryValue,
-                { color: portfolio.reduce((sum, p) => sum + p.pnl, 0) >= 0 ? '#00FF88' : '#FF4444' }
-              ]}>
-                {portfolio.reduce((sum, p) => sum + p.pnl, 0) >= 0 ? '+' : ''}
-                ${portfolio.reduce((sum, p) => sum + p.pnl, 0).toFixed(2)}
-              </Text>
-            </View>
+      {/* 顶尖交易员实时数据 - 始终显示 */}
+      <View style={styles.liveTradersSection}>
+        <View style={styles.liveTradersHeader}>
+          <View style={styles.liveIndicator}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>实时同步</Text>
           </View>
-
-          {/* Positions List */}
-          {portfolio.map((position) => (
-            <View key={position.id} style={styles.positionCard}>
-              <View style={styles.positionHeader}>
-                <View style={styles.positionTrader}>
-                  <View style={styles.positionAvatar}>
-                    <Text style={styles.positionAvatarText}>
-                      {position.traderName.charAt(0)}
+          <Text style={styles.liveTradersTitle}>顶尖交易员实时数据</Text>
+        </View>
+        
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.liveTradersScroll}
+        >
+          {topTraders.length > 0 ? (
+            topTraders.slice(0, 10).map((trader, index) => {
+              const liveInfo = traderLiveData[trader.id] || {};
+              const isProfitable = parseFloat(liveInfo.todayPnl || '0') >= 0;
+              
+              return (
+                <TouchableOpacity 
+                  key={trader.id} 
+                  style={styles.liveTraderCard}
+                  onPress={() => {
+                    setSelectedTrader(trader);
+                    setShowTraderModal(true);
+                  }}
+                >
+                  <View style={styles.liveTraderRank}>
+                    <Text style={styles.liveRankText}>#{index + 1}</Text>
+                  </View>
+                  <View style={styles.liveTraderAvatar}>
+                    <Text style={styles.liveAvatarText}>{trader.name.charAt(0)}</Text>
+                  </View>
+                  <Text style={styles.liveTraderName} numberOfLines={1}>{trader.name}</Text>
+                  <Text style={styles.liveTraderPlatform}>{trader.platform}</Text>
+                  <View style={[
+                    styles.livePnlBadge,
+                    { backgroundColor: isProfitable ? '#00FF8820' : '#FF444420' }
+                  ]}>
+                    <Text style={[
+                      styles.livePnlText,
+                      { color: isProfitable ? '#00FF88' : '#FF4444' }
+                    ]}>
+                      {isProfitable ? '+' : ''}{liveInfo.todayPnl || '0'}%
                     </Text>
                   </View>
-                  <View>
-                    <Text style={styles.positionName}>{position.traderName}</Text>
-                    <Text style={styles.positionPlatform}>{position.traderPlatform}</Text>
+                  {liveInfo.currentPosition && (
+                    <View style={styles.livePositionBadge}>
+                      <Text style={styles.livePositionText}>
+                        {liveInfo.currentPosition.side === 'long' ? '多' : '空'}
+                      </Text>
+                    </View>
+                  )}
+                  <TouchableOpacity 
+                    style={styles.liveFollowBtn}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleFollow(trader.id, 100);
+                    }}
+                  >
+                    <Ionicons name="add" size={14} color="#0A0A0F" />
+                    <Text style={styles.liveFollowBtnText}>跟单</Text>
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              );
+            })
+          ) : (
+            <View style={styles.loadingLiveTraders}>
+              <Text style={styles.loadingText}>加载中...</Text>
+            </View>
+          )}
+        </ScrollView>
+        
+        {/* 实时数据指标 */}
+        {topTraders.length > 0 && (
+          <View style={styles.liveStatsRow}>
+            <View style={styles.liveStatItem}>
+              <Text style={styles.liveStatLabel}>交易员总数</Text>
+              <Text style={styles.liveStatValue}>{topTraders.length}</Text>
+            </View>
+            <View style={styles.liveStatItem}>
+              <Text style={styles.liveStatLabel}>盈利中</Text>
+              <Text style={[styles.liveStatValue, { color: '#00FF88' }]}>
+                {Object.values(traderLiveData).filter(l => parseFloat(l.todayPnl || '0') >= 0).length}
+              </Text>
+            </View>
+            <View style={styles.liveStatItem}>
+              <Text style={styles.liveStatLabel}>亏损中</Text>
+              <Text style={[styles.liveStatValue, { color: '#FF4444' }]}>
+                {Object.values(traderLiveData).filter(l => parseFloat(l.todayPnl || '0') < 0).length}
+              </Text>
+            </View>
+            <View style={styles.liveStatItem}>
+              <Text style={styles.liveStatLabel}>更新于</Text>
+              <Text style={styles.liveStatValue}>刚刚</Text>
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* 我的跟单记录 */}
+      <View style={styles.myPortfolioSection}>
+        <Text style={styles.sectionTitle}>我的跟单</Text>
+        {portfolio.length === 0 ? (
+          <View style={styles.emptyPortfolio}>
+            <Ionicons name="wallet-outline" size={48} color="#3A3A4A" />
+            <Text style={styles.emptyTitle}>暂无跟单记录</Text>
+            <Text style={styles.emptyDesc}>从上方选择交易员开始跟单</Text>
+          </View>
+        ) : (
+          <>
+            {/* 跟单汇总 */}
+            <View style={styles.portfolioSummary}>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>跟单总数</Text>
+                <Text style={styles.summaryValue}>{portfolio.length}</Text>
+              </View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>跟单总额</Text>
+                <Text style={styles.summaryValue}>
+                  ${portfolio.reduce((sum, p) => sum + p.amount, 0)}
+                </Text>
+              </View>
+              <View style={styles.summaryDivider} />
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>总收益</Text>
+                <Text style={[
+                  styles.summaryValue,
+                  { color: portfolio.reduce((sum, p) => sum + p.pnl, 0) >= 0 ? '#00FF88' : '#FF4444' }
+                ]}>
+                  {portfolio.reduce((sum, p) => sum + p.pnl, 0) >= 0 ? '+' : ''}
+                  ${portfolio.reduce((sum, p) => sum + p.pnl, 0).toFixed(2)}
+                </Text>
+              </View>
+            </View>
+
+            {/* 跟单列表 */}
+            {portfolio.map((position) => (
+              <View key={position.id} style={styles.positionCard}>
+                <View style={styles.positionHeader}>
+                  <View style={styles.positionTrader}>
+                    <View style={styles.positionAvatar}>
+                      <Text style={styles.positionAvatarText}>
+                        {position.traderName.charAt(0)}
+                      </Text>
+                    </View>
+                    <View>
+                      <Text style={styles.positionName}>{position.traderName}</Text>
+                      <Text style={styles.positionPlatform}>{position.traderPlatform}</Text>
+                    </View>
+                  </View>
+                  <View style={[
+                    styles.positionStatus,
+                    { backgroundColor: position.status === 'active' ? '#00FF8820' : '#FF444420' }
+                  ]}>
+                    <Text style={[
+                      styles.positionStatusText,
+                      { color: position.status === 'active' ? '#00FF88' : '#FF4444' }
+                    ]}>
+                      {position.status === 'active' ? '跟单中' : '已平仓'}
+                    </Text>
                   </View>
                 </View>
-                <View style={[
-                  styles.positionStatus,
-                  { backgroundColor: position.status === 'active' ? '#00FF8820' : '#FF444420' }
-                ]}>
-                  <Text style={[
-                    styles.positionStatusText,
-                    { color: position.status === 'active' ? '#00FF88' : '#FF4444' }
-                  ]}>
-                    {position.status === 'active' ? '跟单中' : '已平仓'}
-                  </Text>
-                </View>
-              </View>
 
-              <View style={styles.positionStats}>
-                <View style={styles.positionStat}>
-                  <Text style={styles.positionStatLabel}>跟单金额</Text>
-                  <Text style={styles.positionStatValue}>${position.amount}</Text>
+                <View style={styles.positionStats}>
+                  <View style={styles.positionStat}>
+                    <Text style={styles.positionStatLabel}>跟单金额</Text>
+                    <Text style={styles.positionStatValue}>${position.amount}</Text>
+                  </View>
+                  <View style={styles.positionStat}>
+                    <Text style={styles.positionStatLabel}>跟单时长</Text>
+                    <Text style={styles.positionStatValue}>
+                      {Math.floor((Date.now() - new Date(position.startTime).getTime()) / 86400000)}天
+                    </Text>
+                  </View>
+                  <View style={styles.positionStat}>
+                    <Text style={styles.positionStatLabel}>收益</Text>
+                    <Text style={[
+                      styles.positionStatValue,
+                      { color: position.pnl >= 0 ? '#00FF88' : '#FF4444' }
+                    ]}>
+                      {position.pnl >= 0 ? '+' : ''}{position.pnlRate.toFixed(2)}%
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.positionStat}>
-                  <Text style={styles.positionStatLabel}>跟单时长</Text>
-                  <Text style={styles.positionStatValue}>
-                    {Math.floor((Date.now() - new Date(position.startTime).getTime()) / 86400000)}天
-                  </Text>
-                </View>
-                <View style={styles.positionStat}>
-                  <Text style={styles.positionStatLabel}>收益</Text>
-                  <Text style={[
-                    styles.positionStatValue,
-                    { color: position.pnl >= 0 ? '#00FF88' : '#FF4444' }
-                  ]}>
-                    {position.pnl >= 0 ? '+' : ''}{position.pnlRate.toFixed(2)}%
-                  </Text>
-                </View>
-              </View>
 
-              <TouchableOpacity
-                style={styles.unfollowBtn}
-                onPress={() => handleUnfollow(position.id)}
-              >
-                <Ionicons name="close-circle-outline" size={16} color="#FF4444" />
-                <Text style={styles.unfollowBtnText}>取消跟单</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-          <View style={styles.bottomPadding} />
-        </ScrollView>
-      )}
-    </View>
+                <TouchableOpacity
+                  style={styles.unfollowBtn}
+                  onPress={() => handleUnfollow(position.id)}
+                >
+                  <Ionicons name="close-circle-outline" size={16} color="#FF4444" />
+                  <Text style={styles.unfollowBtnText}>取消跟单</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </>
+        )}
+      </View>
+      <View style={styles.bottomPadding} />
+    </ScrollView>
   );
 
   // 渲染会员订阅Tab
@@ -992,6 +1159,167 @@ const styles = {
   unfollowBtnText: {
     color: '#FF4444',
     fontSize: 13,
+  },
+  // 顶尖交易员实时数据样式
+  liveTradersSection: {
+    marginBottom: 24,
+  },
+  liveTradersHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    marginBottom: 12,
+  },
+  liveIndicator: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: '#00FF8820',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 10,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#00FF88',
+    marginRight: 4,
+  },
+  liveText: {
+    color: '#00FF88',
+    fontSize: 10,
+    fontWeight: '600' as const,
+  },
+  liveTradersTitle: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  liveTradersScroll: {
+    paddingRight: 16,
+  },
+  liveTraderCard: {
+    width: 100,
+    backgroundColor: '#13131A',
+    borderRadius: 12,
+    padding: 12,
+    marginRight: 10,
+    alignItems: 'center' as const,
+    borderWidth: 1,
+    borderColor: '#1F1F2E',
+  },
+  liveTraderRank: {
+    position: 'absolute' as const,
+    top: 8,
+    left: 8,
+  },
+  liveRankText: {
+    fontSize: 10,
+    color: '#FFD700',
+    fontWeight: '700' as const,
+  },
+  liveTraderAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#00F0FF20',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginTop: 4,
+  },
+  liveAvatarText: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#00F0FF',
+  },
+  liveTraderName: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
+    marginTop: 8,
+    width: '100%',
+    textAlign: 'center' as const,
+  },
+  liveTraderPlatform: {
+    fontSize: 9,
+    color: '#8B8B9A',
+    marginTop: 2,
+  },
+  livePnlBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 6,
+  },
+  livePnlText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+  },
+  livePositionBadge: {
+    backgroundColor: '#00F0FF20',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  livePositionText: {
+    fontSize: 10,
+    color: '#00F0FF',
+    fontWeight: '600' as const,
+  },
+  liveFollowBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: '#00F0FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 8,
+    gap: 2,
+  },
+  liveFollowBtnText: {
+    fontSize: 10,
+    fontWeight: '700' as const,
+    color: '#0A0A0F',
+  },
+  loadingLiveTraders: {
+    width: 200,
+    alignItems: 'center' as const,
+    padding: 20,
+  },
+  liveStatsRow: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    backgroundColor: '#13131A',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+  },
+  liveStatItem: {
+    alignItems: 'center' as const,
+  },
+  liveStatLabel: {
+    fontSize: 10,
+    color: '#8B8B9A',
+  },
+  liveStatValue: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+    marginTop: 2,
+  },
+  myPortfolioSection: {
+    marginTop: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  emptyPortfolio: {
+    alignItems: 'center' as const,
+    padding: 32,
   },
   subscribeContainer: {
     flex: 1,

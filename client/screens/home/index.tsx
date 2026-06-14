@@ -297,10 +297,10 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ========== 热门代币交易 ========== */}
+        {/* ========== 热门推荐 ========== */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>热门代币交易</Text>
+            <Text style={styles.sectionTitle}>热门推荐</Text>
             <Text style={styles.sectionSubtitle}>即时买卖</Text>
           </View>
           
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 
-  // 热门代币交易
+  // 热门推荐
   hotTokensGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

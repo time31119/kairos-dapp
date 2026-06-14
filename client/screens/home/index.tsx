@@ -699,11 +699,11 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ========== 技术分析热门推荐板块 ========== */}
+        {/* ========== 热门推荐板块 ========== */}
         <View style={styles.featuredSection}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrap}>
-              <Text style={styles.sectionLabel}>技术分析热门推荐</Text>
+              <Text style={styles.sectionLabel}>热门推荐</Text>
               <View style={styles.liveIndicator}>
                 <View style={[styles.liveDot, featuredFlash && styles.liveDotFlash]} />
                 <Text style={styles.liveText}>实时</Text>

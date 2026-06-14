@@ -63,7 +63,7 @@ export default function MineScreen() {
     vipLevel: 0,
   });
   const [showAddress, setShowAddress] = useState(false);
-  const [gasAlertEnabled, setGasAlertEnabled] = useState(false);
+  const [priceAlertEnabled, setPriceAlertEnabled] = useState(false);
   const [kycStatus, setKycStatus] = useState<'none' | 'pending' | 'verified'>('none');
 
   useEffect(() => {
@@ -470,9 +470,9 @@ export default function MineScreen() {
           </View>
         </View>
 
-        {/* Web3 特有功能 - 统一暗黑风格 */}
+        {/* 常用功能 */}
         <View className="px-5 mb-5">
-          <Text className="text-xs mb-2 px-1 uppercase tracking-wider" style={{ color: '#BF00FF' }}>Web3 功能</Text>
+          <Text className="text-xs mb-2 px-1 uppercase tracking-wider" style={{ color: '#BF00FF' }}>常用功能</Text>
           <View 
             className="rounded-2xl overflow-hidden"
             style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#1F1F2E' }}
@@ -507,43 +507,48 @@ export default function MineScreen() {
               </View>
             </TouchableOpacity>
             
-            {/* Web3 帮助 */}
+            {/* 消息通知 */}
             <TouchableOpacity
               className="flex-row items-center justify-between px-4 py-4"
               style={{ borderBottomWidth: 1, borderBottomColor: '#1F1F2E' }}
-              onPress={() => router.push('/support')}
+              onPress={() => router.push('/notifications')}
             >
               <View className="flex-row items-center gap-3">
-                <Ionicons name="help-buoy" size={22} color="#8B5CF6" />
-                <Text className="text-sm" style={{ color: '#FFFFFF' }}>Web3 帮助</Text>
+                <Ionicons name="mail-outline" size={22} color="#8B5CF6" />
+                <Text className="text-sm" style={{ color: '#FFFFFF' }}>消息通知</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#6B7280" />
+              <View className="flex-row items-center gap-2">
+                <View className="px-2 py-0.5 rounded" style={{ backgroundColor: '#1A1A22' }}>
+                  <Text className="text-xs" style={{ color: '#6B7280' }}>3条未读</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#6B7280" />
+              </View>
             </TouchableOpacity>
             
-            {/* Gas 提醒 - 带开关 */}
+            {/* 价格提醒 - 带开关 */}
             <View
               className="flex-row items-center justify-between px-4 py-4"
             >
               <View className="flex-row items-center gap-3">
-                <Ionicons name="flame-outline" size={22} color={gasAlertEnabled ? '#00FF88' : '#F97316'} />
-                <Text className="text-sm" style={{ color: '#FFFFFF' }}>Gas 提醒</Text>
+                <Ionicons name="pricetag-outline" size={22} color={priceAlertEnabled ? '#00FF88' : '#F97316'} />
+                <Text className="text-sm" style={{ color: '#FFFFFF' }}>价格提醒</Text>
               </View>
               <TouchableOpacity
                 className="flex-row items-center gap-2"
-                onPress={() => setGasAlertEnabled(!gasAlertEnabled)}
+                onPress={() => setPriceAlertEnabled(!priceAlertEnabled)}
               >
                 <View 
                   className="px-2 py-0.5 rounded" 
-                  style={{ backgroundColor: gasAlertEnabled ? '#1A1A22' : '#1A1A22' }}
+                  style={{ backgroundColor: '#1A1A22' }}
                 >
-                  <Text className="text-xs" style={{ color: gasAlertEnabled ? '#00FF88' : '#6B7280' }}>
-                    {gasAlertEnabled ? '已开启' : '未开启'}
+                  <Text className="text-xs" style={{ color: priceAlertEnabled ? '#00FF88' : '#6B7280' }}>
+                    {priceAlertEnabled ? '已开启' : '未开启'}
                   </Text>
                 </View>
                 <Ionicons 
-                  name={gasAlertEnabled ? "toggle-sharp" : "toggle-outline"} 
+                  name={priceAlertEnabled ? "toggle-sharp" : "toggle-outline"} 
                   size={24} 
-                  color={gasAlertEnabled ? '#00FF88' : '#6B7280'} 
+                  color={priceAlertEnabled ? '#00FF88' : '#6B7280'} 
                 />
               </TouchableOpacity>
             </View>

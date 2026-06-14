@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -6,10 +6,13 @@ import {
   TouchableOpacity, 
   StyleSheet,
   ActivityIndicator,
-  Alert 
+  Alert,
+  ScrollView,
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Clipboard from 'expo-clipboard';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
@@ -115,6 +118,30 @@ export default function PaymentModal({
     yearly: '年付'
   }[billingCycle];
 
+  // 订单有效期（30分钟）
+  const [orderExpireTime, setOrderExpireTime] = useState<number>(0);
+  const [timeLeft, setTimeLeft] = useState<string>('');
+
+  useEffect(() => {
+    if (orderCreated && orderExpireTime > 0) {
+      const interval = setInterval(() => {
+        const remaining = Math.max(0, orderExpireTime - Date.now());
+        const minutes = Math.floor(remaining / 60000);
+        const seconds = Math.floor((remaining % 60000) / 1000);
+        setTimeLeft(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+        if (remaining <= 0) {
+          clearInterval(interval);
+        }
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [orderCreated, orderExpireTime]);
+
+  const copyToClipboard = async (text: string, label: string) => {
+    await Clipboard.setStringAsync(text);
+    Alert.alert('已复制', `${label}已复制到剪贴板`);
+  };
+
   const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
   
   const handleCreateOrder = async () => {
@@ -139,6 +166,8 @@ export default function PaymentModal({
           paymentAddress: result.data.paymentAddress,
           price: result.data.price
         });
+        // 设置订单30分钟有效期
+        setOrderExpireTime(Date.now() + 30 * 60 * 1000);
         setOrderCreated(true);
       } else {
         Alert.alert('错误', result.message || '创建订单失败');
@@ -328,10 +357,22 @@ export default function PaymentModal({
                   </View>
                 </View>
 
+                {/* Order Expire Timer */}
+                {timeLeft && (
+                  <View style={styles.timerBox}>
+                    <Ionicons name="time-outline" size={16} color="#F5A623" />
+                    <Text style={styles.timerText}>
+                      订单剩余: <Text style={{ color: '#F5A623', fontWeight: '600' }}>{timeLeft}</Text>
+                    </Text>
+                  </View>
+                )}
+
                 {/* Order Details */}
                 <View style={styles.orderRow}>
                   <Text style={styles.orderLabel}>订单号</Text>
-                  <Text style={styles.orderValue}>{orderInfo?.orderId}</Text>
+                  <TouchableOpacity onPress={() => copyToClipboard(orderInfo?.orderId || '', '订单号')}>
+                    <Text style={styles.orderValue}>{orderInfo?.orderId}</Text>
+                  </TouchableOpacity>
                 </View>
                 <View style={styles.orderRow}>
                   <Text style={styles.orderLabel}>应付金额</Text>
@@ -340,55 +381,59 @@ export default function PaymentModal({
                   </Text>
                 </View>
                 <View style={styles.orderRow}>
-                  <Text style={styles.orderLabel}>收款地址</Text>
+                  <Text style={styles.orderLabel}>收款地址 (TRC20)</Text>
                 </View>
                 <View style={styles.addressBox}>
-                  <Text style={styles.addressText} selectable>
+                  <Text style={styles.addressText} selectable numberOfLines={2}>
                     {orderInfo?.paymentAddress}
                   </Text>
                   <TouchableOpacity 
                     style={styles.copyButton}
-                    onPress={() => {
-                      // 复制地址功能
-                      Alert.alert('已复制', '收款地址已复制到剪贴板');
-                    }}
+                    onPress={() => copyToClipboard(orderInfo?.paymentAddress || '', '收款地址')}
                   >
-                    <Ionicons name="copy-outline" size={16} color="#00F0FF" />
+                    <Ionicons name="copy-outline" size={18} color="#00F0FF" />
                   </TouchableOpacity>
+                </View>
+
+                {/* Network Info */}
+                <View style={styles.networkInfo}>
+                  <View style={styles.networkItem}>
+                    <Ionicons name="link" size={14} color="#26A17B" />
+                    <Text style={styles.networkText}>网络: TRON (TRC20)</Text>
+                  </View>
+                  <View style={styles.networkItem}>
+                    <Ionicons name="checkmark-circle" size={14} color="#26A17B" />
+                    <Text style={styles.networkText}>最低确认: 1 个区块</Text>
+                  </View>
+                  <View style={styles.networkItem}>
+                    <Ionicons name="time" size={14} color="#26A17B" />
+                    <Text style={styles.networkText}>预计到账: 1-3 分钟</Text>
+                  </View>
                 </View>
                 
                 {/* Transfer Instructions */}
                 <View style={styles.instructionBox}>
                   <View style={styles.instructionHeader}>
-                    <Ionicons name="information-circle" size={18} color="#00F0FF" />
-                    <Text style={styles.instructionTitle}>转账说明</Text>
+                    <Ionicons name="shield-checkmark" size={18} color="#26A17B" />
+                    <Text style={[styles.instructionTitle, { color: '#26A17B' }]}>USDT 转账指南</Text>
                   </View>
-                  {selectedMethod === 'USDT_TRC20' && (
-                    <View style={styles.instructionList}>
-                      <Text style={styles.instructionItem}>1. 请使用 TRON (TRC20) 网络转账</Text>
-                      <Text style={styles.instructionItem}>2. 转账金额必须 ≥ ${orderInfo?.price} USDT</Text>
-                      <Text style={styles.instructionItem}>3. 建议多转 1-2 USDT 防止矿工费扣除</Text>
-                      <Text style={styles.instructionItem}>4. 转账完成后等待 1-3 分钟区块确认</Text>
-                      <Text style={styles.instructionItem}>5. 确认后会员权益自动到账</Text>
-                    </View>
-                  )}
-                  {selectedMethod === 'ETH' && (
-                    <View style={styles.instructionList}>
-                      <Text style={styles.instructionItem}>1. 请使用 Ethereum (ERC20) 网络转账</Text>
-                      <Text style={styles.instructionItem}>2. 转账金额必须 ≥ ${orderInfo?.price} USDT 等值 ETH</Text>
-                      <Text style={styles.instructionItem}>3. 建议多转 0.005 ETH 防止矿工费扣除</Text>
-                      <Text style={styles.instructionItem}>4. ERC20 网络确认较慢，请耐心等待</Text>
-                      <Text style={styles.instructionItem}>5. 确认后会员权益自动到账</Text>
-                    </View>
-                  )}
-                  {selectedMethod === 'CREDIT_CARD' && (
-                    <View style={styles.instructionList}>
-                      <Text style={styles.instructionItem}>1. 信用卡支付由第三方支付处理</Text>
-                      <Text style={styles.instructionItem}>2. 支付成功后即时到账</Text>
-                      <Text style={styles.instructionItem}>3. 支持 Visa / Mastercard / American Express</Text>
-                      <Text style={styles.instructionItem}>4. 支付限额: 单笔 $50-$10,000</Text>
-                    </View>
-                  )}
+                  <View style={styles.instructionList}>
+                    <Text style={styles.instructionItem}>1. 打开钱包 (TrxLink / TokenPocket / 交易所等)</Text>
+                    <Text style={styles.instructionItem}>2. 选择 USDT → 转账 → 粘贴收款地址</Text>
+                    <Text style={styles.instructionItem}>3. 网络必须选择 <Text style={{ color: '#26A17B', fontWeight: '600' }}>TRON (TRC20)</Text></Text>
+                    <Text style={styles.instructionItem}>4. 转账金额: <Text style={{ color: '#26A17B', fontWeight: '600' }}>≥ ${orderInfo?.price} USDT</Text></Text>
+                    <Text style={styles.instructionItem}>5. 建议多转 1-2 USDT 防止矿工费扣除</Text>
+                    <Text style={styles.instructionItem}>6. 转账完成后等待 1-3 分钟确认</Text>
+                    <Text style={styles.instructionItem}>7. 确认后会员权益自动到账</Text>
+                  </View>
+                </View>
+
+                {/* Warning */}
+                <View style={styles.warningBox}>
+                  <Ionicons name="warning" size={16} color="#F5A623" />
+                  <Text style={styles.warningText}>
+                    请勿向其他网络地址转账，错误转账无法找回！
+                  </Text>
                 </View>
               </View>
 
@@ -660,7 +705,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginTop: 8,
     borderLeftWidth: 3,
-    borderLeftColor: '#00F0FF',
+    borderLeftColor: '#26A17B',
   },
   instructionHeader: {
     flexDirection: 'row',
@@ -681,6 +726,60 @@ const styles = StyleSheet.create({
     color: '#999',
     marginBottom: 8,
     lineHeight: 18,
+  },
+  // Timer Box
+  timerBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(245, 166, 35, 0.1)',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 166, 35, 0.3)',
+  },
+  timerText: {
+    fontSize: 13,
+    color: '#999',
+    marginLeft: 8,
+  },
+  timerValue: {
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  // Network Info
+  networkInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(38, 161, 123, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+  },
+  networkItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  networkText: {
+    fontSize: 11,
+    color: '#26A17B',
+    marginLeft: 4,
+  },
+  // Warning Box
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245, 166, 35, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+  },
+  warningText: {
+    fontSize: 12,
+    color: '#F5A623',
+    marginLeft: 8,
+    flex: 1,
   },
   footer: {
     flexDirection: 'row',

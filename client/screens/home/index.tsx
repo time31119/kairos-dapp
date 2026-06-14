@@ -297,6 +297,58 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* ========== 热门代币交易 ========== */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>热门代币交易</Text>
+            <Text style={styles.sectionSubtitle}>即时买卖</Text>
+          </View>
+          
+          <View style={styles.hotTokensGrid}>
+            {(globalGainers.slice(0, 6)).map((token: any) => (
+              <View key={token.symbol} style={styles.hotTokenCard}>
+                <View style={styles.hotTokenHeader}>
+                  <View style={styles.hotTokenIcon}>
+                    <Text style={styles.hotTokenIconText}>
+                      {token.symbol?.slice(0, 2) || '??'}
+                    </Text>
+                  </View>
+                  <View style={styles.hotTokenInfo}>
+                    <Text style={styles.hotTokenSymbol}>{token.symbol}</Text>
+                    <Text style={styles.hotTokenName} numberOfLines={1}>
+                      {token.name || token.symbol}
+                    </Text>
+                  </View>
+                </View>
+                
+                <View style={styles.hotTokenPrice}>
+                  <Text style={styles.hotTokenPriceText}>
+                    ${token.price > 1 ? token.price.toFixed(2) : token.price.toFixed(6)}
+                  </Text>
+                  <Text style={[styles.hotTokenChange, { color: token.change24h >= 0 ? '#00FF88' : '#FF4444' }]}>
+                    {token.change24h >= 0 ? '+' : ''}{token.change24h?.toFixed(2)}%
+                  </Text>
+                </View>
+                
+                <View style={styles.hotTokenActions}>
+                  <TouchableOpacity 
+                    style={[styles.hotTokenBtn, styles.buyBtn]}
+                    onPress={() => handleTradeToken(token, 'buy')}
+                  >
+                    <Text style={styles.buyBtnText}>买入</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.hotTokenBtn, styles.sellBtn]}
+                    onPress={() => handleTradeToken(token, 'sell')}
+                  >
+                    <Text style={styles.sellBtnText}>卖出</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
         {/* ========== 热门赛道精选 ========== */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -438,6 +490,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFF',
   },
+  sectionSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
   liveBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -474,6 +530,91 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
+
+  // 热门代币交易
+  hotTokensGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  hotTokenCard: {
+    width: '47%',
+    backgroundColor: '#12121A',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#1F1F2E',
+  },
+  hotTokenHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  hotTokenIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#1F1F2E',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hotTokenIconText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#00F0FF',
+  },
+  hotTokenInfo: {
+    flex: 1,
+  },
+  hotTokenSymbol: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  hotTokenName: {
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  hotTokenPrice: {
+    marginBottom: 10,
+  },
+  hotTokenPriceText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  hotTokenChange: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  hotTokenActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  hotTokenBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  buyBtn: {
+    backgroundColor: '#00FF88',
+  },
+  buyBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0A0A0F',
+  },
+  sellBtn: {
+    backgroundColor: '#FF4444',
+  },
+  sellBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+
   boardCard: {
     flex: 1,
     backgroundColor: '#12121A',

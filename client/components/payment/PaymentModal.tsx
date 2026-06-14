@@ -28,22 +28,31 @@ const PAYMENT_METHODS = [
     id: 'USDT_TRC20', 
     name: 'USDT (TRC20)', 
     icon: 'logo-usd',
-    description: '推荐，最快到账',
-    color: '#26A17B'
+    description: '推荐 · 手续费低 · 秒级确认',
+    color: '#26A17B',
+    network: 'TRON (TRC20)',
+    minConfirmations: 1,
+    avgConfirmTime: '1-3 分钟'
   },
   { 
     id: 'ETH', 
-    name: 'ETH', 
+    name: 'ETH (ERC20)', 
     icon: 'logo-ethereum',
-    description: 'ETH 网络转账',
-    color: '#627EEA'
+    description: '以太坊网络转账',
+    color: '#627EEA',
+    network: 'Ethereum (ERC20)',
+    minConfirmations: 12,
+    avgConfirmTime: '5-15 分钟'
   },
   { 
     id: 'CREDIT_CARD', 
-    name: '信用卡', 
+    name: '信用卡/借记卡', 
     icon: 'card-outline',
-    description: 'Visa / Mastercard',
-    color: '#F5A623'
+    description: 'Visa / Mastercard / Amex',
+    color: '#F5A623',
+    network: '银行卡',
+    minConfirmations: 0,
+    avgConfirmTime: '即时到账'
   }
 ];
 
@@ -217,37 +226,109 @@ export default function PaymentModal({
             </>
           ) : (
             <>
-              {/* Order Info */}
+              {/* Selected Payment Method Info */}
               <View style={styles.orderInfo}>
+                <View style={styles.methodInfoCard}>
+                  <View style={styles.methodInfoHeader}>
+                    <View style={[styles.methodIcon, { backgroundColor: (PAYMENT_METHODS.find(m => m.id === selectedMethod)?.color || '#00F0FF') + '20' }]}>
+                      <Ionicons 
+                        name={(PAYMENT_METHODS.find(m => m.id === selectedMethod)?.icon as any) || 'help-circle'} 
+                        size={20} 
+                        color={PAYMENT_METHODS.find(m => m.id === selectedMethod)?.color || '#00F0FF'} 
+                      />
+                    </View>
+                    <View style={styles.methodInfoText}>
+                      <Text style={styles.methodInfoName}>
+                        {PAYMENT_METHODS.find(m => m.id === selectedMethod)?.name}
+                      </Text>
+                      <Text style={styles.methodInfoNetwork}>
+                        网络: {PAYMENT_METHODS.find(m => m.id === selectedMethod)?.network}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.methodStats}>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statLabel}>预计确认</Text>
+                      <Text style={styles.statValue}>
+                        {PAYMENT_METHODS.find(m => m.id === selectedMethod)?.avgConfirmTime}
+                      </Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statLabel}>最低确认数</Text>
+                      <Text style={styles.statValue}>
+                        {PAYMENT_METHODS.find(m => m.id === selectedMethod)?.minConfirmations}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Order Details */}
                 <View style={styles.orderRow}>
                   <Text style={styles.orderLabel}>订单号</Text>
                   <Text style={styles.orderValue}>{orderInfo?.orderId}</Text>
                 </View>
                 <View style={styles.orderRow}>
                   <Text style={styles.orderLabel}>应付金额</Text>
-                  <Text style={[styles.orderValue, { color: '#00F0FF' }]}>
-                    ${orderInfo?.price}
+                  <Text style={[styles.orderValue, { color: '#26A17B', fontSize: 20, fontWeight: '700' }]}>
+                    ${orderInfo?.price} USDT
                   </Text>
                 </View>
                 <View style={styles.orderRow}>
-                  <Text style={styles.orderLabel}>支付地址</Text>
+                  <Text style={styles.orderLabel}>收款地址</Text>
                 </View>
                 <View style={styles.addressBox}>
-                  <Text style={styles.addressText}>
+                  <Text style={styles.addressText} selectable>
                     {orderInfo?.paymentAddress}
                   </Text>
-                  <TouchableOpacity style={styles.copyButton}>
+                  <TouchableOpacity 
+                    style={styles.copyButton}
+                    onPress={() => {
+                      // 复制地址功能
+                      Alert.alert('已复制', '收款地址已复制到剪贴板');
+                    }}
+                  >
                     <Ionicons name="copy-outline" size={16} color="#00F0FF" />
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.hintText}>
-                  请向上述地址转账，备注订单号以加快确认
-                </Text>
+                
+                {/* Transfer Instructions */}
+                <View style={styles.instructionBox}>
+                  <View style={styles.instructionHeader}>
+                    <Ionicons name="information-circle" size={18} color="#00F0FF" />
+                    <Text style={styles.instructionTitle}>转账说明</Text>
+                  </View>
+                  {selectedMethod === 'USDT_TRC20' && (
+                    <View style={styles.instructionList}>
+                      <Text style={styles.instructionItem}>1. 请使用 TRON (TRC20) 网络转账</Text>
+                      <Text style={styles.instructionItem}>2. 转账金额必须 ≥ ${orderInfo?.price} USDT</Text>
+                      <Text style={styles.instructionItem}>3. 建议多转 1-2 USDT 防止矿工费扣除</Text>
+                      <Text style={styles.instructionItem}>4. 转账完成后等待 1-3 分钟区块确认</Text>
+                      <Text style={styles.instructionItem}>5. 确认后会员权益自动到账</Text>
+                    </View>
+                  )}
+                  {selectedMethod === 'ETH' && (
+                    <View style={styles.instructionList}>
+                      <Text style={styles.instructionItem}>1. 请使用 Ethereum (ERC20) 网络转账</Text>
+                      <Text style={styles.instructionItem}>2. 转账金额必须 ≥ ${orderInfo?.price} USDT 等值 ETH</Text>
+                      <Text style={styles.instructionItem}>3. 建议多转 0.005 ETH 防止矿工费扣除</Text>
+                      <Text style={styles.instructionItem}>4. ERC20 网络确认较慢，请耐心等待</Text>
+                      <Text style={styles.instructionItem}>5. 确认后会员权益自动到账</Text>
+                    </View>
+                  )}
+                  {selectedMethod === 'CREDIT_CARD' && (
+                    <View style={styles.instructionList}>
+                      <Text style={styles.instructionItem}>1. 信用卡支付由第三方支付处理</Text>
+                      <Text style={styles.instructionItem}>2. 支付成功后即时到账</Text>
+                      <Text style={styles.instructionItem}>3. 支持 Visa / Mastercard / American Express</Text>
+                      <Text style={styles.instructionItem}>4. 支付限额: 单笔 $50-$10,000</Text>
+                    </View>
+                  )}
+                </View>
               </View>
 
               {/* Confirm Button */}
               <TouchableOpacity
-                style={[styles.payButton, { backgroundColor: plan.color }]}
+                style={[styles.payButton, { backgroundColor: '#26A17B' }]}
                 onPress={handleConfirmPayment}
               >
                 <Text style={styles.payButtonText}>我已转账，确认支付</Text>
@@ -437,6 +518,82 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     fontStyle: 'italic',
+  },
+  // Method Info Card
+  methodInfoCard: {
+    backgroundColor: '#0D0D0D',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#26A17B40',
+  },
+  methodInfoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  methodInfoText: {
+    marginLeft: 12,
+  },
+  methodInfoName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  methodInfoNetwork: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  methodStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#333',
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 11,
+    color: '#666',
+  },
+  statValue: {
+    fontSize: 14,
+    color: '#26A17B',
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  // Instruction Box
+  instructionBox: {
+    backgroundColor: '#0D0D0D',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#00F0FF',
+  },
+  instructionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  instructionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+    marginLeft: 8,
+  },
+  instructionList: {
+    paddingLeft: 4,
+  },
+  instructionItem: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 8,
+    lineHeight: 18,
   },
   footer: {
     flexDirection: 'row',

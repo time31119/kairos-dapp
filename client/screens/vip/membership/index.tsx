@@ -31,7 +31,7 @@ export default function Membership() {
   const { wallet } = useWeb3();
   const router = useSafeRouter();
   const [selectedPlan, setSelectedPlan] = useState<string>('pro');
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('year');
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('yearly');
   const [paymentMethod, setPaymentMethod] = useState<string>('usdt');
   const [showPayment, setShowPayment] = useState(false);
 
@@ -40,8 +40,8 @@ export default function Membership() {
   
   // 计算节省比例
   const getDiscount = () => {
-    if (billingCycle === 'year') return '省40%';
-    if (billingCycle === 'quarter') return '省20%';
+    if (billingCycle === 'yearly') return '省40%';
+    if (billingCycle === 'quarterly') return '省20%';
     return null;
   };
 
@@ -83,7 +83,7 @@ export default function Membership() {
         {/* 订阅周期切换 */}
         <View style={styles.billingContainer}>
           <View style={styles.billingTabs}>
-            {(['month', 'quarter', 'year'] as BillingCycle[]).map(cycle => (
+            {(['monthly', 'quarterly', 'yearly'] as BillingCycle[]).map(cycle => (
               <TouchableOpacity
                 key={cycle}
                 style={[
@@ -96,14 +96,14 @@ export default function Membership() {
                   styles.billingTabText,
                   billingCycle === cycle && styles.billingTabTextActive
                 ]}>
-                  {cycle === 'month' ? '月付' : cycle === 'quarter' ? '季付' : '年付'}
+                  {cycle === 'monthly' ? '月付' : cycle === 'quarterly' ? '季付' : '年付'}
                 </Text>
-                {cycle === 'year' && (
+                {cycle === 'yearly' && (
                   <View style={styles.discountBadge}>
                     <Text style={styles.discountText}>省40%</Text>
                   </View>
                 )}
-                {cycle === 'quarter' && (
+                {cycle === 'quarterly' && (
                   <View style={styles.discountBadge}>
                     <Text style={styles.discountText}>省20%</Text>
                   </View>
@@ -148,7 +148,7 @@ export default function Membership() {
               <View style={styles.planPrice}>
                 <Text style={styles.priceSymbol}>$</Text>
                 <Text style={styles.priceValue}>{plan.price[billingCycle]}</Text>
-                <Text style={styles.priceUnit}>/{billingCycle === 'month' ? '月' : billingCycle === 'quarter' ? '季' : '年'}</Text>
+                <Text style={styles.priceUnit}>/{billingCycle === 'monthly' ? '月' : billingCycle === 'quarterly' ? '季' : '年'}</Text>
               </View>
 
               <View style={styles.planFeatures}>
@@ -334,7 +334,7 @@ export default function Membership() {
       <PaymentModal
         visible={showPayment}
         plan={currentPlan}
-        billingCycle={billingCycle === 'month' ? 'monthly' : billingCycle === 'quarter' ? 'quarterly' : 'yearly'}
+        billingCycle={billingCycle}
         onClose={() => setShowPayment(false)}
         onSuccess={confirmPayment}
       />
@@ -383,11 +383,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
   },
   headerDesc: {
     fontSize: 14,

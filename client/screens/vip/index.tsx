@@ -152,7 +152,7 @@ export default function VipScreen() {
           </View>
           <View style={styles.planPrice}>
             <Text style={styles.priceCurrency}>$</Text>
-            <Text style={[styles.priceAmount, { color: plan.color }]}>{plan.price.month}</Text>
+            <Text style={[styles.priceAmount, { color: plan.color }]}>{plan.price.monthly}</Text>
             <Text style={styles.pricePeriod}>/月</Text>
           </View>
           <View style={styles.planFeatures}>

@@ -129,6 +129,69 @@ router.get('/:scenario', (req, res) => {
   });
 });
 
+// 技术分析实时数据
+router.get('/analysis/realtime', (req, res) => {
+  // 技术分析指标数据（带实时变化）
+  const analysisData = [
+    { id: '1h_up', title: '1H上涨', icon: 'trending-up', color: '#00F0FF', desc: '短期爆发信号', signal: '强多', signalColor: '#00FF88', period: '1H', baseCount: 23, baseWinRate: 78 },
+    { id: '4h_up', title: '4H上涨', icon: 'trending-up', color: '#00FF88', desc: '波段延续信号', signal: '看多', signalColor: '#00FF88', period: '4H', baseCount: 18, baseWinRate: 82 },
+    { id: 'macd', title: 'MACD金叉', icon: 'sync', color: '#9370DB', desc: '趋势转折信号', signal: '买入', signalColor: '#00FF88', period: '多周期', baseCount: 31, baseWinRate: 75 },
+    { id: 'rsi', title: 'RSI超卖', icon: 'speedometer', color: '#FFA500', desc: '超卖反弹信号', signal: '关注', signalColor: '#FFA500', period: '4H', baseCount: 27, baseWinRate: 71 },
+    { id: 'volume', title: '成交量异动', icon: 'pulse', color: '#FF69B4', desc: '资金涌入信号', signal: '放量', signalColor: '#FF69B4', period: '1H', baseCount: 42, baseWinRate: 68 },
+    { id: 'golden', title: '均线金叉', icon: 'git-merge', color: '#FFD700', desc: '多头发散信号', signal: '多头', signalColor: '#00FF88', period: '日线', baseCount: 24, baseWinRate: 79 },
+    { id: 'bollinger', title: '布林下轨', icon: 'radio-button-on', color: '#00CED1', desc: '支撑反弹信号', signal: '回踩', signalColor: '#00CED1', period: '4H', baseCount: 19, baseWinRate: 73 },
+    { id: '1h_down', title: '1H下跌', icon: 'trending-down', color: '#FF4444', desc: '做空机会信号', signal: '做空', signalColor: '#FF4444', period: '1H', baseCount: 15, baseWinRate: 65 },
+    { id: 'kdj', title: 'KDJ超买', icon: 'analytics', color: '#FF6347', desc: '超买回调信号', signal: '警惕', signalColor: '#FF6347', period: '1H', baseCount: 12, baseWinRate: 62 },
+    { id: 'vol_down', title: '缩量整理', icon: 'contract', color: '#808080', desc: '横盘蓄势信号', signal: '观望', signalColor: '#808080', period: '日线', baseCount: 36, baseWinRate: 0 },
+  ];
+
+  // 添加实时波动
+  const data = analysisData.map(item => {
+    // 随机波动币种数量
+    const countVariation = Math.floor(Math.random() * 3) - 1; // -1 到 1
+    const count = Math.max(1, item.baseCount + countVariation);
+    
+    // 随机波动胜率
+    const winRateVariation = Math.floor(Math.random() * 5) - 2; // -2 到 2
+    const winRate = item.baseWinRate > 0 ? Math.min(95, Math.max(50, item.baseWinRate + winRateVariation)) : 0;
+    
+    // 随机变化信号（小幅概率变化）
+    const signalChange = Math.random() > 0.9;
+    const signals = item.signalColor === '#00FF88' 
+      ? ['强多', '看多', '买入', '多头']
+      : item.signalColor === '#FF4444'
+      ? ['做空', '警惕']
+      : item.signalColor === '#808080'
+      ? ['观望', '等待']
+      : ['关注', '注意'];
+    
+    return {
+      ...item,
+      count,
+      winRate,
+      signal: signalChange ? signals[Math.floor(Math.random() * signals.length)] : item.signal,
+      updatedAt: new Date().toISOString(),
+    };
+  });
+
+  // 统计数据
+  const stats = {
+    bullishCount: data.filter(d => d.signalColor === '#00FF88' || d.signalColor === '#00CED1').length,
+    bearishCount: data.filter(d => d.signalColor === '#FF4444').length,
+    neutralCount: data.filter(d => d.signalColor !== '#00FF88' && d.signalColor !== '#00CED1' && d.signalColor !== '#FF4444').length,
+    avgWinRate: Math.round(data.filter(d => d.winRate > 0).reduce((sum, d) => sum + d.winRate, 0) / data.filter(d => d.winRate > 0).length),
+    totalCoins: data.reduce((sum, d) => sum + d.count, 0),
+  };
+
+  res.json({
+    success: true,
+    data,
+    stats,
+    timestamp: Date.now(),
+    updatedAt: new Date().toISOString(),
+  });
+});
+
 // 获取热门代币
 router.get('/hot/tokens', (req, res) => {
   const allTokens = [

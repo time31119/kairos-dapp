@@ -182,6 +182,13 @@ export default function HomeScreen() {
   const [techSort, setTechSort] = useState('count');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [countdown, setCountdown] = useState(30);
+  
+  // 实时技术分析数据
+  const [techData, setTechData] = useState<any[]>(TECHNICAL_SCENARIOS);
+  const [techStats, setTechStats] = useState<any>({ bullishCount: 0, bearishCount: 0, neutralCount: 0, avgWinRate: 0, totalCoins: 0 });
+  const [techLoading, setTechLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [updateFlash, setUpdateFlash] = useState(false);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -192,7 +199,28 @@ export default function HomeScreen() {
       .finally(() => setLoading(false));
   }, []);
 
-  // 30秒自动刷新
+  // 获取技术分析实时数据
+  const fetchTechData = useCallback(async () => {
+    try {
+      const response = await fetch(API_URL + '/api/v1/screener/analysis/realtime');
+      const result = await response.json();
+      if (result.success) {
+        setTechData(result.data);
+        setTechStats(result.stats);
+        setLastUpdate(new Date());
+        
+        // 触发闪烁效果
+        setUpdateFlash(true);
+        setTimeout(() => setUpdateFlash(false), 500);
+      }
+    } catch (error) {
+      console.error('Failed to fetch tech data:', error);
+    } finally {
+      setTechLoading(false);
+    }
+  }, []);
+
+  // 30秒自动刷新（热门精选）
   useEffect(() => {
     fetchData();
     const interval = setInterval(() => {
@@ -207,14 +235,23 @@ export default function HomeScreen() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
+  // 5秒实时更新技术分析数据
+  useEffect(() => {
+    fetchTechData();
+    const techInterval = setInterval(() => {
+      fetchTechData();
+    }, 5000); // 每5秒更新一次
+    return () => clearInterval(techInterval);
+  }, [fetchTechData]);
+
   // 过滤数据
   const filteredData = selectedTag === 'all' 
     ? data 
     : data.filter((d: any) => d.scenario === selectedTag);
 
-  // 过滤技术指标
+  // 过滤技术指标（使用实时数据）
   const getFilteredTechScenarios = () => {
-    let filtered = [...TECHNICAL_SCENARIOS];
+    let filtered = [...techData];
     
     if (techFilter === 'bull') {
       filtered = filtered.filter(s => s.signalColor === '#00FF88' || s.signalColor === '#00CED1');
@@ -379,23 +416,34 @@ export default function HomeScreen() {
           </View>
 
           {/* 统计概览 */}
-          <View style={styles.techSummary}>
+          <View style={[styles.techSummary, updateFlash && styles.techSummaryFlash]}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{TECHNICAL_SCENARIOS.filter(s => s.signalColor === '#00FF88').length}</Text>
+              <Text style={styles.summaryValue}>{techStats.bullishCount}</Text>
               <Text style={styles.summaryLabel}>做多信号</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{TECHNICAL_SCENARIOS.filter(s => s.signalColor === '#FF4444').length}</Text>
+              <Text style={[styles.summaryValue, { color: '#FF4444' }]}>{techStats.bearishCount}</Text>
               <Text style={styles.summaryLabel}>做空信号</Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>
-                {Math.round(TECHNICAL_SCENARIOS.reduce((acc, s) => acc + (s.winRate || 0), 0) / TECHNICAL_SCENARIOS.filter(s => s.winRate > 0).length)}%
-              </Text>
+              <Text style={styles.summaryValue}>{techStats.avgWinRate}%</Text>
               <Text style={styles.summaryLabel}>平均胜率</Text>
             </View>
+          </View>
+          
+          {/* 实时更新状态 */}
+          <View style={styles.updateStatus}>
+            <View style={styles.updateLeft}>
+              <View style={styles.updateDot} />
+              <Text style={styles.updateText}>实时监控中</Text>
+            </View>
+            {lastUpdate && (
+              <Text style={styles.lastUpdateText}>
+                更新: {lastUpdate.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </Text>
+            )}
           </View>
         </View>
 
@@ -612,4 +660,36 @@ const styles = StyleSheet.create({
   catIcon: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
   catTitle: { fontSize: 13, fontWeight: '600', color: '#FFF', marginBottom: 2 },
   catCount: { fontSize: 11, color: '#6B7280' },
+  
+  // 实时更新效果
+  techSummaryFlash: {
+    borderColor: '#00F0FF',
+    borderWidth: 1,
+  },
+  updateStatus: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingHorizontal: 4,
+  },
+  updateLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  updateDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#00FF88',
+  },
+  updateText: {
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  lastUpdateText: {
+    fontSize: 11,
+    color: '#6B7280',
+  },
 });

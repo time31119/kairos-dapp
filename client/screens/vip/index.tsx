@@ -4,31 +4,38 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
-
+// 会员等级配置 - 与 membership/index.tsx 保持一致
 const PLANS = [
   {
     id: 'basic',
     name: '基础版',
+    subtitle: '新手入门',
+    color: '#8B9DC3',
     price: 99,
-    features: ['6大赛道', '30条筛选', '每日推送'],
+    features: ['6大赛道行情', '30条筛选条件', '每日资讯推送'],
     recommended: false,
   },
   {
     id: 'pro',
-    name: '专业版 ⭐',
+    name: '专业版',
+    subtitle: '交易必备',
+    color: '#00F0FF',
     price: 199,
-    features: ['全部赛道', '无限筛选', '实时推送', '基础跟单'],
+    features: ['全部赛道行情', '无限筛选条件', '实时行情推送', '技术分析工具', '基础跟单功能'],
     recommended: true,
   },
   {
     id: 'vip',
     name: '尊享版',
+    subtitle: '机构级服务',
+    color: '#FFD700',
     price: 299,
-    features: ['高级分析', '智能跟单', '完整API'],
+    features: ['高级技术分析', '智能跟单功能', '完整API接口'],
     recommended: false,
   },
 ];
+
+const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
 export default function VipScreen() {
   const [activeTab, setActiveTab] = useState<'traders' | 'portfolio' | 'subscribe'>('traders');
@@ -163,29 +170,32 @@ export default function VipScreen() {
           onPress={() => router.push('/vip/membership')}
         >
           <View style={styles.planHeader}>
-            <Text style={styles.planName}>{plan.name}</Text>
+            <View>
+              <Text style={styles.planName}>{plan.name}</Text>
+              <Text style={styles.planSubtitle}>{plan.subtitle}</Text>
+            </View>
             {plan.recommended && (
-              <View style={styles.recommendedBadge}>
-                <Text style={styles.recommendedText}>推荐</Text>
+              <View style={[styles.recommendedBadge, { backgroundColor: plan.color + '20' }]}>
+                <Text style={[styles.recommendedText, { color: plan.color }]}>推荐</Text>
               </View>
             )}
           </View>
           <View style={styles.planPrice}>
             <Text style={styles.priceCurrency}>$</Text>
-            <Text style={styles.priceAmount}>{plan.price}</Text>
+            <Text style={[styles.priceAmount, { color: plan.color }]}>{plan.price}</Text>
             <Text style={styles.pricePeriod}>/月</Text>
           </View>
           <View style={styles.planFeatures}>
             {plan.features.map((feature, i) => (
               <View key={i} style={styles.featureItem}>
-                <Ionicons name="checkmark-circle" size={16} color="#00F0FF" />
+                <Ionicons name="checkmark-circle" size={16} color={plan.color} />
                 <Text style={styles.featureText}>{feature}</Text>
               </View>
             ))}
           </View>
-          <View style={[styles.planButton, plan.recommended && styles.planButtonPrimary]}>
-            <Text style={[styles.planButtonText, plan.recommended && styles.planButtonTextPrimary]}>
-              {plan.recommended ? '立即订阅' : '选择套餐'}
+          <View style={[styles.planButton, plan.recommended && { backgroundColor: plan.color }]}>
+            <Text style={[styles.planButtonText, plan.recommended && { color: '#0A0A0F' }]}>
+              查看详情
             </Text>
           </View>
         </TouchableOpacity>
@@ -449,7 +459,7 @@ const styles = {
   planHeader: {
     flexDirection: 'row' as const,
     justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
+    alignItems: 'flex-start' as const,
     marginBottom: 8,
   },
   planName: {
@@ -457,14 +467,17 @@ const styles = {
     fontWeight: '600' as const,
     color: '#FFFFFF',
   },
+  planSubtitle: {
+    fontSize: 12,
+    color: '#8B8B9A',
+    marginTop: 2,
+  },
   recommendedBadge: {
-    backgroundColor: '#00F0FF',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
   },
   recommendedText: {
-    color: '#0A0A0F',
     fontSize: 11,
     fontWeight: '700' as const,
   },
@@ -475,12 +488,11 @@ const styles = {
   },
   priceCurrency: {
     fontSize: 20,
-    color: '#00F0FF',
+    color: '#FFFFFF',
     fontWeight: '600' as const,
   },
   priceAmount: {
     fontSize: 36,
-    color: '#00F0FF',
     fontWeight: '700' as const,
   },
   pricePeriod: {
@@ -507,15 +519,9 @@ const styles = {
     borderRadius: 12,
     alignItems: 'center' as const,
   },
-  planButtonPrimary: {
-    backgroundColor: '#00F0FF',
-  },
   planButtonText: {
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '600' as const,
-  },
-  planButtonTextPrimary: {
-    color: '#0A0A0F',
   },
 };

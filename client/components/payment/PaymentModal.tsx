@@ -91,6 +91,16 @@ const PAYMENT_METHODS = [
     network: 'TRON (TRC20)',
     minConfirmations: 1,
     avgConfirmTime: '1-3 分钟'
+  },
+  { 
+    id: 'USDT_BNB', 
+    name: 'USDT (BNB Chain)', 
+    icon: 'cube',
+    description: 'BNB Smart Chain · 速度快',
+    color: '#F3BA2F',
+    network: 'BNB Smart Chain (BEP20)',
+    minConfirmations: 15,
+    avgConfirmTime: '3-5 分钟'
   }
 ];
 

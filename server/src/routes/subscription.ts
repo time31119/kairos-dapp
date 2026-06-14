@@ -55,9 +55,8 @@ router.post('/create-order', async (req, res) => {
     // 生成支付地址（根据支付方式）
     // 收款地址配置
     const PAYMENT_ADDRESSES = {
-      USDT_TRC20: 'TSV8UGKBeXrj26PUiBUhhLunfzVSmvyqWq',
-      ETH: '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d', // Ethereum
-      BNB: '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d', // BNB Chain (BEP20)
+      USDT_TRC20: 'TSV8UGKBeXrj26PUiBUhhLunfzVSmvyqWq', // TRON
+      USDT_BNB: '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d', // BNB Chain (BEP20)
     };
     
     let paymentAddress = PAYMENT_ADDRESSES[paymentMethod as keyof typeof PAYMENT_ADDRESSES] || 'PAYMENT_ADDRESS_PENDING';

@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState, useEffect } from 'react';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { useWeb3 } from '@/contexts/Web3Context';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { VIP_PLANS, PAYMENT_METHODS, BillingCycle } from '@/utils/vipPlans';
 import PaymentModal from '@/components/payment/PaymentModal';
 
@@ -29,6 +30,7 @@ const colors = {
 
 export default function Membership() {
   const { wallet } = useWeb3();
+  const { activateSubscription } = useSubscription();
   const router = useSafeRouter();
   const params = useSafeSearchParams<{ plan?: string }>();
   const [selectedPlan, setSelectedPlan] = useState<string>(params.plan || 'professional');
@@ -53,7 +55,7 @@ export default function Membership() {
     return null;
   };
 
-  const handleSubscribe = () => {
+  const handleSubscribe = async () => {
     if (!wallet?.isConnected) {
       alert('请先连接钱包');
       return;
@@ -61,9 +63,13 @@ export default function Membership() {
     setShowPayment(true);
   };
 
-  const confirmPayment = () => {
-    alert(`正在发起${currentPlan.name}订阅支付...\n支付方式: ${paymentMethod.toUpperCase()}\n金额: $${currentPrice}`);
-    setShowPayment(false);
+  const handlePaymentSuccess = async () => {
+    try {
+      await activateSubscription(selectedPlan, billingCycle);
+      setShowPayment(false);
+    } catch (error) {
+      console.error('激活订阅失败:', error);
+    }
   };
 
   return (
@@ -144,7 +150,7 @@ export default function Membership() {
                   <Ionicons 
                     name={plan.id === 'basic' ? 'leaf-outline' : plan.id === 'professional' ? 'trending-up-outline' : 'diamond-outline'} 
                     size={24} 
-                    color={plan.color} 
+                    color={plan.color}
                   />
                 </View>
                 <View>
@@ -315,7 +321,7 @@ export default function Membership() {
           <Text style={styles.sectionTitle}>常见问题</Text>
           {[
             { q: '订阅后可以退款吗？', a: '支持7天内无理由退款，超出期限不予退款。' },
-            { q: '如何取消自动续费？', a: '您可以在“我的订阅”中随时取消，自动续费到期后不再扣除。' },
+            { q: '如何取消自动续费？', a: '您可以在"我的订阅"中随时取消，自动续费到期后不再扣除。' },
             { q: '支持哪些支付方式？', a: '目前支持USDT (TRC20)和USDT (BNB Chain)支付。' },
             { q: '订阅到期后数据保留吗？', a: '订阅到期后，您的数据会保留7天，续费后可继续使用。' },
           ].map((item, idx) => (
@@ -336,6 +342,7 @@ export default function Membership() {
           onClose={() => setShowPayment(false)}
           plan={currentPlan}
           billingCycle={billingCycle}
+          activateSubscription={activateSubscription}
           onSuccess={() => {
             setShowPayment(false);
           }}
@@ -373,36 +380,33 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0A0A0F',
+    paddingHorizontal: 16,
   },
   header: {
     alignItems: 'center',
     paddingVertical: 24,
-    paddingHorizontal: 20,
   },
   headerIcon: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(0, 240, 255, 0.15)',
+    backgroundColor: 'rgba(0, 240, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   headerTitle: {
     color: '#FFFFFF',
     fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: '700',
     marginBottom: 8,
   },
   headerDesc: {
     color: '#8A8A9A',
     fontSize: 14,
-    textAlign: 'center',
   },
   billingContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   billingTabs: {
     flexDirection: 'row',
@@ -412,10 +416,8 @@ const styles = StyleSheet.create({
   },
   billingTab: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingVertical: 10,
+    alignItems: 'center',
     borderRadius: 8,
   },
   billingTabActive: {
@@ -426,46 +428,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   billingTabTextActive: {
-    color: '#FFFFFF',
+    color: '#00F0FF',
     fontWeight: '600',
   },
   discountBadge: {
-    backgroundColor: '#FF4444',
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
-    marginLeft: 4,
+    marginTop: 4,
   },
   discountText: {
-    color: '#FFFFFF',
+    color: '#FFD700',
     fontSize: 10,
     fontWeight: '600',
   },
   plansContainer: {
-    paddingHorizontal: 16,
-    gap: 12,
+    marginBottom: 20,
   },
   planCard: {
     backgroundColor: '#12121A',
     borderRadius: 16,
     padding: 16,
-    borderWidth: 2,
-    borderColor: '#2A2A3A',
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#2A2A3A',
+    position: 'relative',
   },
   planCardSelected: {
-    borderWidth: 2,
+    backgroundColor: '#1A1A24',
   },
   planTag: {
     position: 'absolute',
     top: -8,
-    right: 12,
+    right: 16,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   planTagText: {
-    color: '#0A0A0F',
+    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -485,11 +487,11 @@ const styles = StyleSheet.create({
   planName: {
     fontSize: 18,
     fontWeight: '700',
-    marginBottom: 2,
   },
   planSubtitle: {
-    fontSize: 12,
     color: '#8A8A9A',
+    fontSize: 12,
+    marginTop: 2,
   },
   planPrice: {
     flexDirection: 'row',
@@ -497,18 +499,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   priceSymbol: {
-    fontSize: 18,
     color: '#FFFFFF',
+    fontSize: 18,
     fontWeight: '600',
   },
   priceValue: {
-    fontSize: 32,
-    fontWeight: '800',
     color: '#FFFFFF',
+    fontSize: 32,
+    fontWeight: '700',
   },
   priceUnit: {
-    fontSize: 14,
     color: '#8A8A9A',
+    fontSize: 14,
     marginLeft: 4,
   },
   planFeatures: {
@@ -520,8 +522,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   featureText: {
+    color: '#FFFFFF',
     fontSize: 13,
-    color: '#8A8A9A',
+    flex: 1,
   },
   featureDisabled: {
     color: '#4A4A5A',
@@ -537,14 +540,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   paymentSection: {
-    paddingHorizontal: 16,
-    marginTop: 24,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
     color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
     marginBottom: 12,
   },
   paymentMethods: {
@@ -557,27 +558,29 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#2A2A3A',
   },
   paymentMethodActive: {
     borderColor: '#00F0FF',
+    backgroundColor: 'rgba(0, 240, 255, 0.05)',
   },
   paymentMethodName: {
-    fontSize: 13,
     color: '#FFFFFF',
+    fontSize: 12,
     marginTop: 8,
+    textAlign: 'center',
   },
   subscribeButton: {
-    flexDirection: 'row',
+    backgroundColor: '#12121A',
+    borderRadius: 16,
+    padding: 18,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    overflow: 'hidden',
+    borderWidth: 1,
     marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   buttonGlow: {
     position: 'absolute',
@@ -593,34 +596,32 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   priceTag: {
-    backgroundColor: 'rgba(0, 240, 255, 0.2)',
-    paddingHorizontal: 12,
+    position: 'absolute',
+    right: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
-    marginLeft: 12,
     zIndex: 1,
   },
   priceTagText: {
-    color: '#00F0FF',
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   terms: {
     alignItems: 'center',
-    paddingHorizontal: 16,
     marginBottom: 24,
   },
   termsText: {
-    fontSize: 11,
     color: '#8A8A9A',
-    textAlign: 'center',
+    fontSize: 12,
     marginBottom: 4,
   },
   termsLink: {
     color: '#00F0FF',
   },
   compareSection: {
-    paddingHorizontal: 16,
     marginBottom: 24,
   },
   compareTable: {
@@ -632,31 +633,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#1A1A24',
     paddingVertical: 12,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
   },
   compareRow: {
     flexDirection: 'row',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
     borderTopWidth: 1,
     borderTopColor: '#2A2A3A',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
   },
   compareCell: {
     flex: 1,
-    fontSize: 11,
-    color: '#8A8A9A',
-    textAlign: 'center',
+    color: '#FFFFFF',
+    fontSize: 12,
   },
   compareFeature: {
-    textAlign: 'left',
-    fontWeight: '600',
-    color: '#FFFFFF',
+    flex: 1.5,
+    color: '#8A8A9A',
   },
   compareCellCenter: {
     textAlign: 'center',
   },
   referralSection: {
-    paddingHorizontal: 16,
+    backgroundColor: '#12121A',
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 24,
   },
   referralHeader: {
@@ -665,108 +666,106 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   referralTitle: {
-    fontSize: 18,
-    fontWeight: '700',
     color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
     marginLeft: 8,
   },
   referralDesc: {
-    fontSize: 13,
     color: '#8A8A9A',
+    fontSize: 13,
     marginBottom: 16,
   },
   rewardRules: {
     gap: 12,
+    marginBottom: 16,
   },
   rewardRule: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#12121A',
-    borderRadius: 12,
-    padding: 12,
   },
   rewardLevel: {
-    flexDirection: 'row',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
     alignItems: 'center',
-    marginRight: 16,
+    justifyContent: 'center',
+    marginRight: 12,
   },
   rewardLevelText: {
     color: '#FFD700',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
-    marginLeft: 4,
   },
   rewardInfo: {
     flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   rewardInvited: {
-    fontSize: 12,
-    color: '#8A8A9A',
+    color: '#FFFFFF',
+    fontSize: 13,
   },
   rewardValue: {
-    fontSize: 14,
     color: '#00FF88',
+    fontSize: 13,
     fontWeight: '600',
   },
   referralStats: {
     flexDirection: 'row',
-    marginTop: 16,
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#12121A',
+    justifyContent: 'space-around',
+    backgroundColor: '#1A1A24',
     borderRadius: 12,
     padding: 16,
+    marginBottom: 16,
+  },
+  statCard: {
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: '800',
     color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '700',
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 12,
     color: '#8A8A9A',
+    fontSize: 12,
   },
   shareButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#12121A',
+    backgroundColor: 'rgba(0, 240, 255, 0.1)',
     borderRadius: 12,
-    paddingVertical: 14,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: '#00F0FF',
+    padding: 14,
+    gap: 8,
   },
   shareButtonText: {
     color: '#00F0FF',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
-    marginLeft: 8,
   },
   faqSection: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
+    marginBottom: 40,
   },
   faqItem: {
     backgroundColor: '#12121A',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
+    padding: 14,
+    marginBottom: 10,
   },
   faqQuestion: {
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   faqAnswer: {
-    fontSize: 13,
     color: '#8A8A9A',
-    lineHeight: 18,
+    fontSize: 13,
+    lineHeight: 20,
   },
   bottomPadding: {
     height: 40,

@@ -11,10 +11,8 @@ import {
   Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
-
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 
 interface PaymentModalProps {
   visible: boolean;
@@ -28,58 +26,6 @@ interface PaymentModalProps {
   onClose: () => void;
   onSuccess: () => void;
 }
-
-// 激活订阅
-async function activateSubscription(planId: string, billingCycle: string) {
-  try {
-    const response = await fetch(`${API_BASE}/api/v1/subscription/activate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-user-id': 'demo-user',
-      },
-      body: JSON.stringify({ planId, billingCycle }),
-    });
-    return await response.json();
-  } catch (error) {
-    console.error('激活订阅失败:', error);
-    return { success: false, message: '网络错误' };
-  }
-}
-
-// 保存订阅状态到本地
-async function saveSubscriptionStatus(planId: string, billingCycle: string) {
-  try {
-    const durationMap: Record<string, number> = {
-      monthly: 30,
-      quarterly: 90,
-      yearly: 365,
-    };
-    const days = durationMap[billingCycle] || 30;
-    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
-    
-    const subscriptionData = {
-      planId,
-      billingCycle,
-      status: 'active',
-      activatedAt: new Date().toISOString(),
-      expiresAt,
-    };
-    
-    await AsyncStorage.setItem('user_subscription', JSON.stringify(subscriptionData));
-    return true;
-  } catch (error) {
-    console.error('保存订阅状态失败:', error);
-    return false;
-  }
-}
-
-// TODO: 其他支付方式待开通
-// const PAYMENT_METHODS_ALL = [
-//   { id: 'ETH', name: 'ETH (ERC20)', ... },
-//   { id: 'BNB', name: 'BNB (BEP20)', ... },
-//   { id: 'CREDIT_CARD', name: '信用卡/借记卡', ... }
-// ];
 
 const PAYMENT_METHODS = [
   { 
@@ -111,6 +57,7 @@ export default function PaymentModal({
   onClose, 
   onSuccess 
 }: PaymentModalProps) {
+  const { activateSubscription } = useSubscription();
   const [selectedMethod, setSelectedMethod] = useState<string>('USDT_TRC20');
   const [loading, setLoading] = useState(false);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
@@ -146,6 +93,17 @@ export default function PaymentModal({
       return () => clearInterval(interval);
     }
   }, [orderCreated, orderExpireTime]);
+
+  // 重置状态
+  useEffect(() => {
+    if (!visible) {
+      setOrderCreated(false);
+      setOrderInfo(null);
+      setSelectedMethod('USDT_TRC20');
+      setIsCreatingOrder(false);
+      setTimeLeft('');
+    }
+  }, [visible]);
 
   const copyToClipboard = async (text: string, label: string) => {
     await Clipboard.setStringAsync(text);
@@ -192,7 +150,6 @@ export default function PaymentModal({
   const handleConfirmPayment = () => {
     if (!plan) return;
     
-    // 模拟支付确认
     Alert.alert(
       '支付确认',
       '请确认已完成转账操作，等待区块链确认后点击确认。',
@@ -206,29 +163,16 @@ export default function PaymentModal({
               // 调用激活接口
               const result = await activateSubscription(plan.id, billingCycle);
               if (result.success) {
-                // 保存订阅状态到本地
-                await saveSubscriptionStatus(plan.id, billingCycle);
-                
-                const durationMap: Record<string, string> = {
-                  monthly: '月',
-                  quarterly: '季', 
-                  yearly: '年'
-                };
-                const duration = durationMap[billingCycle] || '月';
-                
                 Alert.alert(
-                  '🎉 开通成功！',
-                  `${plan.name} ${duration}会员已开通，${result.message}`,
-                  [{ text: '确定', onPress: () => {
-                    onSuccess();
-                    handleClose();
-                  }}]
+                  '开通成功', 
+                  `恭喜！您已成功开通${plan.name}（${billingLabel}）会员`,
+                  [{ text: '确定', onPress: () => { onSuccess(); onClose(); } }]
                 );
               } else {
-                Alert.alert('开通失败', result.message || '请稍后重试');
+                Alert.alert('开通失败', result.message || '请联系客服');
               }
             } catch (error) {
-              Alert.alert('错误', '网络请求失败，请稍后重试');
+              Alert.alert('错误', '网络请求失败');
             } finally {
               setIsCreatingOrder(false);
             }
@@ -238,116 +182,101 @@ export default function PaymentModal({
     );
   };
 
-  const handleClose = () => {
-    setOrderCreated(false);
-    setOrderInfo(null);
-    setSelectedMethod('USDT_TRC20');
-    onClose();
-  };
-
-  if (!plan) return null;
+  const selectedMethodData = PAYMENT_METHODS.find(m => m.id === selectedMethod);
 
   return (
     <Modal
       visible={visible}
-      transparent
       animationType="slide"
-      onRequestClose={handleClose}
+      transparent={true}
+      onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>
-              {orderCreated ? '订单信息' : '选择支付方式'}
-            </Text>
-            <TouchableOpacity onPress={handleClose}>
-              <Ionicons name="close" size={24} color="#fff" />
+          <View style={styles.modalHeader}>
+            <View style={styles.headerIcon}>
+              <Ionicons name="wallet-outline" size={28} color="#00F0FF" />
+            </View>
+            <Text style={styles.headerTitle}>完成支付</Text>
+            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+              <Ionicons name="close" size={24} color="#888" />
             </TouchableOpacity>
           </View>
 
-          {/* Order Summary */}
-          <View style={[styles.orderSummary, { borderColor: plan.color + '40' }]}>
-            <Text style={[styles.planName, { color: plan.color }]}>
-              {plan.name}
-            </Text>
-            <Text style={styles.billingInfo}>
-              {billingLabel} · ${price}
-            </Text>
-          </View>
-
-          {!orderCreated ? (
-            <>
-              {/* Payment Methods */}
-              <View style={styles.methodsSection}>
-                <Text style={styles.sectionTitle}>支付方式</Text>
-                {PAYMENT_METHODS.map((method) => (
-                  <TouchableOpacity
-                    key={method.id}
-                    style={[
-                      styles.methodItem,
-                      selectedMethod === method.id && styles.methodItemSelected,
-                      { borderColor: selectedMethod === method.id ? method.color : '#333' }
-                    ]}
-                    onPress={() => setSelectedMethod(method.id)}
-                  >
-                    <View style={styles.methodLeft}>
-                      <View style={[styles.methodIcon, { backgroundColor: method.color + '20' }]}>
-                        <Ionicons 
-                          name={method.icon as any} 
-                          size={20} 
-                          color={method.color} 
-                        />
-                      </View>
-                      <View>
-                        <Text style={styles.methodName}>{method.name}</Text>
-                        <Text style={styles.methodDesc}>{method.description}</Text>
-                      </View>
-                    </View>
-                    <View style={[
-                      styles.radio,
-                      selectedMethod === method.id && { borderColor: method.color }
-                    ]}>
-                      {selectedMethod === method.id && (
-                        <View style={[styles.radioInner, { backgroundColor: method.color }]} />
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                ))}
+          <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            {/* 订单摘要 */}
+            <View style={styles.summaryBox}>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>会员套餐</Text>
+                <Text style={[styles.summaryValue, { color: plan?.color || '#00F0FF' }]}>
+                  {plan?.name || ''} ({billingLabel})
+                </Text>
               </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>应付金额</Text>
+                <Text style={styles.summaryPrice}>${price} USDT</Text>
+              </View>
+            </View>
 
-              {/* Pay Button */}
-              <TouchableOpacity
-                style={[styles.payButton, { backgroundColor: plan.color }]}
-                onPress={handleCreateOrder}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#000" />
-                ) : (
-                  <Text style={styles.payButtonText}>确认支付 ${price}</Text>
-                )}
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              {/* Selected Payment Method Info */}
-              <View style={styles.orderInfo}>
-                <View style={styles.methodInfoCard}>
-                  <View style={styles.methodInfoHeader}>
-                    <View style={[styles.methodIcon, { backgroundColor: (PAYMENT_METHODS.find(m => m.id === selectedMethod)?.color || '#00F0FF') + '20' }]}>
+            {/* 支付方式选择 */}
+            <Text style={styles.sectionTitle}>选择支付方式</Text>
+            <View style={styles.methodsContainer}>
+              {PAYMENT_METHODS.map((method) => (
+                <TouchableOpacity
+                  key={method.id}
+                  style={[
+                    styles.methodItem,
+                    selectedMethod === method.id && styles.methodItemSelected,
+                    { borderColor: selectedMethod === method.id ? method.color : '#333' }
+                  ]}
+                  onPress={() => setSelectedMethod(method.id)}
+                >
+                  <View style={styles.methodLeft}>
+                    <View style={[styles.methodIcon, { backgroundColor: method.color + '20' }]}>
                       <Ionicons 
-                        name={(PAYMENT_METHODS.find(m => m.id === selectedMethod)?.icon as any) || 'help-circle'} 
+                        name={method.icon as any} 
                         size={20} 
-                        color={PAYMENT_METHODS.find(m => m.id === selectedMethod)?.color || '#00F0FF'} 
+                        color={method.color} 
+                      />
+                    </View>
+                    <View>
+                      <Text style={styles.methodName}>{method.name}</Text>
+                      <Text style={styles.methodDesc}>{method.description}</Text>
+                    </View>
+                  </View>
+                  <View style={[
+                    styles.radio,
+                    selectedMethod === method.id && { borderColor: method.color }
+                  ]}>
+                    {selectedMethod === method.id && (
+                      <View style={[styles.radioInner, { backgroundColor: method.color }]} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* 收款信息 */}
+            {orderCreated && orderInfo ? (
+              <View style={styles.paymentInfo}>
+                <Text style={styles.sectionTitle}>请向以下地址转账</Text>
+                
+                <View style={[styles.addressBox, { borderColor: selectedMethodData?.color || '#00F0FF' }]}>
+                  <View style={styles.addressHeader}>
+                    <View style={[styles.methodIcon, { backgroundColor: (selectedMethodData?.color || '#00F0FF') + '20' }]}>
+                      <Ionicons 
+                        name={(selectedMethodData?.icon as any) || 'help-circle'} 
+                        size={20} 
+                        color={selectedMethodData?.color || '#00F0FF'} 
                       />
                     </View>
                     <View style={styles.methodInfoText}>
                       <Text style={styles.methodInfoName}>
-                        {PAYMENT_METHODS.find(m => m.id === selectedMethod)?.name}
+                        {selectedMethodData?.name}
                       </Text>
                       <Text style={styles.methodInfoNetwork}>
-                        网络: {PAYMENT_METHODS.find(m => m.id === selectedMethod)?.network}
+                        网络: {selectedMethodData?.network}
                       </Text>
                     </View>
                   </View>
@@ -355,13 +284,13 @@ export default function PaymentModal({
                     <View style={styles.statItem}>
                       <Text style={styles.statLabel}>预计确认</Text>
                       <Text style={styles.statValue}>
-                        {PAYMENT_METHODS.find(m => m.id === selectedMethod)?.avgConfirmTime}
+                        {selectedMethodData?.avgConfirmTime}
                       </Text>
                     </View>
                     <View style={styles.statItem}>
                       <Text style={styles.statLabel}>最低确认数</Text>
                       <Text style={styles.statValue}>
-                        {PAYMENT_METHODS.find(m => m.id === selectedMethod)?.minConfirmations}
+                        {selectedMethodData?.minConfirmations}
                       </Text>
                     </View>
                   </View>
@@ -392,110 +321,68 @@ export default function PaymentModal({
                 </View>
                 <View style={styles.orderRow}>
                   <Text style={styles.orderLabel}>收款地址 (TRC20)</Text>
-                </View>
-                <View style={styles.addressBox}>
-                  <Text style={styles.addressText} selectable numberOfLines={2}>
-                    {orderInfo?.paymentAddress}
-                  </Text>
                   <TouchableOpacity 
-                    style={styles.copyButton}
+                    style={styles.addressCopyBtn}
                     onPress={() => copyToClipboard(orderInfo?.paymentAddress || '', '收款地址')}
                   >
-                    <Ionicons name="copy-outline" size={18} color="#00F0FF" />
+                    <Text style={styles.addressText} numberOfLines={1}>
+                      {orderInfo?.paymentAddress}
+                    </Text>
+                    <Ionicons name="copy-outline" size={16} color="#00F0FF" />
                   </TouchableOpacity>
                 </View>
 
-                {/* Network Info */}
-                <View style={styles.networkInfo}>
-                  <View style={styles.networkItem}>
-                    <Ionicons name="link" size={14} color="#26A17B" />
-                    <Text style={styles.networkText}>网络: TRON (TRC20)</Text>
-                  </View>
-                  <View style={styles.networkItem}>
-                    <Ionicons name="checkmark-circle" size={14} color="#26A17B" />
-                    <Text style={styles.networkText}>最低确认: 1 个区块</Text>
-                  </View>
-                  <View style={styles.networkItem}>
-                    <Ionicons name="time" size={14} color="#26A17B" />
-                    <Text style={styles.networkText}>预计到账: 1-3 分钟</Text>
-                  </View>
-                </View>
-                
-                {/* Transfer Instructions */}
-                <View style={styles.instructionBox}>
-                  <View style={styles.instructionHeader}>
-                    <Ionicons name="shield-checkmark" size={18} color="#26A17B" />
-                    <Text style={[styles.instructionTitle, { color: '#26A17B' }]}>USDT 转账指南</Text>
-                  </View>
-                  <View style={styles.instructionList}>
-                    <Text style={styles.instructionItem}>1. 打开钱包 (TrxLink / TokenPocket / 交易所等)</Text>
-                    <Text style={styles.instructionItem}>2. 选择 USDT → 转账 → 粘贴收款地址</Text>
-                    <Text style={styles.instructionItem}>3. 网络必须选择 <Text style={{ color: '#26A17B', fontWeight: '600' }}>TRON (TRC20)</Text></Text>
-                    <Text style={styles.instructionItem}>4. 转账金额: <Text style={{ color: '#26A17B', fontWeight: '600' }}>≥ ${orderInfo?.price} USDT</Text></Text>
-                    <Text style={styles.instructionItem}>5. 建议多转 1-2 USDT 防止矿工费扣除</Text>
-                    <Text style={styles.instructionItem}>6. 转账完成后等待 1-3 分钟确认</Text>
-                    <Text style={styles.instructionItem}>7. 确认后会员权益自动到账</Text>
-                  </View>
+                {/* 转账指南 */}
+                <View style={styles.guideBox}>
+                  <Text style={styles.guideTitle}>转账指南</Text>
+                  <Text style={styles.guideText}>1. 复制上方收款地址到钱包</Text>
+                  <Text style={styles.guideText}>2. 粘贴到转账地址栏</Text>
+                  <Text style={styles.guideText}>3. 确认网络为 TRON (TRC20)</Text>
+                  <Text style={styles.guideText}>4. 金额填写: <Text style={{ color: '#26A17B', fontWeight: '600' }}>${orderInfo?.price} USDT</Text></Text>
+                  <Text style={styles.guideText}>5. 建议多转 1-2 USDT 防止矿工费扣除</Text>
+                  <Text style={styles.guideText}>6. 转账完成后等待 1-3 分钟确认</Text>
+                  <Text style={styles.guideText}>7. 确认后点击下方按钮完成开通</Text>
                 </View>
 
-                {/* Warning */}
+                {/* 风险提示 */}
                 <View style={styles.warningBox}>
-                  <Ionicons name="warning" size={16} color="#F5A623" />
+                  <Ionicons name="warning-outline" size={18} color="#FF6B6B" />
                   <Text style={styles.warningText}>
-                    请勿向其他网络地址转账，错误转账无法找回！
+                    请确保使用 {selectedMethodData?.name} 网络转账，使用其他网络将导致资金无法找回！
                   </Text>
                 </View>
               </View>
-
-              {/* Confirm Button */}
+            ) : (
               <TouchableOpacity
-                style={[styles.payButton, { backgroundColor: '#26A17B' }]}
-                onPress={handleConfirmPayment}
+                style={[styles.createOrderBtn, { opacity: loading ? 0.6 : 1 }]}
+                onPress={handleCreateOrder}
+                disabled={loading}
               >
-                <Text style={styles.payButtonText}>我已转账，确认支付</Text>
+                {loading ? (
+                  <ActivityIndicator color="#000" />
+                ) : (
+                  <Text style={styles.createOrderBtnText}>生成收款地址</Text>
+                )}
               </TouchableOpacity>
-
-              {/* Simulate Success */}
-              <TouchableOpacity
-                style={styles.simulateButton}
-                onPress={async () => {
-                  setIsCreatingOrder(true);
-                  try {
-                    // 调用激活接口
-                    const result = await activateSubscription(plan.id, billingCycle);
-                    if (result.success) {
-                      // 保存订阅状态到本地
-                      await saveSubscriptionStatus(plan.id, billingCycle);
-                      Alert.alert(
-                        '🎉 开通成功！',
-                        `${plan.name} ${result.data?.duration || '月'}会员已开通！`,
-                        [{ text: '确定', onPress: () => {
-                          onSuccess();
-                          handleClose();
-                        }}]
-                      );
-                    } else {
-                      Alert.alert('开通失败', result.message || '请稍后重试');
-                    }
-                  } catch (error) {
-                    Alert.alert('错误', '网络请求失败，请稍后重试');
-                  } finally {
-                    setIsCreatingOrder(false);
-                  }
-                }}
-              >
-                <Text style={styles.simulateText}>模拟支付成功（测试用）</Text>
-              </TouchableOpacity>
-            </>
-          )}
+            )}
+          </ScrollView>
 
           {/* Footer */}
-          <View style={styles.footer}>
-            <Ionicons name="shield-checkmark" size={16} color="#666" />
-            <Text style={styles.footerText}>
-              安全加密保护 · 支持 7 天无理由退款
-            </Text>
-          </View>
+          {orderCreated && (
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={[styles.confirmBtn, { opacity: isCreatingOrder ? 0.6 : 1 }]}
+                onPress={handleConfirmPayment}
+                disabled={isCreatingOrder}
+              >
+                {isCreatingOrder ? (
+                  <ActivityIndicator color="#000" />
+                ) : (
+                  <Text style={styles.confirmBtnText}>我已转账，确认开通</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
     </Modal>
@@ -503,174 +390,142 @@ export default function PaymentModal({
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: '#121212',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 20,
-    maxHeight: '90%',
+    maxHeight: '95%',
+    minHeight: '70%',
   },
-  header: {
+  modalHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#222',
   },
-  title: {
+  headerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 240, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    flex: 1,
     fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
+    color: '#FFF',
+    marginLeft: 12,
   },
-  orderSummary: {
+  closeBtn: {
+    padding: 8,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  summaryBox: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+  },
+  summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    marginBottom: 20,
+    marginVertical: 6,
   },
-  planName: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  billingInfo: {
+  summaryLabel: {
     fontSize: 14,
     color: '#888',
   },
-  methodsSection: {
-    marginBottom: 20,
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  summaryPrice: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#26A17B',
   },
   sectionTitle: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFF',
     marginBottom: 12,
+  },
+  methodsContainer: {
+    marginBottom: 20,
   },
   methodItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: '#1A1A1A',
     borderRadius: 12,
     padding: 16,
     marginBottom: 10,
-    borderWidth: 1,
+    borderWidth: 2,
+    borderColor: '#333',
   },
   methodItemSelected: {
-    borderWidth: 2,
+    borderColor: '#00F0FF',
   },
   methodLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   methodIcon: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   methodName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFF',
   },
   methodDesc: {
     fontSize: 12,
-    color: '#666',
+    color: '#888',
     marginTop: 2,
   },
   radio: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
+    borderColor: '#444',
     justifyContent: 'center',
     alignItems: 'center',
   },
   radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
-  payButton: {
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 12,
+  paymentInfo: {
+    marginTop: 10,
   },
-  payButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-  },
-  simulateButton: {
-    padding: 12,
-    alignItems: 'center',
-  },
-  simulateText: {
-    fontSize: 12,
-    color: '#666',
-  },
-  orderInfo: {
+  addressBox: {
     backgroundColor: '#1A1A1A',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 20,
-  },
-  orderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  orderLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  orderValue: {
-    fontSize: 14,
-    color: '#fff',
-  },
-  addressBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0A0A0F',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  addressText: {
-    flex: 1,
-    fontSize: 12,
-    color: '#00F0FF',
-    fontFamily: 'monospace',
-  },
-  copyButton: {
-    padding: 4,
-  },
-  hintText: {
-    fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  // Method Info Card
-  methodInfoCard: {
-    backgroundColor: '#0D0D0D',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#26A17B40',
+    marginBottom: 16,
   },
-  methodInfoHeader: {
+  addressHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
@@ -679,13 +534,13 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   methodInfoName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#fff',
+    color: '#FFF',
   },
   methodInfoNetwork: {
     fontSize: 12,
-    color: '#666',
+    color: '#888',
     marginTop: 2,
   },
   methodStats: {
@@ -699,107 +554,116 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statLabel: {
-    fontSize: 11,
-    color: '#666',
+    fontSize: 12,
+    color: '#888',
   },
   statValue: {
     fontSize: 14,
-    color: '#26A17B',
     fontWeight: '600',
+    color: '#FFF',
     marginTop: 4,
   },
-  // Instruction Box
-  instructionBox: {
-    backgroundColor: '#0D0D0D',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#26A17B',
-  },
-  instructionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  instructionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-    marginLeft: 8,
-  },
-  instructionList: {
-    paddingLeft: 4,
-  },
-  instructionItem: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 8,
-    lineHeight: 18,
-  },
-  // Timer Box
   timerBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     backgroundColor: 'rgba(245, 166, 35, 0.1)',
     borderRadius: 8,
-    padding: 10,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 166, 35, 0.3)',
+    padding: 12,
+    marginBottom: 16,
   },
   timerText: {
-    fontSize: 13,
-    color: '#999',
+    fontSize: 14,
+    color: '#888',
     marginLeft: 8,
   },
-  timerValue: {
-    fontWeight: '700',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-  },
-  // Network Info
-  networkInfo: {
+  orderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(38, 161, 123, 0.1)',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 8,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#222',
   },
-  networkItem: {
+  orderLabel: {
+    fontSize: 14,
+    color: '#888',
+  },
+  orderValue: {
+    fontSize: 14,
+    color: '#FFF',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  addressCopyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    maxWidth: 200,
   },
-  networkText: {
-    fontSize: 11,
-    color: '#26A17B',
-    marginLeft: 4,
+  addressText: {
+    fontSize: 12,
+    color: '#00F0FF',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    maxWidth: 170,
   },
-  // Warning Box
+  guideBox: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+  },
+  guideTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFF',
+    marginBottom: 12,
+  },
+  guideText: {
+    fontSize: 13,
+    color: '#888',
+    marginVertical: 4,
+    lineHeight: 20,
+  },
   warningBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(245, 166, 35, 0.1)',
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
     borderRadius: 8,
     padding: 12,
-    marginTop: 12,
+    marginTop: 16,
   },
   warningText: {
-    fontSize: 12,
-    color: '#F5A623',
-    marginLeft: 8,
     flex: 1,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  footerText: {
     fontSize: 12,
-    color: '#666',
-    marginLeft: 6,
+    color: '#FF6B6B',
+    marginLeft: 8,
+    lineHeight: 18,
+  },
+  createOrderBtn: {
+    backgroundColor: '#00F0FF',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  createOrderBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  modalFooter: {
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    borderTopWidth: 1,
+    borderTopColor: '#222',
+  },
+  confirmBtn: {
+    backgroundColor: '#26A17B',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  confirmBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFF',
   },
 });

@@ -15,9 +15,12 @@ interface SubscriptionContextType {
   planName: string;
   refreshSubscription: () => Promise<void>;
   clearSubscription: () => Promise<void>;
+  activateSubscription: (planId: string, billingCycle: string) => Promise<{ success: boolean; message: string; data?: any }>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
+
+const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -54,6 +57,35 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     setSubscription(null);
   };
 
+  // 激活订阅
+  const activateSubscription = async (planId: string, billingCycle: string): Promise<{ success: boolean; message: string; data?: any }> => {
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/subscription/activate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId, billingCycle })
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        // 保存订阅状态
+        const subscriptionData: Subscription = {
+          planId,
+          billingCycle,
+          status: 'active',
+          activatedAt: new Date().toISOString(),
+          expiresAt: result.data.expiresAt
+        };
+        await AsyncStorage.setItem('user_subscription', JSON.stringify(subscriptionData));
+        setSubscription(subscriptionData);
+      }
+      
+      return result;
+    } catch (error) {
+      return { success: false, message: '网络请求失败' };
+    }
+  };
+
   const isActive = !!(subscription?.status === 'active' && 
     subscription?.expiresAt && 
     new Date(subscription.expiresAt) > new Date());
@@ -61,7 +93,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const planNames: Record<string, string> = {
     basic: '基础版',
     professional: '专业版',
-    premium: '尊享版'
+    vip: '尊享版'
   };
 
   return (
@@ -71,7 +103,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         isActive,
         planName: subscription?.planId ? planNames[subscription.planId] || '会员' : '',
         refreshSubscription,
-        clearSubscription
+        clearSubscription,
+        activateSubscription
       }}
     >
       {children}

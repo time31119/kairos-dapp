@@ -5,7 +5,7 @@ export const VIP_PLANS = [
     name: '基础版',
     subtitle: '新手入门',
     color: '#8B9DC3',
-    price: { month: 99, quarter: 249, year: 999 },
+    price: { month: 99, quarter: 238, year: 899 },
     features: [
       { text: '6大赛道行情', enabled: true },
       { text: '30条筛选条件', enabled: true },
@@ -22,7 +22,7 @@ export const VIP_PLANS = [
     name: '专业版',
     subtitle: '交易必备',
     color: '#00F0FF',
-    price: { month: 199, quarter: 499, year: 1999 },
+    price: { month: 199, quarter: 478, year: 1433 },
     features: [
       { text: '全部赛道行情', enabled: true },
       { text: '无限筛选条件', enabled: true },
@@ -39,7 +39,7 @@ export const VIP_PLANS = [
     name: '尊享版',
     subtitle: '机构级服务',
     color: '#FFD700',
-    price: { month: 299, quarter: 799, year: 2999 },
+    price: { month: 299, quarter: 718, year: 2153 },
     features: [
       { text: '全部赛道行情', enabled: true },
       { text: '无限筛选条件', enabled: true },

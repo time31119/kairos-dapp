@@ -65,7 +65,42 @@ const generateTokens = (scenario: ScenarioType) => {
   return tokens[scenario] || tokens.defi;
 };
 
-// 获取所有场景
+// 获取所有场景（支持实时数据更新）
+router.get('/scenarios/realtime', (req, res) => {
+  const scenarios = Object.entries(SCENARIO_CONFIG).map(([key, config]) => {
+    const baseTokens = generateTokens(key as ScenarioType);
+    // 添加实时波动（5秒内小幅波动）
+    const tokens = baseTokens.map(token => ({
+      ...token,
+      price: parseFloat((token.price * (1 + (Math.random() - 0.5) * 0.002)).toFixed(token.price > 1 ? 2 : 6)),
+      change: parseFloat((token.change + (Math.random() - 0.5) * 0.3).toFixed(2)),
+      volume: Math.floor(token.volume * (1 + (Math.random() - 0.5) * 0.05)),
+    }));
+    
+    return {
+      id: key,
+      ...config,
+      tokenCount: tokens.length,
+      stats: {
+        avgChange: parseFloat((tokens.reduce((sum, t) => sum + t.change, 0) / tokens.length).toFixed(2)),
+        totalVolume: tokens.reduce((sum, t) => sum + t.volume, 0),
+        bullishCount: tokens.filter(t => t.change > 0).length,
+        bearishCount: tokens.filter(t => t.change < 0).length,
+        totalMarketCap: tokens.reduce((sum, t) => sum + t.marketCap, 0),
+      },
+      updatedAt: new Date().toISOString(),
+    };
+  });
+  
+  res.json({
+    success: true,
+    data: scenarios,
+    timestamp: Date.now(),
+    updatedAt: new Date().toISOString(),
+  });
+});
+
+// 获取所有场景（兼容旧接口）
 router.get('/scenarios', (req, res) => {
   const scenarios = Object.entries(SCENARIO_CONFIG).map(([key, config]) => ({
     id: key,

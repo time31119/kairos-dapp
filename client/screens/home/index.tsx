@@ -197,6 +197,12 @@ export default function HomeScreen() {
   const [featuredLastUpdate, setFeaturedLastUpdate] = useState<Date | null>(null);
   const [featuredFlash, setFeaturedFlash] = useState(false);
 
+  // 赛道分类实时数据
+  const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [categoryLoading, setCategoryLoading] = useState(true);
+  const [categoryLastUpdate, setCategoryLastUpdate] = useState<Date | null>(null);
+  const [categoryFlash, setCategoryFlash] = useState(false);
+
   const fetchData = useCallback(() => {
     setLoading(true);
     fetch(API_URL + '/api/v1/screener/featured')
@@ -279,6 +285,35 @@ export default function HomeScreen() {
     }, 5000); // 每5秒更新一次
     return () => clearInterval(featuredInterval);
   }, [fetchFeaturedData]);
+
+  // 获取赛道分类实时数据
+  const fetchCategoryData = useCallback(async () => {
+    try {
+      const response = await fetch(API_URL + '/api/v1/screener/scenarios/realtime');
+      const result = await response.json();
+      if (result.success) {
+        setCategoryData(result.data);
+        setCategoryLastUpdate(new Date());
+        
+        // 触发闪烁效果
+        setCategoryFlash(true);
+        setTimeout(() => setCategoryFlash(false), 500);
+      }
+    } catch (error) {
+      console.error('Failed to fetch category data:', error);
+    } finally {
+      setCategoryLoading(false);
+    }
+  }, []);
+
+  // 5秒实时更新赛道分类数据
+  useEffect(() => {
+    fetchCategoryData();
+    const categoryInterval = setInterval(() => {
+      fetchCategoryData();
+    }, 5000); // 每5秒更新一次
+    return () => clearInterval(categoryInterval);
+  }, [fetchCategoryData]);
 
   // 过滤数据
   const filteredData = selectedTag === 'all' 
@@ -564,6 +599,16 @@ export default function HomeScreen() {
         <View style={styles.catSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionLabel}>赛道分类</Text>
+            <View style={styles.headerRight}>
+              {categoryLoading ? (
+                <Text style={styles.techCountText}>加载中...</Text>
+              ) : (
+                <View style={styles.liveIndicator}>
+                  <View style={styles.liveDot} />
+                  <Text style={styles.liveText}>实时</Text>
+                </View>
+              )}
+            </View>
             <Link href="/categories" asChild>
               <Pressable style={styles.moreBtn}>
                 <Text style={styles.moreBtnText}>更多</Text>
@@ -572,14 +617,51 @@ export default function HomeScreen() {
             </Link>
           </View>
           <View style={styles.catGrid}>
-            {CATEGORIES.map(c => (
-              <CategoryCard 
-                key={c.id} 
-                cat={c} 
-                onPress={() => {}} 
-              />
-            ))}
+            {categoryLoading ? (
+              <View style={{ flex: 1, padding: 40, alignItems: 'center' }}>
+                <Text style={{ color: '#6B7280', fontSize: 14 }}>加载中...</Text>
+              </View>
+            ) : (
+              categoryData.map((cat: any) => {
+                const CategoryCard = () => (
+                  <View 
+                    style={[
+                      styles.catCard, 
+                      categoryFlash && styles.catCardFlash
+                    ]}
+                  >
+                    <View style={[styles.catIcon, { backgroundColor: cat.color + '20' }]}>
+                      <Ionicons name={getIconName(cat.icon || cat.id)} size={22} color={cat.color} />
+                    </View>
+                    <Text style={styles.catTitle}>{cat.name}</Text>
+                    <Text style={styles.catCount}>{cat.tokenCount} 代币</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 }}>
+                      <Text style={[styles.catChange, cat.stats?.avgChange >= 0 ? { color: '#00FF88' } : { color: '#FF4444' }]}>
+                        {cat.stats?.avgChange >= 0 ? '+' : ''}{cat.stats?.avgChange || 0}%
+                      </Text>
+                    </View>
+                  </View>
+                );
+                return (
+                  <Pressable key={cat.id} onPress={() => router.push('/screener/' + cat.id)}>
+                    <CategoryCard />
+                  </Pressable>
+                );
+              })
+            )}
           </View>
+          {/* 实时更新状态 */}
+          {categoryLastUpdate && (
+            <View style={styles.updateStatus}>
+              <View style={styles.updateLeft}>
+                <View style={styles.updateDot} />
+                <Text style={styles.updateText}>实时监控中</Text>
+              </View>
+              <Text style={styles.lastUpdateText}>
+                更新: {categoryLastUpdate.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* 底部间距 */}
@@ -710,13 +792,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#12121A',
     borderRadius: 14,
     borderWidth: 1,
+    borderColor: '#1F2937',
     padding: 14,
     marginBottom: 10,
     alignItems: 'center',
   },
+  catCardFlash: {
+    borderColor: '#00F0FF',
+    borderWidth: 1,
+  },
   catIcon: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
   catTitle: { fontSize: 13, fontWeight: '600', color: '#FFF', marginBottom: 2 },
   catCount: { fontSize: 11, color: '#6B7280' },
+  catChange: { fontSize: 12, fontWeight: '600' },
   
   // 实时更新效果
   techSummaryFlash: {

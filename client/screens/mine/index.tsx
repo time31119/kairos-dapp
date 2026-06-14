@@ -46,8 +46,8 @@ const MENU_ITEMS = [
   { icon: 'settings-outline', label: '设置', color: '#6B7280', path: '/settings', badge: '' },
   { icon: 'shield-outline', label: '隐私设置', color: '#6B7280', path: '/settings/privacy', badge: '' },
   { icon: 'key-outline', label: '安全中心', color: '#6B7280', path: '/settings/security', badge: '' },
-  { icon: 'language-outline', label: '语言', color: '#6B7280', path: '', badge: '简体中文' },
-  { icon: 'help-circle-outline', label: '帮助中心', color: '#6B7280', path: '/support', badge: '' },
+  { icon: 'language-outline', label: '语言', color: '#6B7280', path: '/settings/language', badge: '简体中文' },
+  { icon: 'help-circle-outline', label: '帮助中心', color: '#6B7280', path: '/settings/help', badge: '' },
   { icon: 'document-text-outline', label: '用户协议', color: '#6B7280', path: '/settings/terms', badge: '' },
   { icon: 'information-circle-outline', label: '关于我们', color: '#6B7280', path: '/settings/about', badge: '' },
 ];

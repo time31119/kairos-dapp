@@ -389,6 +389,167 @@ const styles = StyleSheet.create({
   refreshControl: {
     tintColor: '#00F0FF',
   },
+  
+  // VIP订阅
+  vipBanner: {
+    backgroundColor: '#1A1A28',
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#00F0FF',
+  },
+  vipBannerTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  vipBannerDesc: {
+    color: '#8B8B9A',
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  vipBannerBtn: {
+    backgroundColor: '#00F0FF',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  vipBannerBtnText: {
+    color: '#0A0A0F',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  
+  // 套餐卡片
+  planCard: {
+    backgroundColor: '#1A1A28',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#2A2A3A',
+  },
+  planHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  planName: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  planBadge: {
+    backgroundColor: '#00F0FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  planBadgeText: {
+    color: '#0A0A0F',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  planPrice: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 12,
+  },
+  planPriceValue: {
+    color: '#00F0FF',
+    fontSize: 28,
+    fontWeight: '800',
+  },
+  planPriceUnit: {
+    color: '#8B8B9A',
+    fontSize: 14,
+    marginLeft: 4,
+  },
+  planBenefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  planBenefitDot: {
+    color: '#00FF88',
+    fontSize: 14,
+    marginRight: 10,
+  },
+  planBenefitText: {
+    color: '#CCCCCC',
+    fontSize: 13,
+    flex: 1,
+  },
+  planBtn: {
+    backgroundColor: '#2A2A3A',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  planBtnActive: {
+    backgroundColor: '#00F0FF',
+  },
+  planBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  planBtnTextActive: {
+    color: '#0A0A0F',
+  },
+  
+  // 权益
+  benefitsSection: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  benefitsTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  benefitsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -4,
+  },
+  benefitItem: {
+    width: '50%',
+    paddingHorizontal: 4,
+    marginBottom: 8,
+  },
+  benefitCard: {
+    backgroundColor: '#1A1A28',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+  },
+  benefitIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  benefitName: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  benefitDesc: {
+    color: '#8B8B9A',
+    fontSize: 11,
+    textAlign: 'center',
+  },
 });
 
 export default function VipScreen() {
@@ -536,85 +697,70 @@ export default function VipScreen() {
   ];
 
   const renderNewsTab = () => (
-    <ScrollView style={styles.content}>
+    <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
       {/* 升级Banner */}
-      <View style={styles.upgradeBanner}>
-        <View style={styles.upgradeContent}>
-          <Text style={styles.upgradeTitle}>解锁高级会员权益</Text>
-          <Text style={styles.upgradeDesc}>尊享专业版额外功能：智能跟单、实时推送、高级分析</Text>
+      <View style={styles.vipBanner}>
+        <View style={styles.vipBannerLeft}>
+          <Text style={styles.vipBannerTitle}>VIP会员订阅</Text>
+          <Text style={styles.vipBannerDesc}>解锁高级功能，跟随顶尖交易员</Text>
         </View>
-        <TouchableOpacity style={styles.upgradeBtn} onPress={() => router.push('/vip/membership')}>
-          <Text style={styles.upgradeBtnText}>立即升级</Text>
+        <TouchableOpacity style={styles.vipBannerBtn} onPress={() => router.push('/vip/membership')}>
+          <Text style={styles.vipBannerBtnText}>订阅</Text>
         </TouchableOpacity>
       </View>
 
-      {/* 套餐选择 */}
-      <Text style={styles.sectionTitle}>选择套餐</Text>
-      <View style={styles.plansContainer}>
-        {plans.map((plan) => (
-          <View key={plan.id} style={[styles.planCard, plan.recommended && styles.planCardRecommended]}>
-            {plan.recommended && <View style={styles.recommendedBadge}><Text style={styles.recommendedText}>推荐</Text></View>}
-            <Text style={[styles.planName, { color: plan.color }]}>{plan.name}</Text>
-            <View style={styles.planPriceRow}>
-              <Text style={styles.planPrice}>{plan.price}</Text>
-              <Text style={styles.planPeriod}>{plan.period}</Text>
+      {/* 套餐卡片 - 单列紧凑布局 */}
+      {plans.map((plan) => (
+        <View key={plan.id} style={[styles.planItem, plan.recommended && styles.planItemRecommended]}>
+          <View style={styles.planItemHeader}>
+            <View style={styles.planItemLeft}>
+              <Text style={[styles.planItemName, { color: plan.color }]}>{plan.name}</Text>
+              {plan.recommended && <View style={[styles.planBadge, { backgroundColor: plan.color + '20' }]}><Text style={[styles.planBadgeText, { color: plan.color }]}>推荐</Text></View>}
             </View>
-            <View style={styles.planFeatures}>
-              {plan.features.map((feature, idx) => (
-                <View key={idx} style={styles.featureItem}>
-                  <Ionicons name="checkmark-circle" size={14} color={plan.color} />
-                  <Text style={styles.featureText}>{feature}</Text>
-                </View>
-              ))}
+            <View style={styles.planItemRight}>
+              <Text style={[styles.planItemPrice, { color: plan.color }]}>{plan.price}</Text>
+              <Text style={styles.planItemPeriod}>{plan.period}</Text>
             </View>
-            <TouchableOpacity 
-              style={[styles.planBtn, { backgroundColor: plan.color + '20', borderColor: plan.color }]}
-              onPress={() => router.push('/vip/membership')}
-            >
-              <Text style={[styles.planBtnText, { color: plan.color }]}>选择</Text>
-            </TouchableOpacity>
           </View>
-        ))}
-      </View>
+          
+          <View style={styles.planItemFeatures}>
+            {plan.features.slice(0, 3).map((feature, idx) => (
+              <Text key={idx} style={styles.planItemFeature}>· {feature}</Text>
+            ))}
+          </View>
+          
+          <TouchableOpacity 
+            style={[styles.planItemBtn, { backgroundColor: plan.color }]}
+            onPress={() => router.push('/vip/membership')}
+          >
+            <Text style={styles.planItemBtnText}>立即订阅</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
 
-      {/* 权益对比 */}
-      <Text style={styles.sectionTitle}>会员权益</Text>
-      <View style={styles.benefitsCard}>
-        {[
-          { icon: 'trending-up', title: '实时行情', desc: '毫秒级延迟数据' },
-          { icon: 'analytics', title: '智能筛选', desc: '多维度条件组合' },
-          { icon: 'people', title: '跟单交易', desc: '一键跟随高手' },
-          { icon: 'ribbon', title: '专属客服', desc: '7×24小时支持' },
-          { icon: 'flash', title: '快讯推送', desc: '市场动态实时通知' },
-          { icon: 'code-slash', title: 'API接口', desc: '程序化交易支持' },
-        ].map((item, idx) => (
-          <View key={idx} style={styles.benefitItem}>
-            <View style={styles.benefitIcon}>
-              <Ionicons name={item.icon} size={20} color="#00F0FF" />
+      {/* 权益说明 */}
+      <View style={styles.benefitsSection}>
+        <Text style={styles.benefitsTitle}>会员权益</Text>
+        <View style={styles.benefitsList}>
+          {[
+            '实时行情毫秒级延迟',
+            '智能筛选多维度条件',
+            '一键跟随顶尖交易员',
+            '7×24专属客服支持',
+            '市场快讯实时推送',
+          ].map((item, idx) => (
+            <View key={idx} style={styles.benefitRow}>
+              <View style={styles.benefitDot} />
+              <Text style={styles.benefitText}>{item}</Text>
             </View>
-            <View style={styles.benefitInfo}>
-              <Text style={styles.benefitTitle}>{item.title}</Text>
-              <Text style={styles.benefitDesc}>{item.desc}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
-
-      {/* 支付方式 */}
-      <Text style={styles.sectionTitle}>支付方式</Text>
-      <View style={styles.paymentMethods}>
-        {['USDT', 'ETH', '银行卡'].map((method, idx) => (
-          <View key={idx} style={styles.paymentMethod}>
-            <Ionicons name="card" size={20} color="#00F0FF" />
-            <Text style={styles.paymentText}>{method}</Text>
-          </View>
-        ))}
+          ))}
+        </View>
       </View>
 
       {/* 安全保障 */}
-      <View style={styles.securityCard}>
-        <Ionicons name="shield-checkmark" size={20} color="#00FF88" />
-        <Text style={styles.securityText}>7天无理由退款 · 安全加密支付</Text>
+      <View style={styles.securitySection}>
+        <Ionicons name="shield-checkmark" size={16} color="#00FF88" />
+        <Text style={styles.securityText}>安全支付 · 7天退款保障</Text>
       </View>
 
       <View style={{ height: 20 }} />

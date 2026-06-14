@@ -150,6 +150,29 @@ function TechCard({ scenario, onPress }: { scenario: any; onPress: () => void })
   );
 }
 
+// 赛道图标映射
+function getIconName(icon: string): keyof typeof Ionicons.glyphMap {
+  const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
+    defi: 'trending-up',
+    meme: 'chatbubbles',
+    ai: 'cpu',
+    gaming: 'game-controller',
+    infrastructure: 'server',
+    layer2: 'layers',
+    DeFi: 'trending-up',
+    Meme: 'chatbubbles',
+    AI: 'cpu',
+    GameFi: 'game-controller',
+    Infrastructure: 'server',
+    Layer2: 'layers',
+    diamond: 'diamond',
+    star: 'star',
+    flash: 'flash',
+    analytics: 'analytics',
+  };
+  return iconMap[icon] || 'ellipse';
+}
+
 // 赛道快捷卡片
 function CategoryCard({ cat, onPress }: { cat: any; onPress: () => void }) {
   return (

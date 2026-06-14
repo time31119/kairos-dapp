@@ -30,10 +30,18 @@ const colors = {
 export default function Membership() {
   const { wallet } = useWeb3();
   const router = useSafeRouter();
-  const [selectedPlan, setSelectedPlan] = useState<string>('pro');
+  const params = useSafeSearchParams<{ plan?: string }>();
+  const [selectedPlan, setSelectedPlan] = useState<string>(params.plan || 'pro');
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('yearly');
   const [paymentMethod, setPaymentMethod] = useState<string>('usdt');
   const [showPayment, setShowPayment] = useState(false);
+
+  // 如果URL参数变化，更新选中套餐
+  useEffect(() => {
+    if (params.plan && VIP_PLANS.find(p => p.id === params.plan)) {
+      setSelectedPlan(params.plan);
+    }
+  }, [params.plan]);
 
   const currentPlan = VIP_PLANS.find(p => p.id === selectedPlan)!;
   const currentPrice = currentPlan.price[billingCycle];

@@ -137,7 +137,7 @@ export default function VipScreen() {
             styles.planCard,
             plan.recommended && styles.planCardRecommended
           ]}
-          onPress={() => router.push('/vip/membership')}
+          onPress={() => router.push(`/vip/membership?plan=${plan.id}`)}
         >
           <View style={styles.planHeader}>
             <View>

@@ -71,46 +71,23 @@ async function saveSubscriptionStatus(planId: string, billingCycle: string) {
   }
 }
 
+// TODO: 其他支付方式待开通
+// const PAYMENT_METHODS_ALL = [
+//   { id: 'ETH', name: 'ETH (ERC20)', ... },
+//   { id: 'BNB', name: 'BNB (BEP20)', ... },
+//   { id: 'CREDIT_CARD', name: '信用卡/借记卡', ... }
+// ];
+
 const PAYMENT_METHODS = [
   { 
     id: 'USDT_TRC20', 
     name: 'USDT (TRC20)', 
     icon: 'logo-usd',
-    description: '推荐 · 手续费低 · 秒级确认',
+    description: 'TRON 网络转账 · 手续费低',
     color: '#26A17B',
     network: 'TRON (TRC20)',
     minConfirmations: 1,
     avgConfirmTime: '1-3 分钟'
-  },
-  { 
-    id: 'ETH', 
-    name: 'ETH (ERC20)', 
-    icon: 'logo-ethereum',
-    description: '以太坊网络转账',
-    color: '#627EEA',
-    network: 'Ethereum (ERC20)',
-    minConfirmations: 12,
-    avgConfirmTime: '5-15 分钟'
-  },
-  { 
-    id: 'BNB', 
-    name: 'BNB (BEP20)', 
-    icon: 'diamond-outline',
-    description: 'BNB Smart Chain 转账',
-    color: '#F3BA2F',
-    network: 'BNB Smart Chain (BEP20)',
-    minConfirmations: 15,
-    avgConfirmTime: '3-5 分钟'
-  },
-  { 
-    id: 'CREDIT_CARD', 
-    name: '信用卡/借记卡', 
-    icon: 'card-outline',
-    description: 'Visa / Mastercard / Amex',
-    color: '#F5A623',
-    network: '银行卡',
-    minConfirmations: 0,
-    avgConfirmTime: '即时到账'
   }
 ];
 

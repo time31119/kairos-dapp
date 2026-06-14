@@ -74,7 +74,7 @@ export default function Membership() {
           <Ionicons name="chevron-back" size={24} color="#00F0FF" />
           <Text style={styles.backText}>返回</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>会员订阅</Text>
+        <Text style={styles.pageTitle}>会员订阅</Text>
         <View style={{ width: 60 }} />
       </View>
 
@@ -334,12 +334,11 @@ export default function Membership() {
         <PaymentModal
           visible={showPayment}
           onClose={() => setShowPayment(false)}
-          onConfirm={confirmPayment}
-          planId={selectedPlan}
-          planName={currentPlan.name}
+          plan={currentPlan}
           billingCycle={billingCycle}
-          amount={currentPrice}
-          paymentMethod={paymentMethod}
+          onSuccess={() => {
+            setShowPayment(false);
+          }}
         />
       )}
     </Screen>
@@ -366,6 +365,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 4,
   },
+  pageTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '600',
+  },
   container: {
     flex: 1,
     backgroundColor: '#0A0A0F',
@@ -383,6 +387,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  headerDesc: {
+    color: '#8A8A9A',
+    fontSize: 14,
+    textAlign: 'center',
   },
   billingContainer: {
     paddingHorizontal: 16,

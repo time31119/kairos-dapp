@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { Screen } from '@/components/Screen';
-import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import TradeModal from '@/components/payment/TradeModal';
@@ -21,11 +20,11 @@ const HOT_CATEGORIES = [
   { id: 'layer2', title: 'Layer2', icon: 'layers', color: '#FF6B6B' },
 ];
 
-// 快捷入口
+// 快捷入口 - 使用已存在的路由
 const QUICK_ACTIONS = [
   { id: 'featured', title: '热门', icon: 'flame', color: '#FF6B6B', href: '/screener/featured' },
-  { id: 'gainer', title: '涨幅榜', icon: 'trending-up', color: '#00FF88', href: '/screener/gainer' },
-  { id: 'loser', title: '跌幅榜', icon: 'trending-down', color: '#FF4444', href: '/screener/loser' },
+  { id: 'gainer', title: '涨幅榜', icon: 'trending-up', color: '#00FF88', href: '/screener/topgainers' },
+  { id: 'loser', title: '跌幅榜', icon: 'trending-down', color: '#FF4444', href: '/screener/toplosers' },
   { id: 'analysis', title: '技术分析', icon: 'analytics', color: '#9370DB', href: '/analysis' },
 ];
 
@@ -42,12 +41,14 @@ function HotTrackCard({
   track, 
   tokens, 
   stats,
-  onTradeToken 
+  onTradeToken,
+  onPressMore
 }: { 
   track: any; 
   tokens: any[];
   stats: any;
   onTradeToken: (token: any, mode: 'buy' | 'sell') => void;
+  onPressMore: () => void;
 }) {
   return (
     <View style={styles.trackCard}>
@@ -70,12 +71,10 @@ function HotTrackCard({
             </View>
           )}
         </View>
-        <Link href={'/screener/' + track.id} asChild>
-          <TouchableOpacity style={styles.trackMore}>
-            <Text style={styles.trackMoreText}>更多</Text>
-            <Ionicons name="chevron-forward" size={14} color="#6B7280" />
-          </TouchableOpacity>
-        </Link>
+        <TouchableOpacity style={styles.trackMore} onPress={onPressMore}>
+          <Text style={styles.trackMoreText}>更多</Text>
+          <Ionicons name="chevron-forward" size={14} color="#6B7280" />
+        </TouchableOpacity>
       </View>
 
       {/* 代币列表 */}
@@ -260,14 +259,16 @@ export default function HomeScreen() {
           {/* 快捷入口 */}
           <View style={styles.quickGrid}>
             {QUICK_ACTIONS.map(action => (
-              <Link key={action.id} href={action.href} asChild>
-                <Pressable style={[styles.quickCard, { borderColor: action.color + '40' }]}>
-                  <View style={[styles.quickIcon, { backgroundColor: action.color + '20' }]}>
-                    <Ionicons name={action.icon as any} size={18} color={action.color} />
-                  </View>
-                  <Text style={styles.quickText}>{action.title}</Text>
-                </Pressable>
-              </Link>
+              <Pressable 
+                key={action.id}
+                style={[styles.quickCard, { borderColor: action.color + '40' }]}
+                onPress={() => router.push(action.href)}
+              >
+                <View style={[styles.quickIcon, { backgroundColor: action.color + '20' }]}>
+                  <Ionicons name={action.icon as any} size={18} color={action.color} />
+                </View>
+                <Text style={styles.quickText}>{action.title}</Text>
+              </Pressable>
             ))}
           </View>
         </View>
@@ -300,12 +301,10 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>热门赛道</Text>
-            <Link href="/categories" asChild>
-              <TouchableOpacity style={styles.moreBtn}>
-                <Text style={styles.moreBtnText}>全部赛道</Text>
-                <Ionicons name="chevron-forward" size={14} color="#00F0FF" />
-              </TouchableOpacity>
-            </Link>
+            <TouchableOpacity style={styles.moreBtn} onPress={() => router.push('/categories')}>
+              <Text style={styles.moreBtnText}>全部赛道</Text>
+              <Ionicons name="chevron-forward" size={14} color="#00F0FF" />
+            </TouchableOpacity>
           </View>
 
           {loading ? (
@@ -321,6 +320,7 @@ export default function HomeScreen() {
                   tokens={trackData[track.id]?.tokens || []}
                   stats={trackData[track.id]?.stats}
                   onTradeToken={handleTradeToken}
+                  onPressMore={() => router.push('/screener/' + track.id)}
                 />
               ))}
             </View>

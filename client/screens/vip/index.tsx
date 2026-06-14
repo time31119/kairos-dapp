@@ -805,6 +805,7 @@ const styles = {
     backgroundColor: '#0A0A0F',
   },
   header: {
+    backgroundColor: '#0A0A0F',
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 12,
@@ -816,7 +817,7 @@ const styles = {
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#8B8B9A',
+    color: '#A0A0B0',
     marginTop: 4,
   },
   tabNav: {

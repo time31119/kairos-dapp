@@ -80,6 +80,12 @@
       --field-shadow:
         0 2px 4px 0 rgba(0, 0, 0, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.06),
         0 0 1px 0 rgba(0, 0, 0, 0.06);
+
+      /* Theme-specific colors for both themes */
+      --neon-cyan: #00F0FF;
+      --neon-purple: #BF00FF;
+      --neon-gold: #FFD700;
+      --neon-green: #00FF88;
     }
 
     @variant dark {

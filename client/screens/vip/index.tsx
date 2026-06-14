@@ -3,37 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
-
-// 会员等级配置 - 与 membership/index.tsx 保持一致
-const PLANS = [
-  {
-    id: 'basic',
-    name: '基础版',
-    subtitle: '新手入门',
-    color: '#8B9DC3',
-    price: 99,
-    features: ['6大赛道行情', '30条筛选条件', '每日资讯推送'],
-    recommended: false,
-  },
-  {
-    id: 'pro',
-    name: '专业版',
-    subtitle: '交易必备',
-    color: '#00F0FF',
-    price: 199,
-    features: ['全部赛道行情', '无限筛选条件', '实时行情推送', '技术分析工具', '基础跟单功能'],
-    recommended: true,
-  },
-  {
-    id: 'vip',
-    name: '尊享版',
-    subtitle: '机构级服务',
-    color: '#FFD700',
-    price: 299,
-    features: ['高级技术分析', '智能跟单功能', '完整API接口'],
-    recommended: false,
-  },
-];
+import { VIP_PLANS } from '@/utils/vipPlans';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
@@ -148,7 +118,7 @@ export default function VipScreen() {
     </View>
   );
 
-  // 渲染会员订阅Tab
+  // 渲染会员订阅Tab - 使用共享配置
   const renderSubscribeTab = () => (
     <ScrollView 
       style={styles.subscribeContainer}
@@ -160,7 +130,7 @@ export default function VipScreen() {
         <Text style={styles.subscribeSubtitle}>解锁全部高级功能</Text>
       </View>
 
-      {PLANS.map((plan) => (
+      {VIP_PLANS.map((plan) => (
         <TouchableOpacity 
           key={plan.id} 
           style={[
@@ -182,14 +152,14 @@ export default function VipScreen() {
           </View>
           <View style={styles.planPrice}>
             <Text style={styles.priceCurrency}>$</Text>
-            <Text style={[styles.priceAmount, { color: plan.color }]}>{plan.price}</Text>
+            <Text style={[styles.priceAmount, { color: plan.color }]}>{plan.price.month}</Text>
             <Text style={styles.pricePeriod}>/月</Text>
           </View>
           <View style={styles.planFeatures}>
-            {plan.features.map((feature, i) => (
+            {plan.features.filter(f => f.enabled).map((feature, i) => (
               <View key={i} style={styles.featureItem}>
                 <Ionicons name="checkmark-circle" size={16} color={plan.color} />
-                <Text style={styles.featureText}>{feature}</Text>
+                <Text style={styles.featureText}>{feature.text}</Text>
               </View>
             ))}
           </View>

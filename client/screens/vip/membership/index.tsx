@@ -6,9 +6,10 @@
 import { Screen } from '@/components/Screen';
 import { Stack } from 'expo-router';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { Ionicons, FontAwesome6 } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { useWeb3 } from '@/contexts/Web3Context';
+import { VIP_PLANS, PAYMENT_METHODS, BillingCycle } from '@/utils/vipPlans';
 
 const colors = {
   background: '#0A0A0F',
@@ -25,70 +26,6 @@ const colors = {
   border: '#2A2A3A',
 };
 
-// 会员等级配置
-const VIP_LEVELS = [
-  {
-    id: 'basic',
-    name: '基础版',
-    subtitle: '新手入门',
-    color: '#8B9DC3',
-    icon: 'leaf-outline',
-    price: { month: 99, quarter: 249, year: 999 },
-    features: [
-      { text: '6大赛道行情', enabled: true },
-      { text: '30条筛选条件', enabled: true },
-      { text: '每日资讯推送', enabled: true },
-      { text: '技术分析工具', enabled: false },
-      { text: '跟单功能', enabled: false },
-      { text: 'API接口访问', enabled: false },
-    ],
-    tag: null,
-  },
-  {
-    id: 'pro',
-    name: '专业版',
-    subtitle: '交易必备',
-    color: '#00F0FF',
-    icon: 'trending-up-outline',
-    price: { month: 199, quarter: 499, year: 1999 },
-    features: [
-      { text: '全部赛道行情', enabled: true },
-      { text: '无限筛选条件', enabled: true },
-      { text: '实时行情推送', enabled: true },
-      { text: '技术分析工具', enabled: true },
-      { text: '基础跟单功能', enabled: true },
-      { text: 'API接口访问', enabled: false },
-    ],
-    tag: '推荐',
-  },
-  {
-    id: 'vip',
-    name: '尊享版',
-    subtitle: '机构级服务',
-    color: '#FFD700',
-    icon: 'diamond-outline',
-    price: { month: 299, quarter: 799, year: 2999 },
-    features: [
-      { text: '全部赛道行情', enabled: true },
-      { text: '无限筛选条件', enabled: true },
-      { text: '实时行情推送', enabled: true },
-      { text: '高级技术分析', enabled: true },
-      { text: '智能跟单功能', enabled: true },
-      { text: '完整API接口', enabled: true },
-    ],
-    tag: '最佳价值',
-  },
-];
-
-// 支付方式
-const PAYMENT_METHODS = [
-  { id: 'usdt', name: 'USDT', icon: 'logo-usd', color: '#26A17B' },
-  { id: 'eth', name: 'ETH', icon: 'logo-ethereum', color: '#627EEA' },
-  { id: 'card', name: '信用卡', icon: 'card-outline', color: '#FF6B6B' },
-];
-
-type BillingCycle = 'month' | 'quarter' | 'year';
-
 export default function Membership() {
   const { wallet } = useWeb3();
   const [selectedPlan, setSelectedPlan] = useState<string>('pro');
@@ -96,7 +33,7 @@ export default function Membership() {
   const [paymentMethod, setPaymentMethod] = useState<string>('usdt');
   const [showPayment, setShowPayment] = useState(false);
 
-  const currentPlan = VIP_LEVELS.find(p => p.id === selectedPlan)!;
+  const currentPlan = VIP_PLANS.find(p => p.id === selectedPlan)!;
   const currentPrice = currentPlan.price[billingCycle];
   
   // 计算节省比例
@@ -126,6 +63,7 @@ export default function Membership() {
           title: '付费订阅',
           headerStyle: { backgroundColor: colors.background },
           headerTintColor: colors.neonCyan,
+          headerBackTitle: '返回',
         }}
       />
 
@@ -157,7 +95,7 @@ export default function Membership() {
                 ]}>
                   {cycle === 'month' ? '月付' : cycle === 'quarter' ? '季付' : '年付'}
                 </Text>
-                {getDiscount() && cycle === 'year' && (
+                {cycle === 'year' && (
                   <View style={styles.discountBadge}>
                     <Text style={styles.discountText}>省40%</Text>
                   </View>
@@ -172,9 +110,9 @@ export default function Membership() {
           </View>
         </View>
 
-        {/* 会员等级选择 */}
+        {/* 会员等级选择 - 使用共享配置 */}
         <View style={styles.plansContainer}>
-          {VIP_LEVELS.map(plan => (
+          {VIP_PLANS.map(plan => (
             <TouchableOpacity
               key={plan.id}
               style={[
@@ -184,15 +122,19 @@ export default function Membership() {
               ]}
               onPress={() => setSelectedPlan(plan.id)}
             >
-              {plan.tag && (
+              {plan.recommended && (
                 <View style={[styles.planTag, { backgroundColor: plan.color }]}>
-                  <Text style={styles.planTagText}>{plan.tag}</Text>
+                  <Text style={styles.planTagText}>推荐</Text>
                 </View>
               )}
               
               <View style={styles.planHeader}>
                 <View style={[styles.planIcon, { backgroundColor: plan.color + '20' }]}>
-                  <Ionicons name={plan.icon as any} size={24} color={plan.color} />
+                  <Ionicons 
+                    name={plan.id === 'basic' ? 'leaf-outline' : plan.id === 'pro' ? 'trending-up-outline' : 'diamond-outline'} 
+                    size={24} 
+                    color={plan.color} 
+                  />
                 </View>
                 <View>
                   <Text style={[styles.planName, { color: plan.color }]}>{plan.name}</Text>
@@ -233,7 +175,7 @@ export default function Membership() {
           ))}
         </View>
 
-        {/* 支付方式 */}
+        {/* 支付方式 - 使用共享配置 */}
         <View style={styles.paymentSection}>
           <Text style={styles.sectionTitle}>支付方式</Text>
           <View style={styles.paymentMethods}>
@@ -367,304 +309,435 @@ export default function Membership() {
           {/* 分享按钮 */}
           <View style={styles.shareButtons}>
             <TouchableOpacity style={[styles.shareBtn, { backgroundColor: '#1DA1F2' }]}>
-              <Ionicons name="logo-twitter" size={20} color="#FFF" />
+              <Ionicons name="logo-twitter" size={18} color="#FFFFFF" />
               <Text style={styles.shareBtnText}>Twitter</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.shareBtn, { backgroundColor: '#25D366' }]}>
-              <Ionicons name="logo-whatsapp" size={20} color="#FFF" />
+              <Ionicons name="logo-whatsapp" size={18} color="#FFFFFF" />
               <Text style={styles.shareBtnText}>WhatsApp</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.shareBtn, { backgroundColor: colors.neonCyan }]}>
-              <Ionicons name="share-social-outline" size={20} color={colors.background} />
-              <Text style={[styles.shareBtnText, { color: colors.background }]}>更多</Text>
+            <TouchableOpacity style={[styles.shareBtn, { backgroundColor: colors.card }]}>
+              <Ionicons name="link-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.shareBtnText}>更多</Text>
             </TouchableOpacity>
           </View>
-
-          {/* 邀请排行榜入口 */}
-          <TouchableOpacity style={styles.leaderboardLink}>
-            <View style={styles.leaderboardLeft}>
-              <Ionicons name="podium-outline" size={20} color={colors.neonYellow} />
-              <Text style={styles.leaderboardText}>邀请排行榜</Text>
-            </View>
-            <View style={styles.leaderboardRank}>
-              <Text style={styles.leaderboardRankText}>你当前第 28 名</Text>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-            </View>
-          </TouchableOpacity>
         </View>
 
-        <View style={styles.footer} />
+        {/* 底部安全区 */}
+        <View style={{ height: 40 }} />
       </ScrollView>
-
-      {/* 支付确认弹窗 */}
-      {showPayment && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modal}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>确认订阅</Text>
-              <TouchableOpacity onPress={() => setShowPayment(false)}>
-                <Ionicons name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-            
-            <View style={styles.modalContent}>
-              <View style={[styles.modalPlanIcon, { backgroundColor: currentPlan.color + '20' }]}>
-                <Ionicons name={currentPlan.icon as any} size={32} color={currentPlan.color} />
-              </View>
-              <Text style={styles.modalPlanName}>{currentPlan.name}</Text>
-              <Text style={styles.modalPrice}>${currentPrice}</Text>
-              <Text style={styles.modalCycle}>
-                {billingCycle === 'month' ? '月付' : billingCycle === 'quarter' ? '季付' : '年付'}
-              </Text>
-            </View>
-
-            <View style={styles.modalPayment}>
-              <Text style={styles.modalPaymentLabel}>支付方式</Text>
-              <View style={styles.modalPaymentInfo}>
-                <Ionicons name={PAYMENT_METHODS.find(m => m.id === paymentMethod)?.icon as any} size={20} color={PAYMENT_METHODS.find(m => m.id === paymentMethod)?.color} />
-                <Text style={styles.modalPaymentMethod}>{paymentMethod.toUpperCase()}</Text>
-              </View>
-            </View>
-
-            <View style={styles.modalInfo}>
-              <View style={styles.modalInfoRow}>
-                <Text style={styles.modalInfoLabel}>钱包地址</Text>
-                <Text style={styles.modalInfoValue}>
-                  {wallet?.address ? `${wallet.address.slice(0,6)}...${wallet.address.slice(-4)}` : '未连接'}
-                </Text>
-              </View>
-              <View style={styles.modalInfoRow}>
-                <Text style={styles.modalInfoLabel}>订阅周期</Text>
-                <Text style={styles.modalInfoValue}>
-                  {billingCycle === 'month' ? '1个月' : billingCycle === 'quarter' ? '3个月' : '12个月'}
-                </Text>
-              </View>
-              <View style={styles.modalInfoRow}>
-                <Text style={styles.modalInfoLabel}>自动续费</Text>
-                <Text style={styles.modalInfoValue}>到期前3天自动扣款</Text>
-              </View>
-            </View>
-
-            <TouchableOpacity 
-              style={[styles.confirmButton, { backgroundColor: currentPlan.color }]}
-              onPress={confirmPayment}
-            >
-              <Text style={styles.confirmButtonText}>确认支付</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  
-  // 头部
-  header: { alignItems: 'center', paddingVertical: 24, paddingHorizontal: 20 },
-  headerIcon: { 
-    width: 60, height: 60, borderRadius: 30, 
-    backgroundColor: colors.neonCyan + '20', 
-    justifyContent: 'center', alignItems: 'center',
+  container: {
+    flex: 1,
+    backgroundColor: '#0A0A0F',
+  },
+  header: {
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+  headerIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#00F0FF15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  headerDesc: {
+    fontSize: 14,
+    color: '#8A8A9A',
+    marginTop: 4,
+  },
+  billingContainer: {
+    paddingHorizontal: 16,
     marginBottom: 16,
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: colors.text, marginBottom: 8 },
-  headerDesc: { fontSize: 14, color: colors.textSecondary },
-
-  // 周期切换
-  billingContainer: { paddingHorizontal: 20, marginBottom: 20 },
-  billingTabs: { 
-    flexDirection: 'row', 
-    backgroundColor: colors.card, 
-    borderRadius: 12, 
-    padding: 4 
-  },
-  billingTab: { 
-    flex: 1, 
-    paddingVertical: 12, 
-    alignItems: 'center', 
-    borderRadius: 10,
-    position: 'relative',
-  },
-  billingTabActive: { backgroundColor: colors.neonCyan + '20' },
-  billingTabText: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
-  billingTabTextActive: { color: colors.neonCyan },
-  discountBadge: { 
-    position: 'absolute', top: -8, right: -8,
-    backgroundColor: colors.neonGreen,
-    paddingHorizontal: 6, paddingVertical: 2,
-    borderRadius: 8,
-  },
-  discountText: { fontSize: 10, fontWeight: '700', color: colors.background },
-
-  // 会员卡片
-  plansContainer: { paddingHorizontal: 20, gap: 12 },
-  planCard: { 
-    backgroundColor: colors.card, 
-    borderRadius: 16, 
-    padding: 16, 
-    borderWidth: 2,
-    position: 'relative',
-  },
-  planCardSelected: { backgroundColor: colors.cardAlt },
-  planTag: {
-    position: 'absolute', top: -10, right: 16,
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 10,
-  },
-  planTagText: { fontSize: 10, fontWeight: '700', color: colors.background },
-  planHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-  planIcon: { width: 48, height: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  planName: { fontSize: 18, fontWeight: '800' },
-  planSubtitle: { fontSize: 12, color: colors.textSecondary },
-  planPrice: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 12 },
-  priceSymbol: { fontSize: 16, color: colors.textSecondary },
-  priceValue: { fontSize: 32, fontWeight: '800', color: colors.text },
-  priceUnit: { fontSize: 14, color: colors.textSecondary, marginLeft: 4 },
-  planFeatures: { gap: 8 },
-  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  featureText: { fontSize: 13, color: colors.text },
-  featureDisabled: { color: colors.muted, textDecorationLine: 'line-through' },
-  selectedIndicator: {
-    position: 'absolute', top: 16, left: 16,
-    width: 24, height: 24, borderRadius: 12,
-    justifyContent: 'center', alignItems: 'center',
-  },
-
-  // 支付方式
-  paymentSection: { paddingHorizontal: 20, marginTop: 24, marginBottom: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: 12 },
-  paymentMethods: { flexDirection: 'row', gap: 12 },
-  paymentMethod: {
-    flex: 1,
-    backgroundColor: colors.card,
+  billingTabs: {
+    flexDirection: 'row',
+    backgroundColor: '#13131A',
     borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.border,
+    padding: 4,
   },
-  paymentMethodActive: { borderColor: colors.neonCyan, backgroundColor: colors.neonCyan + '10' },
-  paymentMethodName: { fontSize: 13, fontWeight: '600', color: colors.text, marginTop: 8 },
-
-  // 订阅按钮
-  subscribeButton: {
-    marginHorizontal: 20,
+  billingTab: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  billingTabActive: {
+    backgroundColor: '#00F0FF20',
+  },
+  billingTabText: {
+    fontSize: 14,
+    color: '#8A8A9A',
+  },
+  billingTabTextActive: {
+    color: '#00F0FF',
+    fontWeight: '600',
+  },
+  discountBadge: {
+    backgroundColor: '#00FF8820',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 4,
+  },
+  discountText: {
+    fontSize: 10,
+    color: '#00FF88',
+    fontWeight: '600',
+  },
+  plansContainer: {
+    paddingHorizontal: 16,
+  },
+  planCard: {
+    backgroundColor: '#13131A',
+    borderRadius: 16,
     padding: 16,
-    borderRadius: 14,
+    marginBottom: 12,
     borderWidth: 2,
-    position: 'relative',
+    borderColor: '#2A2A3A',
+  },
+  planCardSelected: {
+    backgroundColor: '#1A1A24',
+  },
+  planTag: {
+    position: 'absolute',
+    top: -8,
+    right: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  planTagText: {
+    fontSize: 11,
+    color: '#0A0A0F',
+    fontWeight: '700',
+  },
+  planHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  planIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  planName: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  planSubtitle: {
+    fontSize: 12,
+    color: '#8A8A9A',
+    marginTop: 2,
+  },
+  planPrice: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 12,
+  },
+  priceSymbol: {
+    fontSize: 16,
+    color: '#FFFFFF',
+  },
+  priceValue: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  priceUnit: {
+    fontSize: 14,
+    color: '#8A8A9A',
+    marginLeft: 2,
+  },
+  planFeatures: {},
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  featureText: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    marginLeft: 8,
+  },
+  featureDisabled: {
+    color: '#4A4A5A',
+  },
+  selectedIndicator: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paymentSection: {
+    paddingHorizontal: 16,
+    marginTop: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  paymentMethods: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  paymentMethod: {
+    flex: 1,
+    backgroundColor: '#13131A',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginHorizontal: 4,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  paymentMethodActive: {
+    borderColor: '#00F0FF',
+  },
+  paymentMethodName: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    marginTop: 6,
+  },
+  subscribeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 16,
+    marginTop: 24,
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: '#13131A',
+    borderWidth: 2,
     overflow: 'hidden',
   },
-  buttonGlow: { position: 'absolute', inset: 0, borderRadius: 12 },
-  subscribeButtonText: { fontSize: 16, fontWeight: '700', color: colors.text, zIndex: 1 },
+  buttonGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  subscribeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
+  },
   priceTag: {
-    position: 'absolute', right: 16,
-    backgroundColor: colors.neonGreen + '20',
-    paddingHorizontal: 10, paddingVertical: 4,
+    position: 'absolute',
+    right: 16,
+    backgroundColor: '#00F0FF',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: 8,
-    zIndex: 1,
   },
-  priceTagText: { fontSize: 13, fontWeight: '700', color: colors.neonGreen },
-
-  // 服务条款
-  terms: { alignItems: 'center', paddingHorizontal: 20, marginTop: 16, gap: 4 },
-  termsText: { fontSize: 11, color: colors.textSecondary, textAlign: 'center' },
-  termsLink: { color: colors.neonCyan },
-
-  // 功能对比
-  compareSection: { paddingHorizontal: 20, marginTop: 24 },
-  compareTable: { backgroundColor: colors.card, borderRadius: 12, overflow: 'hidden' },
-  compareHeader: { flexDirection: 'row', backgroundColor: colors.cardAlt, paddingVertical: 12 },
-  compareRow: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.border, paddingVertical: 10 },
-  compareCell: { flex: 1, fontSize: 11, color: colors.text, paddingHorizontal: 8 },
-  compareFeature: { flex: 1.5, color: colors.textSecondary },
-  compareCellCenter: { textAlign: 'center' },
-
-  // 底部
-  footer: { height: 40 },
-
-  // 弹窗
-  modalOverlay: {
-    position: 'absolute', inset: 0,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+  priceTagText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0A0A0F',
+  },
+  terms: {
+    alignItems: 'center',
+    marginTop: 16,
+    paddingHorizontal: 16,
+  },
+  termsText: {
+    fontSize: 12,
+    color: '#8A8A9A',
+    textAlign: 'center',
+  },
+  termsLink: {
+    color: '#00F0FF',
+  },
+  compareSection: {
+    paddingHorizontal: 16,
+    marginTop: 32,
+  },
+  compareTable: {
+    backgroundColor: '#13131A',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  compareHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#1A1A24',
+    paddingVertical: 12,
+  },
+  compareRow: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#2A2A3A',
+    paddingVertical: 10,
+  },
+  compareCell: {
+    flex: 1,
+    fontSize: 11,
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  compareFeature: {
+    flex: 1.5,
+    textAlign: 'left',
+    paddingLeft: 12,
+  },
+  compareCellCenter: {
+    textAlign: 'center',
+  },
+  referralSection: {
+    paddingHorizontal: 16,
+    marginTop: 32,
+  },
+  referralHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  referralTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginLeft: 8,
+  },
+  referralDesc: {
+    fontSize: 14,
+    color: '#8A8A9A',
+    marginBottom: 16,
+  },
+  rewardRules: {},
+  rewardRule: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#13131A',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  rewardLevel: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFD70020',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    alignItems: 'center',
   },
-  modal: { backgroundColor: colors.card, borderRadius: 20, padding: 20 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
-  modalContent: { alignItems: 'center', marginBottom: 20 },
-  modalPlanIcon: { width: 64, height: 64, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  modalPlanName: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: 8 },
-  modalPrice: { fontSize: 36, fontWeight: '800', color: colors.neonGreen },
-  modalCycle: { fontSize: 14, color: colors.textSecondary },
-  modalPayment: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: colors.border },
-  modalPaymentLabel: { fontSize: 14, color: colors.textSecondary },
-  modalPaymentInfo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  modalPaymentMethod: { fontSize: 14, fontWeight: '600', color: colors.text },
-  modalInfo: { marginTop: 16, gap: 8 },
-  modalInfoRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  modalInfoLabel: { fontSize: 13, color: colors.textSecondary },
-  modalInfoValue: { fontSize: 13, color: colors.text },
-  confirmButton: { marginTop: 20, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  confirmButtonText: { fontSize: 16, fontWeight: '700', color: colors.background },
-
-  // 分享激励
-  referralSection: { paddingHorizontal: 20, marginTop: 24, marginBottom: 20 },
-  referralHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  referralTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
-  referralDesc: { fontSize: 13, color: colors.textSecondary, marginBottom: 16 },
-  
-  rewardRules: { backgroundColor: colors.card, borderRadius: 16, padding: 16, gap: 12 },
-  rewardRule: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rewardLevel: { 
-    width: 36, height: 36, borderRadius: 18, 
-    backgroundColor: colors.neonYellow + '20', 
-    justifyContent: 'center', alignItems: 'center',
+  rewardLevelText: {
+    position: 'absolute',
+    bottom: -2,
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFD700',
   },
-  rewardLevelText: { fontSize: 14, fontWeight: '700', color: colors.neonYellow, position: 'absolute' },
-  rewardInfo: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  rewardInvited: { fontSize: 13, color: colors.textSecondary },
-  rewardValue: { fontSize: 13, fontWeight: '600', color: colors.neonGreen },
-  
-  referralStats: { flexDirection: 'row', gap: 12, marginTop: 16 },
-  statCard: { 
-    flex: 1, backgroundColor: colors.card, borderRadius: 12, 
-    padding: 16, alignItems: 'center' 
+  rewardInfo: {
+    marginLeft: 12,
+    flex: 1,
   },
-  statValue: { fontSize: 22, fontWeight: '800', color: colors.neonYellow },
-  statLabel: { fontSize: 11, color: colors.textSecondary, marginTop: 4 },
-  
-  inviteLinkContainer: { flexDirection: 'row', gap: 10, marginTop: 16 },
-  inviteLinkBox: { 
-    flex: 1, backgroundColor: colors.card, borderRadius: 10, 
-    paddingHorizontal: 14, paddingVertical: 12 
+  rewardInvited: {
+    fontSize: 13,
+    color: '#FFFFFF',
   },
-  inviteLinkText: { fontSize: 13, color: colors.textSecondary, fontFamily: 'monospace' },
-  copyButton: { 
-    backgroundColor: colors.neonCyan, borderRadius: 10, 
-    paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center',
+  rewardValue: {
+    fontSize: 12,
+    color: '#00FF88',
+    marginTop: 2,
   },
-  copyButtonText: { fontSize: 13, fontWeight: '600', color: colors.background, marginTop: 2 },
-  
-  shareButtons: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  shareBtn: { 
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', 
-    paddingVertical: 12, borderRadius: 10, gap: 6 
+  referralStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
   },
-  shareBtnText: { fontSize: 13, fontWeight: '600', color: '#FFF' },
-  
-  leaderboardLink: { 
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: colors.card, borderRadius: 12, padding: 14, marginTop: 16,
+  statCard: {
+    flex: 1,
+    backgroundColor: '#13131A',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    marginHorizontal: 4,
   },
-  leaderboardLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  leaderboardText: { fontSize: 14, fontWeight: '600', color: colors.text },
-  leaderboardRank: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  leaderboardRankText: { fontSize: 12, color: colors.textSecondary },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  statLabel: {
+    fontSize: 11,
+    color: '#8A8A9A',
+    marginTop: 4,
+  },
+  inviteLinkContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  inviteLinkBox: {
+    flex: 1,
+    backgroundColor: '#13131A',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginRight: 8,
+  },
+  inviteLinkText: {
+    fontSize: 12,
+    color: '#00F0FF',
+  },
+  copyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#00F0FF',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  copyButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0A0A0F',
+    marginLeft: 4,
+  },
+  shareButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+  },
+  shareBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginHorizontal: 4,
+  },
+  shareBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginLeft: 6,
+  },
 });

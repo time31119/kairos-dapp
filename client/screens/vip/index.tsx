@@ -18,7 +18,7 @@ const PLANS = [
   {
     id: 'basic',
     name: '基础版',
-    price: 39.9,
+    price: 99,
     period: '月',
     features: ['6大赛道', '30条筛选', '每日推送'],
     color: '#8B8B9A',
@@ -27,7 +27,7 @@ const PLANS = [
   {
     id: 'pro',
     name: '专业版',
-    price: 69.9,
+    price: 199,
     period: '月',
     features: ['全部赛道', '无限筛选', '实时推送', '基础跟单'],
     color: '#00F0FF',
@@ -36,7 +36,7 @@ const PLANS = [
   {
     id: 'vip',
     name: '尊享版',
-    price: 199.9,
+    price: 299,
     period: '月',
     features: ['高级分析', '智能跟单', '完整API'],
     color: '#FFD700',

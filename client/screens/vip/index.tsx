@@ -412,7 +412,10 @@ export default function VipScreen() {
                 
                 <TouchableOpacity
                   style={styles.followBtn}
-                  onPress={() => handleFollow(trader.id, 100)}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleFollow(trader.id, 100);
+                  }}
                 >
                   <Ionicons name="git-network-outline" size={14} color="#0A0A0F" />
                   <Text style={styles.followBtnText}>跟单</Text>

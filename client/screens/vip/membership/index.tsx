@@ -45,8 +45,9 @@ export default function Membership() {
     }
   }, [params.plan]);
 
-  const currentPlan = VIP_PLANS.find(p => p.id === selectedPlan)!;
-  const currentPrice = currentPlan.price[billingCycle];
+  // 获取当前选中的套餐，找不到时使用第一个
+  const currentPlan = VIP_PLANS.find(p => p.id === selectedPlan) || VIP_PLANS[0];
+  const currentPrice = currentPlan?.price?.[billingCycle] || 0;
   
   // 计算节省比例
   const getDiscount = () => {

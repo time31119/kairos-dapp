@@ -398,7 +398,7 @@ const styles = {
   },
   subscribeContent: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 60,
   },
   subscribeHeader: {
     alignItems: 'center' as const,
@@ -417,8 +417,8 @@ const styles = {
   planCard: {
     backgroundColor: '#13131A',
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#1F1F2E',
   },
@@ -454,7 +454,7 @@ const styles = {
   planPrice: {
     flexDirection: 'row' as const,
     alignItems: 'baseline' as const,
-    marginBottom: 16,
+    marginBottom: 10,
   },
   priceCurrency: {
     fontSize: 20,
@@ -471,12 +471,12 @@ const styles = {
     marginLeft: 4,
   },
   planFeatures: {
-    marginBottom: 16,
+    marginBottom: 10,
   },
   featureItem: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   featureText: {
     color: '#FFFFFF',
@@ -485,8 +485,8 @@ const styles = {
   },
   planButton: {
     backgroundColor: '#1F1F2E',
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
     alignItems: 'center' as const,
   },
   planButtonText: {

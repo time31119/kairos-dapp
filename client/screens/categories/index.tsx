@@ -83,40 +83,66 @@ export default function CategoriesScreen() {
             <View style={styles.billboardSection}>
               {/* 涨幅榜 */}
               <View style={styles.billboardCard}>
-                <View style={[styles.billboardHeader, { backgroundColor: '#00FF8820' }]}>
-                  <Ionicons name="trending-up" size={16} color="#00FF88" />
-                  <Text style={[styles.billboardTitle, { color: '#00FF88' }]}>全球涨幅榜</Text>
-                </View>
-                {globalGainers.map((token, idx) => (
-                  <View key={token.symbol + '-g'} style={styles.billboardRow}>
-                    <Text style={styles.billboardRank}>{idx + 1}</Text>
-                    <View style={styles.billboardInfo}>
-                      <Text style={styles.billboardSymbol}>{token.symbol}</Text>
-                      <Text style={styles.billboardScenario}>{token.scenarioName}</Text>
-                    </View>
-                    <Text style={styles.billboardPrice}>${formatPrice(token.price)}</Text>
-                    <Text style={styles.billboardChangeGreen}>+{token.change.toFixed(2)}%</Text>
+                <View style={[styles.billboardHeader, { backgroundColor: '#00FF8815' }]}>
+                  <View style={styles.billboardHeaderLeft}>
+                    <Ionicons name="trending-up" size={18} color="#00FF88" />
+                    <Text style={[styles.billboardTitle, { color: '#00FF88' }]}>全球涨幅榜</Text>
                   </View>
-                ))}
+                  <Text style={styles.billboardCount}>TOP 10</Text>
+                </View>
+                <View style={styles.billboardList}>
+                  {globalGainers.map((token, idx) => (
+                    <View key={token.symbol + '-g'} style={styles.billboardRow}>
+                      <View style={styles.billboardLeft}>
+                        <View style={[styles.rankCircle, idx < 3 && styles.rankCircleTop3]}>
+                          <Text style={[styles.rankText, idx < 3 && styles.rankTextTop3]}>{idx + 1}</Text>
+                        </View>
+                        <View style={styles.billboardInfo}>
+                          <Text style={styles.billboardSymbol}>{token.symbol}</Text>
+                          <Text style={styles.billboardScenario}>{token.scenarioName}</Text>
+                        </View>
+                      </View>
+                      <View style={styles.billboardRight}>
+                        <Text style={styles.billboardPrice}>${formatPrice(token.price)}</Text>
+                        <View style={styles.changeTagGreen}>
+                          <Text style={styles.changeTagText}>+{token.change.toFixed(1)}%</Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
               </View>
 
               {/* 跌幅榜 */}
               <View style={styles.billboardCard}>
-                <View style={[styles.billboardHeader, { backgroundColor: '#FF444420' }]}>
-                  <Ionicons name="trending-down" size={16} color="#FF4444" />
-                  <Text style={[styles.billboardTitle, { color: '#FF4444' }]}>全球跌幅榜</Text>
-                </View>
-                {globalLosers.map((token, idx) => (
-                  <View key={token.symbol + '-l'} style={styles.billboardRow}>
-                    <Text style={styles.billboardRank}>{idx + 1}</Text>
-                    <View style={styles.billboardInfo}>
-                      <Text style={styles.billboardSymbol}>{token.symbol}</Text>
-                      <Text style={styles.billboardScenario}>{token.scenarioName}</Text>
-                    </View>
-                    <Text style={styles.billboardPrice}>${formatPrice(token.price)}</Text>
-                    <Text style={styles.billboardChangeRed}>{token.change.toFixed(2)}%</Text>
+                <View style={[styles.billboardHeader, { backgroundColor: '#FF444415' }]}>
+                  <View style={styles.billboardHeaderLeft}>
+                    <Ionicons name="trending-down" size={18} color="#FF4444" />
+                    <Text style={[styles.billboardTitle, { color: '#FF4444' }]}>全球跌幅榜</Text>
                   </View>
-                ))}
+                  <Text style={styles.billboardCount}>TOP 10</Text>
+                </View>
+                <View style={styles.billboardList}>
+                  {globalLosers.map((token, idx) => (
+                    <View key={token.symbol + '-l'} style={styles.billboardRow}>
+                      <View style={styles.billboardLeft}>
+                        <View style={[styles.rankCircle, idx < 3 && styles.rankCircleTop3]}>
+                          <Text style={[styles.rankText, idx < 3 && styles.rankTextTop3]}>{idx + 1}</Text>
+                        </View>
+                        <View style={styles.billboardInfo}>
+                          <Text style={styles.billboardSymbol}>{token.symbol}</Text>
+                          <Text style={styles.billboardScenario}>{token.scenarioName}</Text>
+                        </View>
+                      </View>
+                      <View style={styles.billboardRight}>
+                        <Text style={styles.billboardPrice}>${formatPrice(token.price)}</Text>
+                        <View style={styles.changeTagRed}>
+                          <Text style={styles.changeTagTextRed}>{token.change.toFixed(1)}%</Text>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
+                </View>
               </View>
             </View>
 
@@ -278,50 +304,106 @@ const styles = StyleSheet.create({
   billboardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'space-between',
     padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1F1F2E',
+  },
+  billboardHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   billboardTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
+  },
+  billboardCount: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '600',
+  },
+  billboardList: {
+    paddingVertical: 4,
   },
   billboardRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#1F1F2E',
+    borderBottomColor: '#0A0A0F',
   },
-  billboardRank: {
-    width: 18,
+  billboardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  rankCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#1F1F2E',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankCircleTop3: {
+    backgroundColor: '#00F0FF20',
+  },
+  rankText: {
     fontSize: 12,
     fontWeight: '600',
     color: '#6B7280',
+  },
+  rankTextTop3: {
+    color: '#00F0FF',
   },
   billboardInfo: {
     flex: 1,
   },
   billboardSymbol: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   billboardScenario: {
     fontSize: 10,
     color: '#6B7280',
+    marginTop: 1,
+  },
+  billboardRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   billboardPrice: {
     fontSize: 11,
     color: '#6B7280',
-    marginRight: 8,
   },
-  billboardChangeGreen: {
+  changeTagGreen: {
+    backgroundColor: '#00FF8820',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  changeTagRed: {
+    backgroundColor: '#FF444420',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  changeTagText: {
     fontSize: 12,
     fontWeight: '700',
     color: '#00FF88',
   },
-  billboardChangeRed: {
+  changeTagTextRed: {
     fontSize: 12,
     fontWeight: '700',
     color: '#FF4444',

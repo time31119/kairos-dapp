@@ -59,7 +59,7 @@ const FEATURED_TAGS = [
   { id: 'layer2', title: 'L2' },
 ];
 
-// 赛道区块
+// 赛道区块 - 基于技术分析
 function CategorySection({ category, onPress }: { category: any; onPress: () => void }) {
   return (
     <Pressable style={styles.categorySection} onPress={onPress}>
@@ -75,12 +75,43 @@ function CategorySection({ category, onPress }: { category: any; onPress: () => 
           <Ionicons name="chevron-forward" size={18} color="#6B7280" />
         </View>
       </View>
+      
+      {/* 技术分析统计 */}
+      {category.techStats && (
+        <View style={styles.techSignalStats}>
+          <View style={styles.techStatBadge}>
+            <Ionicons name="trending-up" size={10} color="#00FF88" />
+            <Text style={styles.techStatText}>
+              {category.techStats.bullishTokens || 0} 个做多信号
+            </Text>
+          </View>
+          {category.techStats.avgWinRate > 0 && (
+            <View style={styles.techStatBadge}>
+              <Ionicons name="trophy" size={10} color="#FFD700" />
+              <Text style={styles.techStatText}>
+                {category.techStats.avgWinRate}% 胜率
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+      
       <View style={styles.tokenList}>
         {category.tokens?.slice(0, 3).map((t: any, i: number) => (
           <View key={t.symbol} style={styles.miniTokenRow}>
             <View style={styles.miniTokenLeft}>
-              <Text style={styles.miniRank}>{i + 1}</Text>
+              <Text style={styles.miniRank}>{t.rank || i + 1}</Text>
               <Text style={styles.miniSymbol}>{t.symbol}</Text>
+              {/* 技术分析信号标签 */}
+              {t.techSignals && t.techSignals.length > 0 && (
+                <View style={styles.techSignalTag}>
+                  {t.techSignals.slice(0, 1).map((s: any, idx: number) => (
+                    <Text key={idx} style={[styles.techSignalLabel, { color: s.color }]}>
+                      {s.name}
+                    </Text>
+                  ))}
+                </View>
+              )}
             </View>
             <View style={styles.miniTokenRight}>
               <Text style={styles.miniPrice}>${formatPrice(t.price)}</Text>
@@ -91,6 +122,13 @@ function CategorySection({ category, onPress }: { category: any; onPress: () => 
           </View>
         ))}
       </View>
+      
+      {/* 无做多信号提示 */}
+      {(!category.tokens || category.tokens.length === 0) && (
+        <View style={styles.noSignal}>
+          <Text style={styles.noSignalText}>暂无技术分析做多信号</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
@@ -576,11 +614,11 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ========== 热门精选板块 ========== */}
+        {/* ========== 技术分析热门推荐板块 ========== */}
         <View style={styles.featuredSection}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleWrap}>
-              <Text style={styles.sectionLabel}>热门精选</Text>
+              <Text style={styles.sectionLabel}>技术分析热门推荐</Text>
               <View style={styles.liveIndicator}>
                 <View style={[styles.liveDot, featuredFlash && styles.liveDotFlash]} />
                 <Text style={styles.liveText}>实时</Text>
@@ -598,6 +636,24 @@ export default function HomeScreen() {
               )}
             </View>
           </View>
+          
+          {/* 技术分析统计概览 */}
+          {featuredData.length > 0 && (
+            <View style={styles.techOverview}>
+              <View style={styles.techOverviewItem}>
+                <Ionicons name="trending-up" size={14} color="#00FF88" />
+                <Text style={styles.techOverviewText}>
+                  {featuredData.reduce((sum: number, cat: any) => sum + (cat.stats?.bullishTokens || 0), 0)} 个做多信号
+                </Text>
+              </View>
+              <View style={styles.techOverviewItem}>
+                <Ionicons name="star" size={14} color="#FFD700" />
+                <Text style={styles.techOverviewText}>
+                  Top: {featuredData.slice(0, 3).map((c: any) => c.name).join(' > ') || '暂无'}
+                </Text>
+              </View>
+            </View>
+          )}
           
           {/* 赛道筛选标签 */}
           <ScrollView 
@@ -644,6 +700,8 @@ export default function HomeScreen() {
                       icon: categoryInfo.icon,
                       color: cat.color,
                       tokens: cat.tokens,
+                      // 传递技术分析信号
+                      techStats: cat.stats,
                     }} 
                     onPress={() => router.push('/screener/' + cat.id)}
                   />
@@ -817,12 +875,26 @@ const styles = StyleSheet.create({
   categoryArrow: { width: 28, height: 28, borderRadius: 8, backgroundColor: '#1A1A24', justifyContent: 'center', alignItems: 'center' },
   tokenList: { gap: 6 },
   miniTokenRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1A1A24', padding: 10, borderRadius: 10 },
-  miniTokenLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  miniTokenLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   miniRank: { fontSize: 12, color: '#6B7280', width: 16 },
   miniSymbol: { fontSize: 14, fontWeight: '600', color: '#FFF' },
   miniTokenRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   miniPrice: { fontSize: 13, fontWeight: '600', color: '#FFF' },
   miniChange: { fontSize: 12, fontWeight: '600', minWidth: 50, textAlign: 'right' },
+  
+  // 技术分析信号样式
+  techSignalStats: { flexDirection: 'row', gap: 8, marginBottom: 10, flexWrap: 'wrap' },
+  techStatBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#1A1A24', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  techStatText: { fontSize: 11, color: '#9CA3AF' },
+  techSignalTag: { marginLeft: 4 },
+  techSignalLabel: { fontSize: 9, fontWeight: '600' },
+  noSignal: { padding: 12, alignItems: 'center' },
+  noSignalText: { fontSize: 12, color: '#6B7280' },
+  
+  // 技术概览
+  techOverview: { flexDirection: 'row', gap: 12, marginBottom: 12, flexWrap: 'wrap' },
+  techOverviewItem: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#12121A', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: '#1F2937' },
+  techOverviewText: { fontSize: 12, color: '#9CA3AF' },
   
   // 赛道分类
   catSection: { padding: 16 },

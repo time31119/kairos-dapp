@@ -32,7 +32,6 @@ interface UserStats {
   totalFollowers: number;
   totalProfit: number;
   vipLevel: number;
-  nftCount: number;
 }
 
 const MENU_ITEMS = [
@@ -54,7 +53,6 @@ export default function MineScreen() {
     totalFollowers: 0,
     totalProfit: 0,
     vipLevel: 0,
-    nftCount: 0,
   });
   const [showAddress, setShowAddress] = useState(false);
 
@@ -65,7 +63,6 @@ export default function MineScreen() {
         totalFollowers: Math.floor(Math.random() * 20),
         totalProfit: (Math.random() * 10 - 5).toFixed(2) as unknown as number,
         vipLevel: Math.floor(Math.random() * 3),
-        nftCount: Math.floor(Math.random() * 5),
       });
     }
   }, [wallet.isConnected, wallet.address]);
@@ -322,75 +319,10 @@ export default function MineScreen() {
                   <Text className="text-xs mt-1" style={{ color: '#6B7280' }}>收益率</Text>
                 </View>
                 <View className="w-px" style={{ backgroundColor: '#1F1F2E' }} />
-                <View className="items-center flex-1">
-                  <Text className="text-xl font-bold" style={{ color: '#FFD700' }}>{userStats.nftCount}</Text>
-                  <Text className="text-xs mt-1" style={{ color: '#6B7280' }}>NFT</Text>
-                </View>
               </View>
             </View>
           </View>
         )}
-
-        {/* 会员卡片 - 暗黑科技风格 */}
-        <View className="px-5 mb-5">
-          <TouchableOpacity 
-            style={{
-              backgroundColor: '#0A0A0F',
-              borderRadius: 16,
-              padding: 16,
-              borderWidth: 1,
-              borderColor: '#00F0FF',
-              shadowColor: '#00F0FF',
-              shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.15,
-              shadowRadius: 20,
-            }}
-            onPress={() => router.push('/vip/membership')}
-          >
-            <View className="flex-row items-center gap-3 mb-3">
-              {/* 会员图标 */}
-              <View 
-                className="w-12 h-12 rounded-xl items-center justify-center"
-                style={{
-                  backgroundColor: '#1A1A22',
-                  borderWidth: 1,
-                  borderColor: '#00F0FF',
-                }}
-              >
-                <Ionicons name="diamond" size={24} color="#00F0FF" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold" style={{ color: '#00F0FF' }}>KAIROS DAPP 会员</Text>
-                <Text className="text-xs" style={{ color: '#6B7280' }}>解锁链上高级功能</Text>
-              </View>
-              <View 
-                className="px-4 py-2 rounded-full"
-                style={{
-                  backgroundColor: '#00F0FF',
-                  shadowColor: '#00F0FF',
-                  shadowOffset: { width: 0, height: 0 },
-                  shadowOpacity: 0.5,
-                  shadowRadius: 10,
-                }}
-              >
-                <Text className="text-xs font-bold" style={{ color: '#0A0A0F' }}>开通</Text>
-              </View>
-            </View>
-            
-            <View className="flex-row justify-between pt-3" style={{ borderTopWidth: 1, borderTopColor: '#1F1F2E' }}>
-              {[
-                { icon: 'checkmark-circle', label: '链上数据', color: '#00F0FF' },
-                { icon: 'checkmark-circle', label: '智能筛选', color: '#BF00FF' },
-                { icon: 'checkmark-circle', label: 'Web3 提醒', color: '#FFD700' },
-              ].map((item, i) => (
-                <View key={i} className="items-center flex-1">
-                  <Ionicons name={item.icon as any} size={18} color={item.color} />
-                  <Text className="text-xs mt-1" style={{ color: '#E5E7EB' }}>{item.label}</Text>
-                </View>
-              ))}
-            </View>
-          </TouchableOpacity>
-        </View>
 
         {/* 用户功能入口 - 统一暗黑风格 */}
         <View className="px-5 mb-5">
@@ -523,7 +455,6 @@ export default function MineScreen() {
             {/* Gas 提醒 */}
             <TouchableOpacity
               className="flex-row items-center justify-between px-4 py-4"
-              style={{ borderBottomWidth: 1, borderBottomColor: '#1F1F2E' }}
               onPress={() => Alert.alert('Gas 提醒', 'Gas 价格低时自动提醒')}
             >
               <View className="flex-row items-center gap-3">
@@ -534,21 +465,6 @@ export default function MineScreen() {
                 <View className="px-2 py-0.5 rounded" style={{ backgroundColor: '#1A1A22' }}>
                   <Text className="text-xs" style={{ color: '#6B7280' }}>未开启</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color="#6B7280" />
-              </View>
-            </TouchableOpacity>
-            
-            {/* NFT 藏品 */}
-            <TouchableOpacity
-              className="flex-row items-center justify-between px-4 py-4"
-              onPress={() => Alert.alert('NFT 藏品', '查看您的 NFT 藏品')}
-            >
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="image-outline" size={22} color="#EC4899" />
-                <Text className="text-sm" style={{ color: '#FFFFFF' }}>NFT 藏品</Text>
-              </View>
-              <View className="flex-row items-center gap-2">
-                <Text className="text-xs" style={{ color: '#6B7280' }}>{userStats.nftCount} 个</Text>
                 <Ionicons name="chevron-forward" size={16} color="#6B7280" />
               </View>
             </TouchableOpacity>

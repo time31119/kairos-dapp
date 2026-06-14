@@ -911,13 +911,13 @@ const styles = StyleSheet.create({
   quickBtnText: { fontSize: 13, color: '#FFF', fontWeight: '500' },
   
   // 通用
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#1F1F2E' },
   sectionTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  sectionLabel: { fontSize: 17, fontWeight: '700', color: '#FFF' },
+  sectionLabel: { fontSize: 18, fontWeight: '700', color: '#FFF' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   techCountText: { fontSize: 12, color: '#6B7280' },
-  moreBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  moreBtnText: { fontSize: 13, color: '#00F0FF' },
+  moreBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#00F0FF15', borderRadius: 16 },
+  moreBtnText: { fontSize: 13, color: '#00F0FF', fontWeight: '600' },
   bottomGap: { height: 100 },
   
   // ========== 技术分析板块 ==========

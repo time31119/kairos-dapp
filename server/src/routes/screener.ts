@@ -192,6 +192,77 @@ router.get('/analysis/realtime', (req, res) => {
   });
 });
 
+// 热门精选实时数据
+router.get('/featured/realtime', (req, res) => {
+  const { scenario } = req.query;
+  
+  const scenarios = ['defi', 'meme', 'ai', 'gaming', 'infrastructure', 'layer2'];
+  const scenarioConfig: Record<string, { name: string; icon: string; color: string; desc: string }> = {
+    defi: { name: 'DeFi', icon: 'pool', color: '#00F0FF', desc: '去中心化金融' },
+    meme: { name: 'Meme', icon: 'happy', color: '#FFD700', desc: '社区驱动代币' },
+    ai: { name: 'AI', icon: 'bulb', color: '#9370DB', desc: '人工智能革命' },
+    gaming: { name: 'GameFi', icon: 'game-controller-a', color: '#FF69B4', desc: '游戏金融生态' },
+    infrastructure: { name: '基础设施', icon: 'server', color: '#00FF88', desc: '链上基础设施' },
+    layer2: { name: 'Layer2', icon: 'layers', color: '#FFA500', desc: '扩容解决方案' },
+  };
+  
+  const featured = scenarios.map(id => {
+    const config = scenarioConfig[id];
+    const tokens = generateTokens(id as ScenarioType);
+    // 取前3个代币并添加实时波动
+    const topTokens = tokens.slice(0, 3).map((token, index) => {
+      // 价格波动 ±0.5%
+      const priceVariation = (Math.random() - 0.5) * 0.01;
+      const newPrice = token.price * (1 + priceVariation);
+      
+      // 涨跌幅波动 ±0.3%
+      const changeVariation = (Math.random() - 0.5) * 0.6;
+      const newChange = parseFloat((token.change + changeVariation).toFixed(2));
+      
+      // 24h成交量波动 ±5%
+      const volumeVariation = (Math.random() - 0.5) * 0.1;
+      const newVolume = Math.floor(token.volume * (1 + volumeVariation));
+      
+      return {
+        ...token,
+        price: newPrice,
+        change: Math.min(99.99, Math.max(-99.99, newChange)),
+        volume: newVolume,
+        // 新高标记（随机）
+        isNewHigh: Math.random() > 0.85,
+        // 更新时间戳
+        updatedAt: new Date().toISOString(),
+      };
+    });
+    
+    return {
+      id,
+      ...config,
+      tokens: topTokens,
+      stats: {
+        avgChange: parseFloat((topTokens.reduce((sum, t) => sum + t.change, 0) / topTokens.length).toFixed(2)),
+        totalVolume: topTokens.reduce((sum, t) => sum + t.volume, 0),
+        // 实时统计数据
+        bullishCount: topTokens.filter(t => t.change > 0).length,
+        bearishCount: topTokens.filter(t => t.change < 0).length,
+      },
+      updatedAt: new Date().toISOString(),
+    };
+  });
+  
+  // 如果指定了scenario，只返回该scenario
+  const result = scenario && scenarios.includes(scenario as string) 
+    ? featured.filter(f => f.id === scenario)
+    : featured;
+  
+  res.json({
+    success: true,
+    data: result,
+    timestamp: Date.now(),
+    updatedAt: new Date().toISOString(),
+  });
+});
+
 // 获取热门代币
 router.get('/hot/tokens', (req, res) => {
   const allTokens = [

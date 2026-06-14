@@ -175,6 +175,7 @@ function formatPrice(price: number): string {
 }
 
 export default function HomeScreen() {
+  const router = useSafeRouter();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTag, setSelectedTag] = useState('all');
@@ -189,6 +190,12 @@ export default function HomeScreen() {
   const [techLoading, setTechLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [updateFlash, setUpdateFlash] = useState(false);
+
+  // 热门精选实时数据
+  const [featuredData, setFeaturedData] = useState<any[]>([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
+  const [featuredLastUpdate, setFeaturedLastUpdate] = useState<Date | null>(null);
+  const [featuredFlash, setFeaturedFlash] = useState(false);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -243,6 +250,35 @@ export default function HomeScreen() {
     }, 5000); // 每5秒更新一次
     return () => clearInterval(techInterval);
   }, [fetchTechData]);
+
+  // 获取热门精选实时数据
+  const fetchFeaturedData = useCallback(async () => {
+    try {
+      const response = await fetch(API_URL + '/api/v1/screener/featured/realtime?scenario=' + (selectedTag === 'all' ? '' : selectedTag));
+      const result = await response.json();
+      if (result.success) {
+        setFeaturedData(result.data);
+        setFeaturedLastUpdate(new Date());
+        
+        // 触发闪烁效果
+        setFeaturedFlash(true);
+        setTimeout(() => setFeaturedFlash(false), 500);
+      }
+    } catch (error) {
+      console.error('Failed to fetch featured data:', error);
+    } finally {
+      setFeaturedLoading(false);
+    }
+  }, [selectedTag]);
+
+  // 5秒实时更新热门精选数据
+  useEffect(() => {
+    fetchFeaturedData();
+    const featuredInterval = setInterval(() => {
+      fetchFeaturedData();
+    }, 5000); // 每5秒更新一次
+    return () => clearInterval(featuredInterval);
+  }, [fetchFeaturedData]);
 
   // 过滤数据
   const filteredData = selectedTag === 'all' 
@@ -450,10 +486,23 @@ export default function HomeScreen() {
         {/* ========== 热门精选板块 ========== */}
         <View style={styles.featuredSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionLabel}>热门精选</Text>
-            <View style={styles.refreshInfo}>
-              <Ionicons name="refresh-outline" size={12} color="#6B7280" />
-              <Text style={styles.refreshText}>{countdown}s</Text>
+            <View style={styles.sectionTitleWrap}>
+              <Text style={styles.sectionLabel}>热门精选</Text>
+              <View style={styles.liveIndicator}>
+                <View style={[styles.liveDot, featuredFlash && styles.liveDotFlash]} />
+                <Text style={styles.liveText}>实时</Text>
+              </View>
+            </View>
+            <View style={styles.headerRight}>
+              <View style={styles.refreshInfo}>
+                <Ionicons name="sync-outline" size={12} color="#00F0FF" />
+                <Text style={styles.refreshText}>5s</Text>
+              </View>
+              {featuredLastUpdate && (
+                <Text style={styles.updateTimeText}>
+                  {featuredLastUpdate.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </Text>
+              )}
             </View>
           </View>
           
@@ -483,23 +532,31 @@ export default function HomeScreen() {
             ))}
           </ScrollView>
           
-          {loading ? (
+          {featuredLoading ? (
             <View style={styles.loadingWrap}>
               <Text style={styles.loading}>加载中...</Text>
             </View>
           ) : (
-            filteredData.map((cat: any) => (
-              <CategorySection 
-                key={cat.scenario} 
-                category={{ 
-                  ...cat.config, 
-                  tokens: cat.tokens,
-                  color: CATEGORIES.find(c => c.id === cat.scenario)?.color || '#00F0FF',
-                  icon: CATEGORIES.find(c => c.id === cat.scenario)?.icon || 'pricetag',
-                }} 
-                onPress={() => {}}
-              />
-            ))
+            featuredData.map((cat: any) => {
+              const categoryInfo = CATEGORIES.find(c => c.id === cat.id) || { color: '#00F0FF', icon: 'pricetag' };
+              return (
+                <Pressable 
+                  key={cat.id} 
+                  style={[styles.featuredCard, featuredFlash && styles.featuredCardFlash]}
+                >
+                  <CategorySection 
+                    category={{ 
+                      title: cat.name,
+                      desc: cat.desc,
+                      icon: categoryInfo.icon,
+                      color: cat.color,
+                      tokens: cat.tokens,
+                    }} 
+                    onPress={() => router.push('/screener/' + cat.id)}
+                  />
+                </Pressable>
+              );
+            })
           )}
         </View>
 
@@ -691,5 +748,20 @@ const styles = StyleSheet.create({
   lastUpdateText: {
     fontSize: 11,
     color: '#6B7280',
+  },
+
+  // 热门精选实时更新
+  updateTimeText: {
+    fontSize: 11,
+    color: '#00F0FF',
+    marginLeft: 8,
+  },
+  featuredCard: {
+    marginBottom: 0,
+  },
+  featuredCardFlash: {
+    borderColor: '#00F0FF40',
+    borderWidth: 1,
+    borderRadius: 16,
   },
 });

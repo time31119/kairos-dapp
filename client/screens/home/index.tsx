@@ -12,6 +12,7 @@ import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import SwapModal from '@/components/payment/SwapModal';
+import TradeModal from '@/components/payment/TradeModal';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
@@ -63,7 +64,7 @@ const FEATURED_TAGS = [
 ];
 
 // 赛道区块 - 基于技术分析
-function CategorySection({ category, onPress, onSwapToken }: { category: any; onPress: () => void; onSwapToken: (token: any) => void }) {
+function CategorySection({ category, onPress, onSwapToken, onTradeToken }: { category: any; onPress: () => void; onSwapToken: (token: any) => void; onTradeToken: (token: any, mode: 'buy' | 'sell') => void }) {
   return (
     <Pressable style={styles.categorySection} onPress={onPress}>
       <View style={styles.categoryHeader}>
@@ -102,7 +103,7 @@ function CategorySection({ category, onPress, onSwapToken }: { category: any; on
       <View style={styles.tokenList}>
         {category.tokens?.slice(0, 3).map((t: any, i: number) => (
           <View key={t.symbol} style={styles.miniTokenRow}>
-            <Pressable style={styles.miniTokenLeft} onPress={() => onSwapToken(t)}>
+            <Pressable style={styles.miniTokenLeft} onPress={() => onTradeToken(t, 'buy')}>
               <Text style={styles.miniRank}>{t.rank || i + 1}</Text>
               <Text style={styles.miniSymbol}>{t.symbol}</Text>
               {/* 技术分析信号标签 */}
@@ -121,9 +122,20 @@ function CategorySection({ category, onPress, onSwapToken }: { category: any; on
               <Text style={[styles.miniChange, { color: t.change >= 0 ? '#00FF88' : '#FF4444' }]}>
                 {t.change >= 0 ? '+' : ''}{t.change.toFixed(1)}%
               </Text>
-              <Pressable style={styles.swapBtn} onPress={() => onSwapToken(t)}>
-                <Text style={styles.swapBtnText}>兑换</Text>
-              </Pressable>
+              <View style={styles.tradeBtnRow}>
+                <Pressable 
+                  style={[styles.tradeActionBtn, styles.buyActionBtn]} 
+                  onPress={() => onTradeToken(t, 'buy')}
+                >
+                  <Text style={styles.tradeActionBtnText}>买入</Text>
+                </Pressable>
+                <Pressable 
+                  style={[styles.tradeActionBtn, styles.sellActionBtn]} 
+                  onPress={() => onTradeToken(t, 'sell')}
+                >
+                  <Text style={styles.tradeActionBtnText}>卖出</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
         ))}
@@ -397,6 +409,17 @@ export default function HomeScreen() {
   const handleSwapToken = useCallback((token: any) => {
     setSelectedSwapToken(token);
     setSwapModalVisible(true);
+  }, []);
+
+  // 交易功能
+  const [tradeModalVisible, setTradeModalVisible] = useState(false);
+  const [selectedTradeToken, setSelectedTradeToken] = useState<any>(null);
+  const [tradeMode, setTradeMode] = useState<'buy' | 'sell'>('buy');
+  
+  const handleTradeToken = useCallback((token: any, mode: 'buy' | 'sell') => {
+    setSelectedTradeToken(token);
+    setTradeMode(mode);
+    setTradeModalVisible(true);
   }, []);
 
   const fetchData = useCallback(() => {
@@ -805,6 +828,7 @@ export default function HomeScreen() {
                     }} 
                     onPress={() => router.push('/screener/' + cat.id)}
                     onSwapToken={handleSwapToken}
+                    onTradeToken={handleTradeToken}
                   />
                 </Pressable>
               );
@@ -913,6 +937,17 @@ export default function HomeScreen() {
         onClose={() => {
           setSwapModalVisible(false);
           setSelectedSwapToken(null);
+        }}
+      />
+
+      {/* 代币交易弹窗 */}
+      <TradeModal
+        visible={tradeModalVisible}
+        token={selectedTradeToken}
+        mode={tradeMode}
+        onClose={() => {
+          setTradeModalVisible(false);
+          setSelectedTradeToken(null);
         }}
       />
     </Screen>
@@ -1031,6 +1066,13 @@ const styles = StyleSheet.create({
   miniTokenRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   miniPrice: { fontSize: 13, fontWeight: '600', color: '#FFF' },
   miniChange: { fontSize: 12, fontWeight: '600', minWidth: 50, textAlign: 'right' },
+  
+  // 交易按钮行
+  tradeBtnRow: { flexDirection: 'row', gap: 6 },
+  tradeActionBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, minWidth: 44, alignItems: 'center' },
+  buyActionBtn: { backgroundColor: '#00FF8820' },
+  sellActionBtn: { backgroundColor: '#FF444420' },
+  tradeActionBtnText: { fontSize: 11, fontWeight: '700', color: '#FFF' },
   
   // 技术分析信号样式
   techSignalStats: { flexDirection: 'row', gap: 8, marginBottom: 10, flexWrap: 'wrap' },

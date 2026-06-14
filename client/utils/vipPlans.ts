@@ -18,7 +18,7 @@ export const VIP_PLANS = [
     recommended: false,
   },
   {
-    id: 'pro',
+    id: 'professional',
     name: '专业版',
     subtitle: '交易必备',
     color: '#00F0FF',

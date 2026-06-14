@@ -31,7 +31,7 @@ export default function Membership() {
   const { wallet } = useWeb3();
   const router = useSafeRouter();
   const params = useSafeSearchParams<{ plan?: string }>();
-  const [selectedPlan, setSelectedPlan] = useState<string>(params.plan || 'pro');
+  const [selectedPlan, setSelectedPlan] = useState<string>(params.plan || 'professional');
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('yearly');
   const [paymentMethod, setPaymentMethod] = useState<string>('usdt');
   const [showPayment, setShowPayment] = useState(false);
@@ -142,7 +142,7 @@ export default function Membership() {
               <View style={styles.planHeader}>
                 <View style={[styles.planIcon, { backgroundColor: plan.color + '20' }]}>
                   <Ionicons 
-                    name={plan.id === 'basic' ? 'leaf-outline' : plan.id === 'pro' ? 'trending-up-outline' : 'diamond-outline'} 
+                    name={plan.id === 'basic' ? 'leaf-outline' : plan.id === 'professional' ? 'trending-up-outline' : 'diamond-outline'} 
                     size={24} 
                     color={plan.color} 
                   />

@@ -16,8 +16,8 @@ export default function AnalysisScreen() {
     try {
       const res = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/screener/analysis/realtime`);
       const data = await res.json();
-      if (data.analysis) {
-        setAnalysisData(data.analysis);
+      if (data.success && data.data) {
+        setAnalysisData(data.data);
         setLastUpdate(new Date());
       }
     } catch (err) {
@@ -34,24 +34,12 @@ export default function AnalysisScreen() {
   }, [fetchAnalysis]);
 
   const getSignalColor = (signal: string) => {
-    switch (signal) {
-      case 'strong_buy': return '#00FF88';
-      case 'buy': return '#86EFAC';
-      case 'sell': return '#FF6B6B';
-      case 'strong_sell': return '#FF4444';
-      default: return '#FFD700';
-    }
+    if (signal.includes('多') || signal.includes('买') || signal.includes('回') || signal.includes('放')) return '#00FF88';
+    if (signal.includes('空') || signal.includes('警')) return '#FF4444';
+    return '#FFD700';
   };
 
-  const getSignalLabel = (signal: string) => {
-    switch (signal) {
-      case 'strong_buy': return '强多';
-      case 'buy': return '看多';
-      case 'sell': return '看空';
-      case 'strong_sell': return '强空';
-      default: return '观望';
-    }
-  };
+  const getSignalLabel = (signal: string) => signal;
 
   const getDirectionIcon = (direction: string) => {
     switch (direction) {

@@ -45,6 +45,16 @@ const PAYMENT_METHODS = [
     avgConfirmTime: '5-15 分钟'
   },
   { 
+    id: 'BNB', 
+    name: 'BNB (BEP20)', 
+    icon: 'diamond-outline',
+    description: 'BNB Smart Chain 转账',
+    color: '#F3BA2F',
+    network: 'BNB Smart Chain (BEP20)',
+    minConfirmations: 15,
+    avgConfirmTime: '3-5 分钟'
+  },
+  { 
     id: 'CREDIT_CARD', 
     name: '信用卡/借记卡', 
     icon: 'card-outline',

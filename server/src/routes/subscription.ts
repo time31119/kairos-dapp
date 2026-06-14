@@ -53,17 +53,14 @@ router.post('/create-order', async (req, res) => {
     const orderId = `ORD${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     
     // 生成支付地址（根据支付方式）
-    let paymentAddress = '';
-    switch (paymentMethod) {
-      case 'USDT_TRC20':
-        paymentAddress = 'TRC20_ADDRESS_PENDING'; // 实际应从配置获取
-        break;
-      case 'ETH':
-        paymentAddress = 'ETH_ADDRESS_PENDING';
-        break;
-      default:
-        paymentAddress = 'PAYMENT_ADDRESS_PENDING';
-    }
+    // 收款地址配置
+    const PAYMENT_ADDRESSES = {
+      USDT_TRC20: 'TRX_ADDRESS_PENDING',
+      ETH: 'ETH_ADDRESS_PENDING',
+      BNB: '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d', // BNB Chain (BEP20)
+    };
+    
+    let paymentAddress = PAYMENT_ADDRESSES[paymentMethod as keyof typeof PAYMENT_ADDRESSES] || 'PAYMENT_ADDRESS_PENDING';
 
     const order = {
       orderId,

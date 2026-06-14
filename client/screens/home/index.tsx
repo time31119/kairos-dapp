@@ -243,8 +243,9 @@ function CategoryCard({ cat, onPress }: { cat: any; onPress: () => void }) {
 
 // 赛道分类实时卡片（用于赛道分类板块）
 function CategoryCardV2({ cat, flash, onPress }: { cat: any; flash: boolean; onPress: () => void }) {
-  const avgChange = cat.avgChange ?? cat.stats?.avgChange ?? 0;
-  const isPositive = avgChange >= 0;
+  const top10Rank = cat.top10Rank;
+  const top10Count = cat.top10Count;
+  const hasTop10 = top10Rank > 0 || top10Count > 0;
   
   return (
     <Pressable 
@@ -252,25 +253,94 @@ function CategoryCardV2({ cat, flash, onPress }: { cat: any; flash: boolean; onP
       onPress={onPress}
     >
       {/* 排名标签 */}
-      {cat.changeRank && cat.changeRank <= 10 && (
-        <View style={[styles.rankTag, isPositive ? { backgroundColor: '#00FF88' } : { backgroundColor: '#FF4444' }]}>
-          <Text style={styles.rankText}>#{cat.changeRank}</Text>
+      {hasTop10 && (
+        <View style={styles.rankTag}>
+          <Text style={styles.rankText}>TOP{top10Rank || '#'}</Text>
         </View>
       )}
       <View style={[styles.catIcon, { backgroundColor: (cat.color || '#00F0FF') + '20' }]}>
         <Ionicons name={getIconName(cat.icon || cat.id)} size={22} color={cat.color || '#00F0FF'} />
       </View>
       <Text style={styles.catTitle}>{cat.name}</Text>
-      <Text style={styles.catCount}>{cat.topTokens?.length || cat.tokenCount || 0} 代币</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 }}>
-        <Text style={[styles.catChange, isPositive ? { color: '#00FF88' } : { color: '#FF4444' }]}>
-          {isPositive ? '+' : ''}{avgChange.toFixed(2)}%
-        </Text>
-      </View>
+      <Text style={styles.catCount}>涨幅榜 {cat.gainers?.length || 0} · 跌幅榜 {cat.losers?.length || 0}</Text>
       {/* 热度指示 */}
-      {cat.hotCount > 0 && (
+      {top10Count > 0 && (
         <View style={styles.hotBadge}>
-          <Text style={styles.hotText}>HOT {cat.hotCount}</Text>
+          <Text style={styles.hotText}>HOT {top10Count}</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+// 热门赛道详情卡片组件
+function HotScenarioCard({ scenario, flash }: { scenario: any; flash: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  
+  return (
+    <Pressable 
+      style={[styles.hotScenarioCard, flash && styles.featuredCardFlash]}
+      onPress={() => setExpanded(!expanded)}
+    >
+      {/* 赛道头部 */}
+      <View style={styles.hotScenarioHeader}>
+        <View style={[styles.catIcon, { backgroundColor: (scenario.color || '#00F0FF') + '20' }]}>
+          <Ionicons name={getIconName(scenario.id)} size={24} color={scenario.color || '#00F0FF'} />
+        </View>
+        <View style={styles.hotScenarioInfo}>
+          <Text style={styles.hotScenarioName}>{scenario.name}</Text>
+          <Text style={styles.hotScenarioDesc}>{scenario.description}</Text>
+        </View>
+        <View style={styles.hotScenarioRight}>
+          {scenario.top10Rank && (
+            <View style={styles.rankBadge}>
+              <Text style={styles.rankBadgeText}>#{scenario.top10Rank}</Text>
+            </View>
+          )}
+          <Ionicons 
+            name={expanded ? 'chevron-up' : 'chevron-down'} 
+            size={20} 
+            color="#6B7280" 
+          />
+        </View>
+      </View>
+      
+      {/* 涨跌幅榜切换 */}
+      {expanded && (
+        <View style={styles.billboardContainer}>
+          {/* 涨幅榜 */}
+          <View style={styles.billboardSection}>
+            <View style={styles.billboardHeader}>
+              <View style={[styles.billboardBadge, { backgroundColor: '#00FF8833' }]}>
+                <Ionicons name="trending-up" size={12} color="#00FF88" />
+                <Text style={styles.billboardBadgeText}>涨幅榜</Text>
+              </View>
+            </View>
+            {scenario.gainers?.slice(0, 5).map((token: any, idx: number) => (
+              <View key={token.symbol + '-gain'} style={styles.billboardRow}>
+                <Text style={styles.billboardRank}>{idx + 1}</Text>
+                <Text style={styles.billboardSymbol}>{token.symbol}</Text>
+                <Text style={styles.billboardChangeGreen}>+{token.change.toFixed(2)}%</Text>
+              </View>
+            ))}
+          </View>
+          
+          {/* 跌幅榜 */}
+          <View style={styles.billboardSection}>
+            <View style={styles.billboardHeader}>
+              <View style={[styles.billboardBadge, { backgroundColor: '#FF444433' }]}>
+                <Ionicons name="trending-down" size={12} color="#FF4444" />
+                <Text style={styles.billboardBadgeText}>跌幅榜</Text>
+              </View>
+            </View>
+            {scenario.losers?.slice(0, 5).map((token: any, idx: number) => (
+              <View key={token.symbol + '-loss'} style={styles.billboardRow}>
+                <Text style={styles.billboardRank}>{idx + 1}</Text>
+                <Text style={styles.billboardSymbol}>{token.symbol}</Text>
+                <Text style={styles.billboardChangeRed}>{token.change.toFixed(2)}%</Text>
+              </View>
+            ))}
+          </View>
         </View>
       )}
     </Pressable>
@@ -726,10 +796,10 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* ========== 赛道分类板块 ========== */}
+        {/* ========== 热门赛道板块 ========== */}
         <View style={styles.catSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionLabel}>赛道分类</Text>
+            <Text style={styles.sectionLabel}>热门赛道</Text>
             <View style={styles.headerRight}>
               {categoryLoading ? (
                 <Text style={styles.techCountText}>加载中...</Text>
@@ -747,22 +817,61 @@ export default function HomeScreen() {
               </Pressable>
             </Link>
           </View>
-          <View style={styles.catGrid}>
-            {categoryLoading ? (
-              <View style={{ flex: 1, padding: 40, alignItems: 'center' }}>
-                <Text style={{ color: '#6B7280', fontSize: 14 }}>加载中...</Text>
+          
+          {categoryLoading ? (
+            <View style={{ flex: 1, padding: 40, alignItems: 'center' }}>
+              <Text style={{ color: '#6B7280', fontSize: 14 }}>加载中...</Text>
+            </View>
+          ) : (
+            <>
+              {/* 全局涨跌幅排行榜 */}
+              <View style={styles.billboardContainer}>
+                {/* 全局涨幅前10 */}
+                <View style={styles.billboardSection}>
+                  <View style={styles.billboardHeader}>
+                    <View style={[styles.billboardBadge, { backgroundColor: '#00FF8833' }]}>
+                      <Ionicons name="trending-up" size={12} color="#00FF88" />
+                      <Text style={[styles.billboardBadgeText, { color: '#00FF88' }]}>全球涨幅榜</Text>
+                    </View>
+                  </View>
+                  {categoryData[0]?.globalGainers?.slice(0, 5).map((token: any, idx: number) => (
+                    <View key={token.symbol + '-global-gain'} style={styles.billboardRow}>
+                      <Text style={styles.billboardRank}>{idx + 1}</Text>
+                      <Text style={styles.billboardSymbol}>{token.symbol}</Text>
+                      <Text style={styles.billboardChangeGreen}>+{token.change.toFixed(2)}%</Text>
+                    </View>
+                  )) || <Text style={{ color: '#6B7280', fontSize: 12, textAlign: 'center', paddingVertical: 10 }}>暂无数据</Text>}
+                </View>
+                
+                {/* 全局跌幅前10 */}
+                <View style={styles.billboardSection}>
+                  <View style={styles.billboardHeader}>
+                    <View style={[styles.billboardBadge, { backgroundColor: '#FF444433' }]}>
+                      <Ionicons name="trending-down" size={12} color="#FF4444" />
+                      <Text style={[styles.billboardBadgeText, { color: '#FF4444' }]}>全球跌幅榜</Text>
+                    </View>
+                  </View>
+                  {categoryData[0]?.globalLosers?.slice(0, 5).map((token: any, idx: number) => (
+                    <View key={token.symbol + '-global-loss'} style={styles.billboardRow}>
+                      <Text style={styles.billboardRank}>{idx + 1}</Text>
+                      <Text style={styles.billboardSymbol}>{token.symbol}</Text>
+                      <Text style={styles.billboardChangeRed}>{token.change.toFixed(2)}%</Text>
+                    </View>
+                  )) || <Text style={{ color: '#6B7280', fontSize: 12, textAlign: 'center', paddingVertical: 10 }}>暂无数据</Text>}
+                </View>
               </View>
-            ) : (
-              categoryData.map((cat: any) => (
-                <CategoryCardV2 
-                  key={cat.id} 
-                  cat={cat} 
+              
+              {/* 热门赛道详情列表 */}
+              {categoryData.map((scenario: any) => (
+                <HotScenarioCard 
+                  key={scenario.id} 
+                  scenario={scenario} 
                   flash={categoryFlash}
-                  onPress={() => router.push('/screener/' + cat.id)} 
                 />
-              ))
-            )}
-          </View>
+              ))}
+            </>
+          )}
+          
           {/* 实时更新状态 */}
           {categoryLastUpdate && (
             <View style={styles.updateStatus}>
@@ -962,6 +1071,102 @@ const styles = StyleSheet.create({
   catTitle: { fontSize: 13, fontWeight: '600', color: '#FFF', marginBottom: 2 },
   catCount: { fontSize: 11, color: '#6B7280' },
   catChange: { fontSize: 12, fontWeight: '600' },
+  
+  // 热门赛道详情卡片
+  hotScenarioCard: {
+    backgroundColor: '#12121A',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#1F2937',
+    padding: 16,
+    marginBottom: 12,
+  },
+  hotScenarioHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  hotScenarioInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  hotScenarioName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  hotScenarioDesc: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  hotScenarioRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  rankBadge: {
+    backgroundColor: '#00FF8820',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  rankBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#00FF88',
+  },
+  billboardContainer: {
+    flexDirection: 'row',
+    marginTop: 16,
+    gap: 12,
+  },
+  billboardSection: {
+    flex: 1,
+  },
+  billboardHeader: {
+    marginBottom: 8,
+  },
+  billboardBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  billboardBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  billboardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    gap: 8,
+  },
+  billboardRank: {
+    width: 16,
+    fontSize: 11,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  billboardSymbol: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  billboardChangeGreen: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#00FF88',
+  },
+  billboardChangeRed: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FF4444',
+  },
   
   // 实时更新效果
   techSummaryFlash: {

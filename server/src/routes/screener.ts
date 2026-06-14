@@ -75,7 +75,7 @@ const SCENARIO_TOKENS: Record<ScenarioType, string[]> = {
   layer2: ['ARB', 'OP', 'MATIC', 'ZK', 'STARK'],
 };
 
-// 获取所有场景（支持实时数据更新）
+// 获取热门赛道（基于币安涨跌幅排名前6赛道，每个赛道含涨幅前10和跌幅前10）
 router.get('/scenarios/realtime', (req, res) => {
   // 1. 收集所有代币数据，添加实时波动
   const allTokens: Array<{
@@ -105,52 +105,70 @@ router.get('/scenarios/realtime', (req, res) => {
     });
   });
 
-  // 2. 按涨跌幅排序，取前10名
-  const top10ByChange = [...allTokens]
+  // 2. 按涨跌幅排序，取涨幅前10和跌幅前10
+  const topGainers = [...allTokens]
     .sort((a, b) => b.change - a.change)
     .slice(0, 10);
 
-  // 3. 根据前10名代币统计各赛道出现次数，动态选择最热门的6大赛道
-  const scenarioCounts: Record<string, number> = {};
-  top10ByChange.forEach(token => {
-    scenarioCounts[token.scenario] = (scenarioCounts[token.scenario] || 0) + 1;
+  const topLosers = [...allTokens]
+    .sort((a, b) => a.change - b.change)
+    .slice(0, 10);
+
+  // 3. 统计各赛道在涨幅前10中出现次数，动态选择最热门的6大赛道
+  const scenarioGainCounts: Record<string, number> = {};
+  topGainers.forEach(token => {
+    scenarioGainCounts[token.scenario] = (scenarioGainCounts[token.scenario] || 0) + 1;
   });
 
-  // 动态排序赛道（按在前10中的出现次数）
+  // 动态排序赛道（按在涨幅前10中的出现次数）
   const sortedScenarios = (Object.keys(SCENARIO_CONFIG) as ScenarioType[])
-    .sort((a, b) => (scenarioCounts[b] || 0) - (scenarioCounts[a] || 0))
+    .sort((a, b) => (scenarioGainCounts[b] || 0) - (scenarioGainCounts[a] || 0))
     .slice(0, 6);
 
-  // 4. 构建6大赛道数据
+  // 4. 构建6大热门赛道数据（每个赛道含涨幅前10和跌幅前10）
   const scenarios = sortedScenarios.map(scenario => {
     const config = SCENARIO_CONFIG[scenario];
     const scenarioTokens = allTokens.filter(t => t.scenario === scenario);
     
-    // 该赛道涨跌幅前3名
-    const topTokens = [...scenarioTokens]
+    // 该赛道涨幅前10
+    const gainers = [...scenarioTokens]
       .sort((a, b) => b.change - a.change)
-      .slice(0, 3);
+      .slice(0, 10);
+
+    // 该赛道跌幅前10
+    const losers = [...scenarioTokens]
+      .sort((a, b) => a.change - b.change)
+      .slice(0, 10);
+
+    // 该赛道在前10涨幅榜中的排名
+    const top10Rank = topGainers.findIndex(t => t.scenario === scenario) + 1;
 
     return {
       id: scenario,
       name: config.name,
       color: config.color,
       description: config.description,
-      // 涨跌幅排名（该赛道在前10中的排名）
-      changeRank: top10ByChange.findIndex(t => t.scenario === scenario) + 1,
-      // 该赛道在前10中出现的次数
-      hotCount: scenarioCounts[scenario] || 0,
-      // 前10涨跌幅
-      avgChange: topTokens.length > 0 
-        ? parseFloat((topTokens.reduce((sum, t) => sum + t.change, 0) / topTokens.length).toFixed(2))
-        : 0,
-      // 前3名代币
-      topTokens: topTokens.map(t => ({
+      // 在涨幅前10中的排名
+      top10Rank: top10Rank > 0 ? top10Rank : null,
+      // 该赛道在前10涨幅榜中出现的次数
+      top10Count: scenarioGainCounts[scenario] || 0,
+      // 涨幅前10代币
+      gainers: gainers.map((t, index) => ({
+        rank: index + 1,
         symbol: t.symbol,
         name: t.name,
         price: t.price,
         change: t.change,
-        rank: top10ByChange.indexOf(t) + 1,
+        volume: t.volume,
+      })),
+      // 跌幅前10代币
+      losers: losers.map((t, index) => ({
+        rank: index + 1,
+        symbol: t.symbol,
+        name: t.name,
+        price: t.price,
+        change: t.change,
+        volume: t.volume,
       })),
       updatedAt: new Date().toISOString(),
     };
@@ -159,8 +177,18 @@ router.get('/scenarios/realtime', (req, res) => {
   res.json({
     success: true,
     data: scenarios,
-    // 额外数据：涨跌幅前10
-    top10: top10ByChange.map((t, index) => ({
+    // 全局涨幅前10
+    globalGainers: topGainers.map((t, index) => ({
+      rank: index + 1,
+      symbol: t.symbol,
+      name: t.name,
+      change: t.change,
+      price: t.price,
+      scenario: t.scenario,
+      scenarioName: SCENARIO_CONFIG[t.scenario].name,
+    })),
+    // 全局跌幅前10
+    globalLosers: topLosers.map((t, index) => ({
       rank: index + 1,
       symbol: t.symbol,
       name: t.name,

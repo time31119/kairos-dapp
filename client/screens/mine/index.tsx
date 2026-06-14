@@ -27,6 +27,14 @@ const colors = {
   error: '#EF4444',
 };
 
+// VIP功能入口数据
+const VIP_FUNCTIONS = [
+  { icon: 'people', label: '一键跟单', color: '#FFD700', path: '/vip', desc: '复制顶尖交易员' },
+  { icon: 'chart-line', label: 'K线分析', color: '#00F0FF', path: '/analysis', desc: '专业技术指标' },
+  { icon: 'git-branch', label: '策略跟投', color: '#BF00FF', path: '/strategy', desc: '自动跟投策略' },
+  { icon: 'bell', label: '价格提醒', color: '#10B981', path: '/alerts', desc: '自定义价格通知' },
+];
+
 interface UserStats {
   totalOrders: number;
   totalFollowers: number;
@@ -55,6 +63,8 @@ export default function MineScreen() {
     vipLevel: 0,
   });
   const [showAddress, setShowAddress] = useState(false);
+  const [gasAlertEnabled, setGasAlertEnabled] = useState(false);
+  const [kycStatus, setKycStatus] = useState<'none' | 'pending' | 'verified'>('none');
 
   useEffect(() => {
     if (wallet.isConnected) {
@@ -324,6 +334,52 @@ export default function MineScreen() {
           </View>
         )}
 
+        {/* VIP功能入口 - 暗黑科技风格 */}
+        <View className="px-5 mb-5">
+          <View className="flex-row items-center justify-between mb-2 px-1">
+            <Text className="text-xs uppercase tracking-wider" style={{ color: '#FFD700' }}>VIP 功能</Text>
+            <TouchableOpacity onPress={() => router.push('/vip')}>
+              <Text className="text-xs" style={{ color: '#FFD700' }}>全部 &rarr;</Text>
+            </TouchableOpacity>
+          </View>
+          <View 
+            className="rounded-2xl p-4"
+            style={{ 
+              backgroundColor: '#0A0A0F',
+              borderWidth: 1,
+              borderColor: '#1F1F2E',
+            }}
+          >
+            <View className="flex-row flex-wrap justify-between">
+              {VIP_FUNCTIONS.map((item) => (
+                <TouchableOpacity
+                  key={item.label}
+                  className="items-center mb-3"
+                  style={{ width: '23%' }}
+                  onPress={() => router.push(item.path)}
+                >
+                  <View 
+                    className="w-12 h-12 rounded-2xl items-center justify-center mb-2"
+                    style={{ 
+                      backgroundColor: '#1A1A22',
+                      borderWidth: 1,
+                      borderColor: item.color,
+                      shadowColor: item.color,
+                      shadowOffset: { width: 0, height: 0 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 8,
+                    }}
+                  >
+                    <FontAwesome6 name={item.icon as any} size={20} color={item.color} />
+                  </View>
+                  <Text className="text-xs text-center" style={{ color: '#FFFFFF' }}>{item.label}</Text>
+                  <Text className="text-xs text-center mt-0.5" style={{ color: '#6B7280' }}>{item.desc}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+
         {/* 用户功能入口 - 统一暗黑风格 */}
         <View className="px-5 mb-5">
           <Text className="text-xs mb-2 px-1 uppercase tracking-wider" style={{ color: '#00F0FF' }}>交易功能</Text>
@@ -428,13 +484,25 @@ export default function MineScreen() {
               onPress={() => router.push('/kyc')}
             >
               <View className="flex-row items-center gap-3">
-                <Ionicons name="shield-checkmark" size={22} color="#10B981" />
+                <Ionicons name="shield-checkmark" size={22} color={kycStatus === 'verified' ? '#00FF88' : '#10B981'} />
                 <Text className="text-sm" style={{ color: '#FFFFFF' }}>KYC 实名认证</Text>
               </View>
               <View className="flex-row items-center gap-2">
-                <View className="px-2 py-0.5 rounded" style={{ backgroundColor: '#1A1A22' }}>
-                  <Text className="text-xs" style={{ color: '#FFD700' }}>可选</Text>
-                </View>
+                {kycStatus === 'none' && (
+                  <View className="px-2 py-0.5 rounded" style={{ backgroundColor: '#1A1A22' }}>
+                    <Text className="text-xs" style={{ color: '#6B7280' }}>未认证</Text>
+                  </View>
+                )}
+                {kycStatus === 'pending' && (
+                  <View className="px-2 py-0.5 rounded" style={{ backgroundColor: '#1A1A22' }}>
+                    <Text className="text-xs" style={{ color: '#FFD700' }}>审核中</Text>
+                  </View>
+                )}
+                {kycStatus === 'verified' && (
+                  <View className="px-2 py-0.5 rounded" style={{ backgroundColor: '#1A1A22' }}>
+                    <Text className="text-xs" style={{ color: '#00FF88' }}>已认证</Text>
+                  </View>
+                )}
                 <Ionicons name="chevron-forward" size={16} color="#6B7280" />
               </View>
             </TouchableOpacity>
@@ -452,22 +520,33 @@ export default function MineScreen() {
               <Ionicons name="chevron-forward" size={16} color="#6B7280" />
             </TouchableOpacity>
             
-            {/* Gas 提醒 */}
-            <TouchableOpacity
+            {/* Gas 提醒 - 带开关 */}
+            <View
               className="flex-row items-center justify-between px-4 py-4"
-              onPress={() => Alert.alert('Gas 提醒', 'Gas 价格低时自动提醒')}
             >
               <View className="flex-row items-center gap-3">
-                <Ionicons name="flame-outline" size={22} color="#F97316" />
+                <Ionicons name="flame-outline" size={22} color={gasAlertEnabled ? '#00FF88' : '#F97316'} />
                 <Text className="text-sm" style={{ color: '#FFFFFF' }}>Gas 提醒</Text>
               </View>
-              <View className="flex-row items-center gap-2">
-                <View className="px-2 py-0.5 rounded" style={{ backgroundColor: '#1A1A22' }}>
-                  <Text className="text-xs" style={{ color: '#6B7280' }}>未开启</Text>
+              <TouchableOpacity
+                className="flex-row items-center gap-2"
+                onPress={() => setGasAlertEnabled(!gasAlertEnabled)}
+              >
+                <View 
+                  className="px-2 py-0.5 rounded" 
+                  style={{ backgroundColor: gasAlertEnabled ? '#1A1A22' : '#1A1A22' }}
+                >
+                  <Text className="text-xs" style={{ color: gasAlertEnabled ? '#00FF88' : '#6B7280' }}>
+                    {gasAlertEnabled ? '已开启' : '未开启'}
+                  </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color="#6B7280" />
-              </View>
-            </TouchableOpacity>
+                <Ionicons 
+                  name={gasAlertEnabled ? "toggle-sharp" : "toggle-outline"} 
+                  size={24} 
+                  color={gasAlertEnabled ? '#00FF88' : '#6B7280'} 
+                />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 

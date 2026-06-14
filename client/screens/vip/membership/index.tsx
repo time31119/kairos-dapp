@@ -58,15 +58,6 @@ export default function Membership() {
 
   return (
     <Screen>
-      <Stack.Screen
-        options={{
-          title: '付费订阅',
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.neonCyan,
-          headerBackTitle: '返回',
-        }}
-      />
-
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* 头部介绍 */}
         <View style={styles.header}>

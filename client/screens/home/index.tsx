@@ -4,11 +4,14 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl, TouchableOpacity, Modal } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Clipboard from 'expo-clipboard';
+import SwapModal from '@/components/payment/SwapModal';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
@@ -60,7 +63,7 @@ const FEATURED_TAGS = [
 ];
 
 // 赛道区块 - 基于技术分析
-function CategorySection({ category, onPress }: { category: any; onPress: () => void }) {
+function CategorySection({ category, onPress, onSwapToken }: { category: any; onPress: () => void; onSwapToken: (token: any) => void }) {
   return (
     <Pressable style={styles.categorySection} onPress={onPress}>
       <View style={styles.categoryHeader}>
@@ -99,7 +102,7 @@ function CategorySection({ category, onPress }: { category: any; onPress: () => 
       <View style={styles.tokenList}>
         {category.tokens?.slice(0, 3).map((t: any, i: number) => (
           <View key={t.symbol} style={styles.miniTokenRow}>
-            <View style={styles.miniTokenLeft}>
+            <Pressable style={styles.miniTokenLeft} onPress={() => onSwapToken(t)}>
               <Text style={styles.miniRank}>{t.rank || i + 1}</Text>
               <Text style={styles.miniSymbol}>{t.symbol}</Text>
               {/* 技术分析信号标签 */}
@@ -112,12 +115,15 @@ function CategorySection({ category, onPress }: { category: any; onPress: () => 
                   ))}
                 </View>
               )}
-            </View>
+            </Pressable>
             <View style={styles.miniTokenRight}>
               <Text style={styles.miniPrice}>${formatPrice(t.price)}</Text>
               <Text style={[styles.miniChange, { color: t.change >= 0 ? '#00FF88' : '#FF4444' }]}>
                 {t.change >= 0 ? '+' : ''}{t.change.toFixed(1)}%
               </Text>
+              <Pressable style={styles.swapBtn} onPress={() => onSwapToken(t)}>
+                <Text style={styles.swapBtnText}>兑换</Text>
+              </Pressable>
             </View>
           </View>
         ))}
@@ -207,7 +213,7 @@ function getIconName(icon: string): keyof typeof Ionicons.glyphMap {
   const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
     defi: 'trending-up',
     meme: 'chatbubbles',
-    ai: 'cpu',
+    ai: 'hardware-chip',
     gaming: 'game-controller',
     infrastructure: 'server',
     layer2: 'layers',
@@ -383,6 +389,15 @@ export default function HomeScreen() {
   const [categoryLoading, setCategoryLoading] = useState(true);
   const [categoryLastUpdate, setCategoryLastUpdate] = useState<Date | null>(null);
   const [categoryFlash, setCategoryFlash] = useState(false);
+
+  // 兑换功能
+  const [swapModalVisible, setSwapModalVisible] = useState(false);
+  const [selectedSwapToken, setSelectedSwapToken] = useState<any>(null);
+  
+  const handleSwapToken = useCallback((token: any) => {
+    setSelectedSwapToken(token);
+    setSwapModalVisible(true);
+  }, []);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -789,6 +804,7 @@ export default function HomeScreen() {
                       techStats: cat.stats,
                     }} 
                     onPress={() => router.push('/screener/' + cat.id)}
+                    onSwapToken={handleSwapToken}
                   />
                 </Pressable>
               );
@@ -889,6 +905,16 @@ export default function HomeScreen() {
         {/* 底部间距 */}
         <View style={styles.bottomGap} />
       </ScrollView>
+
+      {/* 代币兑换弹窗 */}
+      <SwapModal
+        visible={swapModalVisible}
+        token={selectedToken}
+        onClose={() => {
+          setSwapModalVisible(false);
+          setSelectedToken(null);
+        }}
+      />
     </Screen>
   );
 }

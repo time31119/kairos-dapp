@@ -9,6 +9,9 @@ import {
   Alert 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
 interface PaymentModalProps {
   visible: boolean;
@@ -21,6 +24,51 @@ interface PaymentModalProps {
   billingCycle: 'monthly' | 'quarterly' | 'yearly';
   onClose: () => void;
   onSuccess: () => void;
+}
+
+// 激活订阅
+async function activateSubscription(planId: string, billingCycle: string) {
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/subscription/activate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-id': 'demo-user',
+      },
+      body: JSON.stringify({ planId, billingCycle }),
+    });
+    return await response.json();
+  } catch (error) {
+    console.error('激活订阅失败:', error);
+    return { success: false, message: '网络错误' };
+  }
+}
+
+// 保存订阅状态到本地
+async function saveSubscriptionStatus(planId: string, billingCycle: string) {
+  try {
+    const durationMap: Record<string, number> = {
+      monthly: 30,
+      quarterly: 90,
+      yearly: 365,
+    };
+    const days = durationMap[billingCycle] || 30;
+    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+    
+    const subscriptionData = {
+      planId,
+      billingCycle,
+      status: 'active',
+      activatedAt: new Date().toISOString(),
+      expiresAt,
+    };
+    
+    await AsyncStorage.setItem('user_subscription', JSON.stringify(subscriptionData));
+    return true;
+  } catch (error) {
+    console.error('保存订阅状态失败:', error);
+    return false;
+  }
 }
 
 const PAYMENT_METHODS = [
@@ -75,6 +123,7 @@ export default function PaymentModal({
 }: PaymentModalProps) {
   const [selectedMethod, setSelectedMethod] = useState<string>('USDT_TRC20');
   const [loading, setLoading] = useState(false);
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [orderCreated, setOrderCreated] = useState(false);
   const [orderInfo, setOrderInfo] = useState<{
     orderId: string;
@@ -125,6 +174,8 @@ export default function PaymentModal({
   };
 
   const handleConfirmPayment = () => {
+    if (!plan) return;
+    
     // 模拟支付确认
     Alert.alert(
       '支付确认',
@@ -133,10 +184,38 @@ export default function PaymentModal({
         { text: '取消', style: 'cancel' },
         { 
           text: '已转账，确认', 
-          onPress: () => {
-            onSuccess();
-            setOrderCreated(false);
-            setOrderInfo(null);
+          onPress: async () => {
+            setIsCreatingOrder(true);
+            try {
+              // 调用激活接口
+              const result = await activateSubscription(plan.id, billingCycle);
+              if (result.success) {
+                // 保存订阅状态到本地
+                await saveSubscriptionStatus(plan.id, billingCycle);
+                
+                const durationMap: Record<string, string> = {
+                  monthly: '月',
+                  quarterly: '季', 
+                  yearly: '年'
+                };
+                const duration = durationMap[billingCycle] || '月';
+                
+                Alert.alert(
+                  '🎉 开通成功！',
+                  `${plan.name} ${duration}会员已开通，${result.message}`,
+                  [{ text: '确定', onPress: () => {
+                    onSuccess();
+                    handleClose();
+                  }}]
+                );
+              } else {
+                Alert.alert('开通失败', result.message || '请稍后重试');
+              }
+            } catch (error) {
+              Alert.alert('错误', '网络请求失败，请稍后重试');
+            } finally {
+              setIsCreatingOrder(false);
+            }
           }
         }
       ]
@@ -347,9 +426,30 @@ export default function PaymentModal({
               {/* Simulate Success */}
               <TouchableOpacity
                 style={styles.simulateButton}
-                onPress={() => {
-                  onSuccess();
-                  handleClose();
+                onPress={async () => {
+                  setIsCreatingOrder(true);
+                  try {
+                    // 调用激活接口
+                    const result = await activateSubscription(plan.id, billingCycle);
+                    if (result.success) {
+                      // 保存订阅状态到本地
+                      await saveSubscriptionStatus(plan.id, billingCycle);
+                      Alert.alert(
+                        '🎉 开通成功！',
+                        `${plan.name} ${result.data?.duration || '月'}会员已开通！`,
+                        [{ text: '确定', onPress: () => {
+                          onSuccess();
+                          handleClose();
+                        }}]
+                      );
+                    } else {
+                      Alert.alert('开通失败', result.message || '请稍后重试');
+                    }
+                  } catch (error) {
+                    Alert.alert('错误', '网络请求失败，请稍后重试');
+                  } finally {
+                    setIsCreatingOrder(false);
+                  }
                 }}
               >
                 <Text style={styles.simulateText}>模拟支付成功（测试用）</Text>

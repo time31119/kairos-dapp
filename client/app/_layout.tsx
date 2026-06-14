@@ -4,6 +4,7 @@ import { LogBox } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { Provider } from '@/components/Provider';
 import { Web3Provider } from '@/contexts/Web3Context';
+import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
 
 import '../global.css';
 
@@ -17,7 +18,8 @@ export default function RootLayout() {
   return (
     <Provider>
       <Web3Provider>
-        <Stack
+        <SubscriptionProvider>
+          <Stack
         screenOptions={{
           animation: 'slide_from_right',
           gestureEnabled: true,
@@ -44,6 +46,7 @@ export default function RootLayout() {
         <Stack.Screen name="vip" options={{ title: "会员中心", headerShown: true, headerStyle: { backgroundColor: '#0A0A0F' }, headerTintColor: '#00F0FF' }} />
         <Stack.Screen name="vip/membership" options={{ title: "会员订阅", headerShown: false }} />
       </Stack>
+        </SubscriptionProvider>
       </Web3Provider>
       <Toast />
     </Provider>

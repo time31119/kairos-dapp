@@ -124,4 +124,47 @@ router.post('/cancel', async (req, res) => {
   }
 });
 
+// 激活订阅
+router.post('/activate', async (req, res) => {
+  try {
+    const { planId, billingCycle } = req.body;
+    const userId = req.headers['x-user-id'] as string || 'demo-user';
+    
+    if (!planId) {
+      res.status(400).json({ success: false, message: '缺少套餐参数' });
+      return;
+    }
+    
+    // 根据计费周期计算过期时间
+    let days = 30;
+    if (billingCycle === 'quarterly') days = 90;
+    else if (billingCycle === 'yearly') days = 365;
+    
+    // 订阅时长映射
+    const durationMap: Record<string, string> = {
+      monthly: '月',
+      quarterly: '季',
+      yearly: '年'
+    };
+    
+    createSubscription(userId, {
+      plan: planId,
+      status: 'active',
+      expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+    });
+    
+    res.json({ 
+      success: true, 
+      message: '会员开通成功',
+      data: {
+        plan: planId,
+        duration: durationMap[billingCycle] || '月',
+        expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: '开通会员失败' });
+  }
+});
+
 export default router;

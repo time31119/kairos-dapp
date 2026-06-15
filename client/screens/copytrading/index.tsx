@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
+import TraderDetailModal from '@/components/payment/TraderDetailModal';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || ''
 
@@ -76,6 +77,8 @@ export default function CopytradingScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState<'returns' | 'winRate' | 'followers'>('returns');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTrader, setSelectedTrader] = useState<Trader | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   // 获取交易员数据
   const fetchTraders = useCallback(async () => {
@@ -477,7 +480,10 @@ export default function CopytradingScreen() {
                 <TouchableOpacity 
                   key={trader.id} 
                   style={styles.liveTraderCard}
-                  onPress={() => router.push('/trader', { traderId: trader.id })}
+                  onPress={() => {
+                    setSelectedTrader(trader);
+                    setModalVisible(true);
+                  }}
                 >
                   <View style={styles.liveTraderRank}>
                     <Text style={styles.liveRankText}>#{index + 1}</Text>
@@ -714,6 +720,14 @@ export default function CopytradingScreen() {
           {activeTab === 'portfolio' && renderPortfolioTab()}
         </View>
       </ScrollView>
+
+      {/* 交易员详情 Modal */}
+      <TraderDetailModal
+        visible={modalVisible}
+        trader={selectedTrader}
+        onClose={() => setModalVisible(false)}
+        onFollow={handleFollow}
+      />
     </Screen>
   );
 }
@@ -1244,4 +1258,18 @@ const styles = {
     fontSize: 14,
     marginTop: 8,
   },
+};
+
+// 处理跟单
+const handleFollow = async (traderId: string, amount: number): Promise<boolean> => {
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/copytrading/follow`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ traderId, amount }),
+    });
+    return response.ok;
+  } catch (error) {
+    return false;
+  }
 };

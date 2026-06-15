@@ -924,12 +924,10 @@ export default function HomeScreen() {
                       <Text style={styles.liveText}>LIVE</Text>
                     </View>
                   </View>
-                  <TouchableOpacity onPress={() => router.push('/news')}>
-                    <View style={styles.moreButton}>
-                      <Text style={styles.moreText}>更多</Text>
-                      <Ionicons name="chevron-forward" size={14} color="#6B7280" />
-                    </View>
-                  </TouchableOpacity>
+                  <View style={styles.moreButton}>
+                    <Text style={styles.moreText}>更多</Text>
+                    <Ionicons name="chevron-forward" size={14} color="#6B7280" />
+                  </View>
                 </View>
                 
                 <ScrollView 
@@ -938,20 +936,12 @@ export default function HomeScreen() {
                   contentContainerStyle={styles.newsScrollContent}
                 >
                   {newsData.length > 0 ? newsData.slice(0, 6).map((news: any, idx: number) => (
-                    <TouchableOpacity 
+                    <View 
                       key={news.id || idx}
                       style={[
                         styles.newsCard,
                         idx === 0 && styles.newsCardFirst
                       ]}
-                      onPress={() => {
-                        if (news.url && news.url !== '#') {
-                          // 在真实环境中打开新闻链接
-                          router.push('/news');
-                        } else {
-                          router.push('/news');
-                        }
-                      }}
                     >
                       {news.imageUrl && (
                         <Image 
@@ -976,7 +966,7 @@ export default function HomeScreen() {
                           <Text style={styles.hotText}>热</Text>
                         </View>
                       )}
-                    </TouchableOpacity>
+                    </View>
                   )) : (
                     <View style={styles.newsEmpty}>
                       <Ionicons name="newspaper-outline" size={32} color="#6B7280" />
@@ -989,17 +979,16 @@ export default function HomeScreen() {
                 <View style={styles.flashNewsSection}>
                   <Text style={styles.flashNewsTitle}>最新快讯</Text>
                   {newsData.slice(0, 4).map((news: any, idx: number) => (
-                    <TouchableOpacity 
+                    <View 
                       key={news.id || `flash-${idx}`}
                       style={styles.flashNewsItem}
-                      onPress={() => router.push('/news')}
                     >
                       <View style={styles.flashNewsLeft}>
                         <View style={[styles.flashDot, news.hot && styles.flashDotHot]} />
                         <Text style={styles.flashNewsText} numberOfLines={1}>{news.title}</Text>
                       </View>
                       <Text style={styles.flashNewsTime}>{news.time}</Text>
-                    </TouchableOpacity>
+                    </View>
                   ))}
                 </View>
               </View>

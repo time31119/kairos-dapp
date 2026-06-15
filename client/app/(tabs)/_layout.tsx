@@ -56,12 +56,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="news"
+        name="copytrading"
         options={{
-          title: '资讯',
+          title: '一键跟单',
           tabBarIcon: ({ color, focused }) => (
             <MaterialCommunityIcons 
-              name={focused ? 'newspaper' : 'newspaper-variant-outline'} 
+              name={focused ? 'chart-line' : 'chart-line-variant'} 
               size={22} 
               color={color} 
             />

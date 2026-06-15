@@ -1,684 +1,378 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
-  Dimensions,
-  RefreshControl,
   ActivityIndicator,
+  RefreshControl,
+  Image,
+  TextInput,
 } from 'react-native';
-import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
-import { useFocusEffect } from 'expo-router';
-import { apiRequest } from '@/utils/api';
 
-const { width } = Dimensions.get('window');
+const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
 
-// Reusable Card Component
-function NeonCard({ children, style }: { children: React.ReactNode; style?: any }) {
-  return (
-    <View
-      style={[
-        {
-          backgroundColor: 'rgba(10, 10, 15, 0.9)',
-          borderRadius: 16,
-          borderWidth: 1,
-          borderColor: 'rgba(0, 240, 255, 0.3)',
-          padding: 16,
-          marginBottom: 12,
-        },
-        style,
-      ]}
-    >
-      {children}
-    </View>
-  );
+interface Trader {
+  id: string;
+  platform: string;
+  name: string;
+  avatar?: string;
+  avatarUrl?: string;
+  country?: string;
+  winRate: number;
+  returns: number;
+  followers: number;
+  totalTrades: number;
+  avgProfit: number;
+  specialties: string[];
+  strategies: string[];
+  riskLevel: string;
+  verified: boolean;
+  blueTick: boolean;
+  lastTradeTime?: string;
+  todayPnl?: string;
+  weeklyPnL?: string;
+  maxDrawdown?: string;
+  sharpeRatio?: string;
 }
 
-// Stat Item Component
-function StatItem({ label, value, color = '#E0E0E0' }: { label: string; value: string; color?: string }) {
-  return (
-    <View style={{ alignItems: 'center', flex: 1 }}>
-      <Text style={{ color: '#666', fontSize: 11 }}>{label}</Text>
-      <Text style={{ color, fontSize: 18, fontWeight: 'bold', marginTop: 4 }}>{value}</Text>
-    </View>
-  );
+interface FollowingPosition {
+  id: string;
+  traderId: string;
+  traderName: string;
+  traderAvatar?: string;
+  traderPlatform: string;
+  amount: number;
+  pnl: number;
+  pnlRate: number;
+  status: 'active' | 'closed';
+  startTime: string;
 }
 
-// Trade Item Component
-function TradeItem({
-  trade,
-}: {
-  trade: { date: string; action: string; pair: string; yield: number; status: string };
-}) {
-  const isWin = trade.status === 'win';
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.05)',
-      }}
-    >
-      <View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={{ color: isWin ? '#00FF88' : '#FF4444', fontSize: 13 }}>
-            {isWin ? '↑ 做多' : '↓ 做空'}
-          </Text>
-          <Text style={{ color: '#FFF', fontSize: 14 }}>{trade.pair}</Text>
-        </View>
-        <Text style={{ color: '#666', fontSize: 11, marginTop: 2 }}>{trade.date}</Text>
-      </View>
-      <Text style={{ color: isWin ? '#00FF88' : '#FF4444', fontSize: 16, fontWeight: 'bold' }}>
-        {isWin ? '+' : ''}{trade.yield.toFixed(1)}%
-      </Text>
-    </View>
-  );
-}
+const RISK_COLORS: Record<string, string> = {
+  '低': '#00FF88',
+  '中': '#FFB800',
+  '高': '#FF6B6B',
+  '极高': '#FF0055',
+};
 
-// Page Components
-export default function CopyTradingPage() {
+export default function CopyTradingScreen() {
+  const [activeTab, setActiveTab] = useState<'traders' | 'portfolio'>('traders');
+  const [traders, setTraders] = useState<Trader[]>([]);
+  const [portfolio, setPortfolio] = useState<FollowingPosition[]>([]);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'trader' | 'my' | 'history'>('trader');
+  const [sortBy, setSortBy] = useState<'returns' | 'winRate' | 'followers'>('returns');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [traderLiveData, setTraderLiveData] = useState<Record<string, any>>({});
 
-  // 数据状态
-  const [traderData, setTraderData] = useState<any>(null);
-  const [myPositions, setMyPositions] = useState<any[]>([]);
-  const [historyData, setHistoryData] = useState<any[]>([]);
-  const [stats, setStats] = useState({
-    totalYield: '+358 U',
-    totalYieldPercent: '+1.89%',
-    activeFollows: 2,
-    totalProfit: '+903 U',
-    winRate: '67%',
-  });
-
-  // 获取交易员数据
-  const fetchTraderData = async () => {
-    const result = await apiRequest<{ traders?: any[]; [key: string]: any }>('/copytrading/traders');
-    if (result.success && result.data) {
-      if (result.data.traders && result.data.traders.length > 0) {
-        setTraderData(result.data.traders[0]);
-      } else if (Array.isArray(result.data)) {
-        setTraderData(result.data[0]);
-      } else {
-        setTraderData(result.data);
-      }
-    }
-  };
-
-  // 获取我的跟单
-  const fetchMyPositions = async () => {
-    const result = await apiRequest<{ positions?: any[]; [key: string]: any }>('/copytrading/positions');
-    if (result.success && result.data) {
-      if (result.data.positions) {
-        setMyPositions(result.data.positions);
-      } else if (Array.isArray(result.data)) {
-        setMyPositions(result.data);
-      }
-    }
-  };
-
-  // 获取跟单记录
-  const fetchHistory = async () => {
-    const result = await apiRequest<{ history?: any[]; [key: string]: any }>('/copytrading/history');
-    if (result.success && result.data) {
-      if (result.data.history) {
-        setHistoryData(result.data.history);
-      } else if (Array.isArray(result.data)) {
-        setHistoryData(result.data);
-      }
-    }
-  };
-
-  // 加载所有数据
-  const loadData = async () => {
+  const fetchTraders = useCallback(async () => {
     setLoading(true);
-    await Promise.all([
-      fetchTraderData(),
-      fetchMyPositions(),
-      fetchHistory(),
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(`${API_BASE}/api/v1/copytrading/traders?sort=${sortBy}&limit=20`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setTraders(data.data || []);
+      }
+    } catch (error) {
+      console.log('获取交易员失败');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [sortBy]);
+
+  const fetchPortfolio = useCallback(async () => {
+    setPortfolio([
+      {
+        id: 'pos_001',
+        traderId: 'bin_001',
+        traderName: 'CryptoAlpha Pro',
+        traderPlatform: 'Binance',
+        amount: 100,
+        pnl: 23.5,
+        pnlRate: 2.35,
+        status: 'active',
+        startTime: new Date(Date.now() - 86400000 * 3).toISOString(),
+      },
+      {
+        id: 'pos_002',
+        traderId: 'bin_002',
+        traderName: 'WhaleHunter',
+        traderPlatform: 'Binance',
+        amount: 200,
+        pnl: -5.2,
+        pnlRate: -0.52,
+        status: 'active',
+        startTime: new Date(Date.now() - 86400000 * 7).toISOString(),
+      },
     ]);
-  };
+  }, []);
+
+  const fetchTopTradersLiveData = useCallback(async () => {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch(`${API_BASE}/api/v1/copytrading/traders?sort=returns&limit=10`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      
+      if (response.ok) {
+        const data = await response.json();
+        const liveData: Record<string, any> = {};
+        (data.data || []).forEach((trader: Trader) => {
+          liveData[trader.id] = {
+            todayPnl: trader.todayPnl,
+            weeklyPnL: trader.weeklyPnL,
+            lastTradeTime: trader.lastTradeTime,
+          };
+        });
+        setTraderLiveData(liveData);
+      }
+    } catch (error) {
+      console.log('获取实时数据失败');
+    }
+  }, []);
 
   useEffect(() => {
-    setLoading(true);
-    loadData().finally(() => setLoading(false));
-  }, []);
+    fetchTraders();
+  }, [fetchTraders]);
 
-  useFocusEffect(
-    useCallback(() => {
-      // Refresh data on focus
-    }, [])
-  );
+  useEffect(() => {
+    if (activeTab === 'traders' && traders.length === 0) {
+      fetchTraders();
+    } else if (activeTab === 'portfolio') {
+      fetchPortfolio();
+      fetchTopTradersLiveData();
+    }
+  }, [activeTab]);
 
-  const onRefresh = useCallback(async () => {
+  useEffect(() => {
+    if (activeTab !== 'portfolio') return;
+    
+    const interval = setInterval(() => {
+      fetchTopTradersLiveData();
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [activeTab, fetchTopTradersLiveData]);
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  }, []);
-
-  // 默认交易员数据
-  const defaultTrader = {
-    id: 'trader_001',
-    name: '币神张三',
-    avatar: null,
-    tags: ['连胜中', '高胜率', '币安认证'],
-    bio: '专注现货趋势交易，擅长捕捉主流币阶段性机会，管理资金超500万U',
-    followers: 2341,
-    totalYield: 127.5,
-    winRate: 82,
-    totalTrades: 156,
-    avgHoldingTime: '3-5天',
-    riskLevel: '中风险',
-    recentPerformance: [
-      { date: '01-18', action: '做多', pair: 'BTC/USDT', yield: 5.2, status: 'win' },
-      { date: '01-15', action: '做多', pair: 'ETH/USDT', yield: 8.7, status: 'win' },
-      { date: '01-12', action: '做空', pair: 'SOL/USDT', yield: -2.1, status: 'lose' },
-      { date: '01-08', action: '做多', pair: 'BNB/USDT', yield: 12.3, status: 'win' },
-      { date: '01-05', action: '做多', pair: 'BTC/USDT', yield: 4.8, status: 'win' },
-      { date: '01-02', action: '做空', pair: 'AVAX/USDT', yield: 6.5, status: 'win' },
-    ],
-    monthlyStats: [
-      { month: '1月', yield: 15.2 },
-      { month: '2月', yield: 8.7 },
-      { month: '3月', yield: -3.2 },
-      { month: '4月', yield: 22.5 },
-      { month: '5月', yield: 18.3 },
-      { month: '6月', yield: 12.1 },
-    ],
+    if (activeTab === 'traders') {
+      await fetchTraders();
+    } else if (activeTab === 'portfolio') {
+      await fetchPortfolio();
+    }
   };
 
-  const displayTrader = traderData || defaultTrader;
-  const displayPositions = myPositions.length > 0 ? myPositions : [
-    {
-      id: 'pos_001',
-      traderId: 'trader_001',
-      traderName: '币神张三',
-      pair: 'BTC/USDT',
-      entryPrice: 67200,
-      currentPrice: 68500,
-      pnl: 2.13,
-      pnlAmount: 213,
-      ratio: 0.3,
-      openTime: '01-18 14:30',
-      status: 'active',
-    },
-    {
-      id: 'pos_002',
-      traderId: 'trader_002',
-      traderName: '量化小王',
-      pair: 'ETH/USDT',
-      entryPrice: 3450,
-      currentPrice: 3520,
-      pnl: 1.45,
-      pnlAmount: 145,
-      ratio: 0.5,
-      openTime: '01-16 09:15',
-      status: 'active',
-    },
-  ];
+  const filteredTraders = traders.filter(trader =>
+    trader.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    trader.specialties.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
-  const displayHistory = historyData.length > 0 ? historyData : [
-    {
-      id: 'hist_001',
-      traderId: 'trader_001',
-      traderName: '币神张三',
-      pair: 'BTC/USDT',
-      entryPrice: 64200,
-      exitPrice: 67800,
-      pnl: 5.61,
-      pnlAmount: 561,
-      closeTime: '01-15 22:00',
-      status: 'win',
-    },
-    {
-      id: 'hist_002',
-      traderId: 'trader_001',
-      traderName: '币神张三',
-      pair: 'ETH/USDT',
-      entryPrice: 3580,
-      exitPrice: 3890,
-      pnl: 8.66,
-      pnlAmount: 866,
-      closeTime: '01-12 18:30',
-      status: 'win',
-    },
-    {
-      id: 'hist_003',
-      traderId: 'trader_002',
-      traderName: '量化小王',
-      pair: 'BNB/USDT',
-      entryPrice: 420,
-      exitPrice: 398,
-      pnl: -5.24,
-      pnlAmount: -524,
-      closeTime: '01-10 15:45',
-      status: 'lose',
-    },
-  ];
+  const renderTradersTab = () => (
+    <View style={{ padding: 16 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#1E1E2E', borderRadius: 12, paddingHorizontal: 12, marginBottom: 16 }}>
+        <Ionicons name="search" size={20} color="#8B8B9A" />
+        <TextInput
+          style={{ flex: 1, color: '#FFFFFF', paddingVertical: 12, paddingHorizontal: 8 }}
+          placeholder="搜索交易员..."
+          placeholderTextColor="#8B8B9A"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
 
-  const renderTraderTab = () => (
-    <ScrollView
-      style={{ flex: 1 }}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00F0FF" />
-      }
-    >
-      {/* Header Card */}
-      <NeonCard>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <View
+      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+        {[
+          { key: 'returns', label: '累计收益' },
+          { key: 'winRate', label: '胜率' },
+          { key: 'followers', label: '跟单人数' },
+        ].map(option => (
+          <TouchableOpacity
+            key={option.key}
             style={{
-              width: 64,
-              height: 64,
-              borderRadius: 32,
-              backgroundColor: 'rgba(0, 240, 255, 0.2)',
-              justifyContent: 'center',
-              alignItems: 'center',
-              borderWidth: 2,
-              borderColor: '#00F0FF',
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 20,
+              backgroundColor: sortBy === option.key ? '#00F0FF' : '#2A2A3E',
             }}
+            onPress={() => setSortBy(option.key as any)}
           >
-            <Text style={{ fontSize: 28, color: '#00F0FF' }}>
-              {displayTrader.name?.charAt(0) || '神'}
+            <Text style={{ color: sortBy === option.key ? '#000' : '#8B8B9A', fontSize: 13 }}>
+              {option.label}
             </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {loading && traders.length === 0 ? (
+        <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+          <ActivityIndicator size="large" color="#00F0FF" />
+          <Text style={{ color: '#8B8B9A', marginTop: 12 }}>加载中...</Text>
+        </View>
+      ) : (
+        filteredTraders.map(trader => (
+          <TouchableOpacity
+            key={trader.id}
+            style={{ backgroundColor: '#1E1E2E', borderRadius: 16, padding: 16, marginBottom: 12 }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#2A2A3E', justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ color: '#00F0FF', fontSize: 18, fontWeight: 'bold' }}>
+                  {trader.name.charAt(0)}
+                </Text>
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>{trader.name}</Text>
+                  {trader.verified && (
+                    <View style={{ backgroundColor: '#00F0FF', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2, marginLeft: 6 }}>
+                      <Text style={{ color: '#000', fontSize: 10, fontWeight: 'bold' }}>认证</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={{ color: '#8B8B9A', fontSize: 12, marginTop: 2 }}>{trader.platform}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={{ color: '#00FF88', fontSize: 18, fontWeight: 'bold' }}>+{trader.returns.toFixed(1)}%</Text>
+                <Text style={{ color: '#8B8B9A', fontSize: 11 }}>累计收益</Text>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#2A2A3E' }}>
+              <View style={{ alignItems: 'center' }}>
+                <Text style={{ color: '#FFFFFF', fontSize: 14 }}>{trader.winRate.toFixed(1)}%</Text>
+                <Text style={{ color: '#8B8B9A', fontSize: 11 }}>胜率</Text>
+              </View>
+              <View style={{ alignItems: 'center' }}>
+                <Text style={{ color: '#FFFFFF', fontSize: 14 }}>{trader.followers.toLocaleString()}</Text>
+                <Text style={{ color: '#8B8B9A', fontSize: 11 }}>跟单人数</Text>
+              </View>
+              <View style={{ alignItems: 'center' }}>
+                <Text style={{ color: RISK_COLORS[trader.riskLevel] || '#8B8B9A', fontSize: 14 }}>{trader.riskLevel}</Text>
+                <Text style={{ color: '#8B8B9A', fontSize: 11 }}>风险</Text>
+              </View>
+              <TouchableOpacity style={{ backgroundColor: '#00F0FF', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 6 }}>
+                <Text style={{ color: '#000', fontSize: 13, fontWeight: '600' }}>跟单</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        ))
+      )}
+    </View>
+  );
+
+  const renderPortfolioTab = () => (
+    <View style={{ padding: 16 }}>
+      {portfolio.length === 0 ? (
+        <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+          <Ionicons name="wallet-outline" size={64} color="#3A3A4E" />
+          <Text style={{ color: '#8B8B9A', fontSize: 16, marginTop: 16 }}>暂无跟单记录</Text>
+          <Text style={{ color: '#6B6B7B', fontSize: 13, marginTop: 8 }}>去跟单页面选择交易员开始跟单</Text>
+        </View>
+      ) : (
+        <>
+          <View style={{ backgroundColor: '#1E1E2E', borderRadius: 16, padding: 16, marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View>
+                <Text style={{ color: '#8B8B9A', fontSize: 12 }}>我的实盘</Text>
+                <Text style={{ color: '#FFFFFF', fontSize: 24, fontWeight: 'bold', marginTop: 4 }}>
+                  ${portfolio.reduce((sum, p) => sum + p.amount + p.pnl, 0).toFixed(2)}
+                </Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={{ color: '#00FF88', fontSize: 16 }}>
+                  +${portfolio.reduce((sum, p) => sum + p.pnl, 0).toFixed(2)}
+                </Text>
+                <Text style={{ color: '#8B8B9A', fontSize: 11 }}>总收益</Text>
+              </View>
+            </View>
           </View>
-          <View style={{ marginLeft: 16, flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <Text style={{ color: '#FFF', fontSize: 20, fontWeight: 'bold' }}>
-                {displayTrader.name}
-              </Text>
-              {(displayTrader.tags || defaultTrader.tags).map((tag: string) => (
-                <View
-                  key={tag}
-                  style={{
-                    backgroundColor:
-                      tag === '连胜中' ? 'rgba(0, 255, 136, 0.2)' : 'rgba(0, 240, 255, 0.2)',
-                    paddingHorizontal: 8,
-                    paddingVertical: 2,
-                    borderRadius: 10,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: tag === '连胜中' ? '#00FF88' : '#00F0FF',
-                      fontSize: 10,
-                    }}
-                  >
-                    {tag}
+
+          {portfolio.map(pos => (
+            <View key={pos.id} style={{ backgroundColor: '#1E1E2E', borderRadius: 16, padding: 16, marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View>
+                  <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>{pos.traderName}</Text>
+                  <Text style={{ color: '#8B8B9A', fontSize: 12, marginTop: 2 }}>{pos.traderPlatform}</Text>
+                </View>
+                <View style={{ backgroundColor: pos.pnl >= 0 ? '#00FF8815' : '#FF6B6B15', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
+                  <Text style={{ color: pos.pnl >= 0 ? '#00FF88' : '#FF6B6B', fontWeight: '600' }}>
+                    {pos.pnl >= 0 ? '+' : ''}{pos.pnlRate.toFixed(2)}%
                   </Text>
                 </View>
-              ))}
-            </View>
-            <Text style={{ color: '#888', fontSize: 12, marginTop: 4 }}>{displayTrader.bio}</Text>
-          </View>
-        </View>
-
-        {/* Stats */}
-        <View
-          style={{
-            flexDirection: 'row',
-            marginTop: 20,
-            paddingTop: 16,
-            borderTopWidth: 1,
-            borderTopColor: 'rgba(255,255,255,0.1)',
-          }}
-        >
-          <StatItem label="总收益率" value={`+${displayTrader.totalYield || 127.5}%`} color="#00FF88" />
-          <StatItem label="胜率" value={`${displayTrader.winRate || 82}%`} color="#00F0FF" />
-          <StatItem label="跟单人数" value={(displayTrader.followers || 2341).toLocaleString()} />
-        </View>
-
-        <View
-          style={{
-            flexDirection: 'row',
-            marginTop: 12,
-            paddingTop: 12,
-            borderTopWidth: 1,
-            borderTopColor: 'rgba(255,255,255,0.1)',
-          }}
-        >
-          <StatItem label="累计交易" value={`${displayTrader.totalTrades || 156}笔`} />
-          <StatItem label="平均持仓" value={displayTrader.avgHoldingTime || '3-5天'} />
-          <StatItem label="风控等级" value={displayTrader.riskLevel || '中风险'} color="#FFD700" />
-        </View>
-      </NeonCard>
-
-      {/* Quick Action */}
-      <NeonCard style={{ borderColor: 'rgba(255, 215, 0, 0.3)' }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View>
-            <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold' }}>立即跟单</Text>
-            <Text style={{ color: '#666', fontSize: 12, marginTop: 4 }}>
-              跟单比例 10-50%，设置您的跟单参数
-            </Text>
-          </View>
-          <Link href="/copytrading/settings">
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#FFD700',
-                paddingHorizontal: 20,
-                paddingVertical: 10,
-                borderRadius: 20,
-              }}
-            >
-              <Text style={{ color: '#000', fontWeight: 'bold', fontSize: 14 }}>设置跟单</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
-      </NeonCard>
-
-      {/* Monthly Performance */}
-      <NeonCard>
-        <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold', marginBottom: 16 }}>
-          月度收益
-        </Text>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          {(displayTrader.monthlyStats || defaultTrader.monthlyStats).map((stat: any, index: number) => (
-            <View key={index} style={{ alignItems: 'center' }}>
-              <View
-                style={{
-                  width: 8,
-                  height: 40,
-                  backgroundColor:
-                    stat.yield >= 0 ? 'rgba(0, 255, 136, 0.3)' : 'rgba(255, 68, 68, 0.3)',
-                  borderRadius: 4,
-                  marginBottom: 6,
-                }}
-              />
-              <Text style={{ color: '#666', fontSize: 10 }}>{stat.month}</Text>
-              <Text
-                style={{
-                  color: stat.yield >= 0 ? '#00FF88' : '#FF4444',
-                  fontSize: 11,
-                  fontWeight: 'bold',
-                }}
-              >
-                {stat.yield >= 0 ? '+' : ''}{stat.yield.toFixed(0)}%
-              </Text>
+              </View>
+              <View style={{ flexDirection: 'row', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#2A2A3E' }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#8B8B9A', fontSize: 11 }}>跟单金额</Text>
+                  <Text style={{ color: '#FFFFFF', fontSize: 14, marginTop: 2 }}>${pos.amount}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#8B8B9A', fontSize: 11 }}>跟单收益</Text>
+                  <Text style={{ color: pos.pnl >= 0 ? '#00FF88' : '#FF6B6B', fontSize: 14, marginTop: 2 }}>
+                    {pos.pnl >= 0 ? '+' : ''}${pos.pnl.toFixed(2)}
+                  </Text>
+                </View>
+                <TouchableOpacity style={{ backgroundColor: '#FF6B6B20', paddingHorizontal: 16, borderRadius: 8 }}>
+                  <Text style={{ color: '#FF6B6B', fontSize: 13 }}>取消跟单</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ))}
-        </View>
-      </NeonCard>
-
-      {/* Recent Trades */}
-      <NeonCard>
-        <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold', marginBottom: 12 }}>
-          最近交易
-        </Text>
-        {(displayTrader.recentPerformance || defaultTrader.recentPerformance).map((trade: any, index: number) => (
-          <TradeItem key={index} trade={trade} />
-        ))}
-      </NeonCard>
-
-      <View style={{ height: 100 }} />
-    </ScrollView>
-  );
-
-  const renderMyPositionsTab = () => (
-    <ScrollView
-      style={{ flex: 1 }}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00F0FF" />
-      }
-    >
-      <NeonCard style={{ borderColor: 'rgba(0, 255, 136, 0.3)' }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View>
-            <Text style={{ color: '#666', fontSize: 12 }}>总跟单收益</Text>
-            <Text style={{ color: '#00FF88', fontSize: 28, fontWeight: 'bold' }}>{stats.totalYield}</Text>
-            <Text style={{ color: '#00FF88', fontSize: 12 }}>{stats.totalYieldPercent}</Text>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Text style={{ color: '#666', fontSize: 12 }}>活跃跟单</Text>
-            <Text style={{ color: '#FFF', fontSize: 24, fontWeight: 'bold' }}>{stats.activeFollows}</Text>
-            <Text style={{ color: '#666', fontSize: 12 }}>交易员</Text>
-          </View>
-        </View>
-      </NeonCard>
-
-      {displayPositions.map((pos: any) => (
-        <NeonCard key={pos.id}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ color: '#FFF', fontSize: 16, fontWeight: 'bold' }}>{pos.pair}</Text>
-                <View
-                  style={{
-                    backgroundColor: 'rgba(0, 240, 255, 0.2)',
-                    paddingHorizontal: 6,
-                    paddingVertical: 2,
-                    borderRadius: 4,
-                  }}
-                >
-                  <Text style={{ color: '#00F0FF', fontSize: 10 }}>×{pos.ratio}</Text>
-                </View>
-              </View>
-              <Text style={{ color: '#666', fontSize: 12, marginTop: 4 }}>
-                跟单 {pos.traderName} · 开仓 {pos.openTime}
-              </Text>
-            </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={{ color: '#00FF88', fontSize: 18, fontWeight: 'bold' }}>
-                +{typeof pos.pnl === 'number' ? pos.pnl.toFixed(2) : pos.pnl}%
-              </Text>
-              <Text style={{ color: '#666', fontSize: 12 }}>+{pos.pnlAmount} U</Text>
-            </View>
-          </View>
-          <View
-            style={{
-              flexDirection: 'row',
-              marginTop: 12,
-              paddingTop: 12,
-              borderTopWidth: 1,
-              borderTopColor: 'rgba(255,255,255,0.1)',
-            }}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: '#666', fontSize: 10 }}>入场价</Text>
-              <Text style={{ color: '#FFF', fontSize: 13 }}>{pos.entryPrice.toLocaleString()}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: '#666', fontSize: 10 }}>当前价</Text>
-              <Text style={{ color: '#FFF', fontSize: 13 }}>{pos.currentPrice.toLocaleString()}</Text>
-            </View>
-            <TouchableOpacity
-              style={{
-                backgroundColor: 'rgba(255, 68, 68, 0.2)',
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 6,
-              }}
-            >
-              <Text style={{ color: '#FF4444', fontSize: 12 }}>止损</Text>
-            </TouchableOpacity>
-          </View>
-        </NeonCard>
-      ))}
-
-      <View style={{ height: 100 }} />
-    </ScrollView>
-  );
-
-  const renderHistoryTab = () => (
-    <ScrollView
-      style={{ flex: 1 }}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00F0FF" />
-      }
-    >
-      <NeonCard style={{ borderColor: 'rgba(0, 255, 136, 0.3)' }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <View>
-            <Text style={{ color: '#666', fontSize: 12 }}>累计跟单收益</Text>
-            <Text style={{ color: '#00FF88', fontSize: 24, fontWeight: 'bold' }}>{stats.totalProfit}</Text>
-          </View>
-          <View style={{ alignItems: 'center' }}>
-            <Text style={{ color: '#666', fontSize: 12 }}>胜率</Text>
-            <Text style={{ color: '#00F0FF', fontSize: 20, fontWeight: 'bold' }}>{stats.winRate}</Text>
-          </View>
-        </View>
-      </NeonCard>
-
-      {displayHistory.map((item: any) => (
-        <NeonCard key={item.id}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ color: '#FFF', fontSize: 15, fontWeight: 'bold' }}>{item.pair}</Text>
-                <View
-                  style={{
-                    backgroundColor:
-                      item.status === 'win'
-                        ? 'rgba(0, 255, 136, 0.2)'
-                        : 'rgba(255, 68, 68, 0.2)',
-                    paddingHorizontal: 6,
-                    paddingVertical: 2,
-                    borderRadius: 4,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: item.status === 'win' ? '#00FF88' : '#FF4444',
-                      fontSize: 10,
-                    }}
-                  >
-                    {item.status === 'win' ? '盈利' : '亏损'}
-                  </Text>
-                </View>
-              </View>
-              <Text style={{ color: '#666', fontSize: 12, marginTop: 4 }}>
-                {item.traderName} · 平仓 {item.closeTime}
-              </Text>
-            </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text
-                style={{
-                  color: item.status === 'win' ? '#00FF88' : '#FF4444',
-                  fontSize: 18,
-                  fontWeight: 'bold',
-                }}
-              >
-                {item.status === 'win' ? '+' : ''}{typeof item.pnl === 'number' ? item.pnl.toFixed(2) : item.pnl}%
-              </Text>
-              <Text
-                style={{ color: item.status === 'win' ? '#666' : '#FF4444', fontSize: 12 }}
-              >
-                {item.status === 'win' ? '+' : ''}{item.pnlAmount} U
-              </Text>
-            </View>
-          </View>
-          <View
-            style={{
-              flexDirection: 'row',
-              marginTop: 12,
-              paddingTop: 12,
-              borderTopWidth: 1,
-              borderTopColor: 'rgba(255,255,255,0.1)',
-            }}
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: '#666', fontSize: 10 }}>入场价</Text>
-              <Text style={{ color: '#FFF', fontSize: 13 }}>{item.entryPrice.toLocaleString()}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: '#666', fontSize: 10 }}>出场价</Text>
-              <Text style={{ color: '#FFF', fontSize: 13 }}>{item.exitPrice.toLocaleString()}</Text>
-            </View>
-          </View>
-        </NeonCard>
-      ))}
-
-      <View style={{ height: 100 }} />
-    </ScrollView>
+        </>
+      )}
+    </View>
   );
 
   return (
     <Screen>
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          backgroundColor: 'rgba(10, 10, 15, 0.95)',
-          borderBottomWidth: 1,
-          borderBottomColor: 'rgba(0, 240, 255, 0.2)',
-        }}
-      >
-        <Link href="/">
-          <TouchableOpacity style={{ padding: 8, marginRight: 8 }}>
-            <Ionicons name="chevron-back" size={24} color="#00F0FF" />
-          </TouchableOpacity>
-        </Link>
-        <Text style={{ color: '#FFF', fontSize: 18, fontWeight: 'bold', flex: 1 }}>
-          一键跟单
-        </Text>
-        <TouchableOpacity style={{ padding: 8 }}>
-          <Ionicons name="settings-outline" size={22} color="#666" />
-        </TouchableOpacity>
-      </View>
+      <View style={{ flex: 1, backgroundColor: '#0D0D15' }}>
+        <View style={{ paddingTop: 50, paddingHorizontal: 16, paddingBottom: 16, backgroundColor: '#0D0D15' }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: 'bold' }}>一键跟单</Text>
+          <Text style={{ color: '#8B8B9A', fontSize: 14, marginTop: 4 }}>复制顶尖交易员的策略</Text>
+        </View>
 
-      {/* Tab Bar */}
-      <View
-        style={{
-          flexDirection: 'row',
-          backgroundColor: 'rgba(10, 10, 15, 0.95)',
-          borderBottomWidth: 1,
-          borderBottomColor: 'rgba(255, 255, 255, 0.1)',
-        }}
-      >
-        {[
-          { key: 'trader', label: '交易员' },
-          { key: 'my', label: '我的跟单' },
-          { key: 'history', label: '跟单记录' },
-        ].map((tab) => (
+        <View style={{ flexDirection: 'row', backgroundColor: '#1E1E2E', marginHorizontal: 16, borderRadius: 12, padding: 4 }}>
           <TouchableOpacity
-            key={tab.key}
-            onPress={() => setActiveTab(tab.key as any)}
-            style={{
-              flex: 1,
-              paddingVertical: 14,
-              alignItems: 'center',
-              borderBottomWidth: 2,
-              borderBottomColor: activeTab === tab.key ? '#00F0FF' : 'transparent',
-            }}
+            style={{ flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: activeTab === 'traders' ? '#00F0FF' : 'transparent' }}
+            onPress={() => setActiveTab('traders')}
           >
-            <Text
-              style={{
-                color: activeTab === tab.key ? '#00F0FF' : '#666',
-                fontSize: 14,
-                fontWeight: activeTab === tab.key ? 'bold' : 'normal',
-              }}
-            >
-              {tab.label}
+            <Text style={{ textAlign: 'center', color: activeTab === 'traders' ? '#000' : '#8B8B9A', fontWeight: '600' }}>
+              跟单交易员
             </Text>
           </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Loading State */}
-      {loading && !refreshing ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color="#00F0FF" />
-          <Text style={{ color: '#666', marginTop: 12 }}>加载中...</Text>
+          <TouchableOpacity
+            style={{ flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: activeTab === 'portfolio' ? '#00F0FF' : 'transparent' }}
+            onPress={() => setActiveTab('portfolio')}
+          >
+            <Text style={{ textAlign: 'center', color: activeTab === 'portfolio' ? '#000' : '#8B8B9A', fontWeight: '600' }}>
+              我的实盘
+            </Text>
+          </TouchableOpacity>
         </View>
-      ) : (
-        <>
-          {activeTab === 'trader' && renderTraderTab()}
-          {activeTab === 'my' && renderMyPositionsTab()}
-          {activeTab === 'history' && renderHistoryTab()}
-        </>
-      )}
+
+        <ScrollView
+          style={{ flex: 1 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00F0FF" />
+          }
+        >
+          {activeTab === 'traders' ? renderTradersTab() : renderPortfolioTab()}
+        </ScrollView>
+      </View>
     </Screen>
   );
 }

@@ -886,6 +886,39 @@ export default function HomeScreen() {
                   flash={categoryFlash}
                 />
               ))}
+              
+              {/* 资讯快讯 */}
+              <View style={styles.billboardSection}>
+                <View style={styles.billboardHeader}>
+                  <View style={[styles.billboardBadge, { backgroundColor: '#00F0FF22' }]}>
+                    <Ionicons name="newspaper" size={12} color="#00F0FF" />
+                    <Text style={[styles.billboardBadgeText, { color: '#00F0FF' }]}>资讯快讯</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => router.push('/news')}>
+                    <Text style={{ color: '#00F0FF', fontSize: 12 }}>更多 ></Text>
+                  </TouchableOpacity>
+                </View>
+                {[
+                  { title: 'BTC 突破 70000 USDT，创历史新高', time: '2分钟前', tag: '热点' },
+                  { title: 'DeFi 锁仓量突破 2000 亿美元', time: '15分钟前', tag: '行业' },
+                  { title: '以太坊 Gas 费降至近期最低', time: '30分钟前', tag: '数据' },
+                  { title: 'Meme 币热潮持续，PEPE 领涨', time: '1小时前', tag: '热门' },
+                ].map((news: any, idx: number) => (
+                  <TouchableOpacity 
+                    key={idx}
+                    style={styles.newsItem}
+                    onPress={() => router.push('/news')}
+                  >
+                    <View style={styles.newsContent}>
+                      <Text style={styles.newsTitle} numberOfLines={2}>{news.title}</Text>
+                      <View style={styles.newsMeta}>
+                        <Text style={styles.newsTag}>{news.tag}</Text>
+                        <Text style={styles.newsTime}>{news.time}</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </>
           )}
           
@@ -946,6 +979,14 @@ const styles = StyleSheet.create({
   techCountText: { fontSize: 12, color: '#6B7280' },
   moreBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#00F0FF15', borderRadius: 16 },
   moreBtnText: { fontSize: 13, color: '#00F0FF', fontWeight: '600' },
+  // 资讯快讯
+  newsItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1A1A24' },
+  newsContent: { gap: 4 },
+  newsTitle: { fontSize: 14, color: '#FFF', fontWeight: '500', lineHeight: 20 },
+  newsMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
+  newsTag: { fontSize: 10, color: '#00F0FF', backgroundColor: '#00F0FF15', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  newsTime: { fontSize: 11, color: '#6B7280' },
+  
   bottomGap: { height: 100 },
   
   // ========== 技术分析板块 ==========

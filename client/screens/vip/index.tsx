@@ -135,6 +135,52 @@ function SubscribeTab() {
         </TouchableOpacity>
       ))}
     </View>
+
+    {/* 功能对比 */}
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>功能对比</Text>
+      <View style={styles.compareTable}>
+        <View style={styles.compareHeader}>
+          <Text style={[styles.compareCell, styles.compareCellTitle]}>功能</Text>
+          <Text style={[styles.compareCell, styles.compareCellCenter]}>基础版</Text>
+          <Text style={[styles.compareCell, styles.compareCellCenter]}>专业版</Text>
+          <Text style={[styles.compareCell, styles.compareCellCenter]}>尊享版</Text>
+        </View>
+        {[
+          { name: '行情赛道', basic: '6大', pro: '全部', vip: '全部' },
+          { name: '筛选条件', basic: '30条', pro: '无限', vip: '无限' },
+          { name: '资讯推送', basic: '每日', pro: '实时', vip: '实时' },
+          { name: '技术分析', basic: '❌', pro: '✅', vip: '✅' },
+          { name: '基础跟单', basic: '❌', pro: '✅', vip: '✅' },
+          { name: '智能跟单', basic: '❌', pro: '❌', vip: '✅' },
+          { name: '完整API', basic: '❌', pro: '❌', vip: '✅' },
+        ].map((row, idx) => (
+          <View key={idx} style={[styles.compareRow, idx % 2 === 1 && { backgroundColor: '#14141A' }]}>
+            <Text style={[styles.compareCell, styles.compareCellTitle]}>{row.name}</Text>
+            <Text style={[styles.compareCell, styles.compareCellCenter]}>{row.basic}</Text>
+            <Text style={[styles.compareCell, styles.compareCellCenter]}>{row.pro}</Text>
+            <Text style={[styles.compareCell, styles.compareCellCenter]}>{row.vip}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+
+    {/* 常见问题 */}
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>常见问题</Text>
+      {[
+        { q: '订阅后可以退款吗？', a: '订阅服务不支持退款，请在购买前充分了解产品功能。' },
+        { q: '如何取消订阅？', a: '可以在设置中随时取消订阅，取消后当前周期内仍可使用。' },
+        { q: '支持哪些支付方式？', a: '支持TP钱包支付（TRC20/TRC20/ERC20）。' },
+        { q: '套餐可以升级吗？', a: '可以随时升级到更高级别，按差价补齐即可。' },
+        { q: '邀请奖励如何发放？', a: '好友订阅成功后，奖励自动发放到您的TP钱包。' },
+      ].map((item, idx) => (
+        <View key={idx} style={styles.faqItem}>
+          <Text style={styles.faqQuestion}>Q: {item.q}</Text>
+          <Text style={styles.faqAnswer}>A: {item.a}</Text>
+        </View>
+      ))}
+    </View>
   );
 }
 
@@ -630,5 +676,93 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#8B8B9A',
     marginTop: 8,
+  },
+  // 功能对比
+  comparisonSection: {
+    marginTop: 24,
+    paddingHorizontal: 16,
+  },
+  comparisonHeader: {
+    backgroundColor: '#0A0A0F',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  comparisonTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  comparisonSubtitle: {
+    fontSize: 12,
+    color: '#8B8B9A',
+  },
+  comparisonTable: {
+    backgroundColor: '#13131A',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  comparisonRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1F1F2E',
+  },
+  comparisonFeature: {
+    flex: 1,
+    padding: 12,
+  },
+  comparisonFeatureText: {
+    fontSize: 12,
+    color: '#8B8B9A',
+  },
+  comparisonCell: {
+    width: 80,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  comparisonCheck: {
+    fontSize: 16,
+  },
+  // 常见问题
+  faqSection: {
+    marginTop: 24,
+    paddingHorizontal: 16,
+    marginBottom: 100,
+  },
+  faqHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#0A0A0F',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  faqItem: {
+    backgroundColor: '#13131A',
+    borderRadius: 12,
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  faqQuestion: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  faqQuestionText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  faqAnswer: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  faqAnswerText: {
+    fontSize: 13,
+    color: '#8B8B9A',
+    lineHeight: 20,
   },
 });

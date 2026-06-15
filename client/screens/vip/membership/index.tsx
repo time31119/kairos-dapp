@@ -1,15 +1,18 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { Ionicons } from '@expo/vector-icons';
 import { VIP_PLANS } from '@/utils/vipPlans';
+import { useWeb3 } from '@/contexts/Web3Context';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
 
 export default function MembershipScreen() {
   const router = useSafeRouter();
   const params = useSafeSearchParams<{ plan?: string }>();
+  const { wallet, connect, isConnecting } = useWeb3();
+  
   // 获取 plan 参数，使用 professional 作为默认值
   const planId = params.plan || 'professional';
   const selectedPlan = VIP_PLANS.find((p) => p.id === planId) || VIP_PLANS[1];
@@ -19,28 +22,99 @@ export default function MembershipScreen() {
 
   const currentPrice = selectedPlan.price[selectedBillingCycle];
 
+  // TP钱包连接处理
+  const handleConnectTPWallet = async () => {
+    try {
+      await connect('tp');
+    } catch (error: any) {
+      Alert.alert('连接失败', error.message || '请安装 TP 钱包后重试');
+    }
+  };
+
+  // TP钱包支付处理
   const handlePayment = async () => {
+    // 检查钱包是否连接
+    if (!wallet.isConnected || !wallet.address) {
+      Alert.alert(
+        '请先连接钱包',
+        '订阅需要连接 TP 钱包进行支付',
+        [
+          { text: '取消', style: 'cancel' },
+          { text: '连接钱包', onPress: handleConnectTPWallet },
+        ]
+      );
+      return;
+    }
+
     setIsProcessing(true);
     try {
+      // 构建支付请求
+      const paymentData = {
+        planId: selectedPlan.id,
+        billingCycle: selectedBillingCycle,
+        paymentMethod: 'tp_wallet',
+        walletAddress: wallet.address,
+        amount: currentPrice,
+      };
+
+      // 发送到后端创建订单
       const response = await fetch(`${API_BASE}/api/v1/vip/subscribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          planId: selectedPlan.id,
-          billingCycle: selectedBillingCycle,
-          paymentMethod: 'tp_wallet',
-        }),
+        body: JSON.stringify(paymentData),
       });
 
       if (response.ok) {
-        Alert.alert('支付成功', `您已成功订阅${selectedPlan.name}`, [
-          { text: '确定', onPress: () => router.back() },
-        ]);
+        const data = await response.json();
+        
+        // 如果返回了需要签名的消息，进行签名
+        if (data.signMessage) {
+          try {
+            // 调用 TP 钱包签名
+            const { signMessage } = wallet;
+            if (signMessage) {
+              const signature = await signMessage(data.signMessage);
+              
+              // 发送签名完成支付
+              const confirmResponse = await fetch(`${API_BASE}/api/v1/vip/confirm-payment`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderId: data.orderId,
+                  signature,
+                  walletAddress: wallet.address,
+                }),
+              });
+
+              if (confirmResponse.ok) {
+                Alert.alert('支付成功', `您已成功订阅 ${selectedPlan.name}`, [
+                  { text: '确定', onPress: () => router.back() },
+                ]);
+              } else {
+                throw new Error('支付确认失败');
+              }
+            }
+          } catch (signError: any) {
+            // 用户取消签名
+            if (signError.message?.includes('User rejected') || signError.code === 4001) {
+              Alert.alert('支付取消', '您已取消支付');
+            } else {
+              Alert.alert('签名失败', signError.message || '请重试');
+            }
+          }
+        } else {
+          // 后端直接处理完成
+          Alert.alert('支付成功', `您已成功订阅 ${selectedPlan.name}`, [
+            { text: '确定', onPress: () => router.back() },
+          ]);
+        }
       } else {
-        throw new Error('Payment failed');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Payment failed');
       }
-    } catch (error) {
-      Alert.alert('支付失败', '请稍后重试');
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      Alert.alert('支付失败', error.message || '请稍后重试');
     } finally {
       setIsProcessing(false);
     }
@@ -138,15 +212,35 @@ export default function MembershipScreen() {
         {/* Payment Method */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>支付方式</Text>
-          <View style={styles.paymentCard}>
+          <TouchableOpacity 
+            style={[styles.paymentCard, wallet.isConnected && styles.paymentCardConnected]}
+            onPress={wallet.isConnected ? undefined : handleConnectTPWallet}
+          >
             <View style={styles.paymentItem}>
-              <Text style={styles.paymentIcon}>💳</Text>
-              <Text style={styles.paymentName}>TP 钱包</Text>
-              <View style={styles.checkmark}>
-                <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+              <Text style={styles.paymentIcon}>🐼</Text>
+              <View style={styles.paymentInfo}>
+                <Text style={styles.paymentName}>TP 钱包</Text>
+                {wallet.isConnected && wallet.address ? (
+                  <Text style={styles.paymentAddress}>
+                    {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
+                  </Text>
+                ) : (
+                  <Text style={styles.paymentDesc}>点击连接钱包</Text>
+                )}
               </View>
+              {wallet.isConnected ? (
+                <View style={styles.connectedBadge}>
+                  <Ionicons name="checkmark-circle" size={20} color="#00FF88" />
+                </View>
+              ) : isConnecting ? (
+                <ActivityIndicator size="small" color="#888888" />
+              ) : (
+                <View style={styles.checkmark}>
+                  <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                </View>
+              )}
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Summary */}
@@ -177,9 +271,15 @@ export default function MembershipScreen() {
           onPress={handlePayment}
           disabled={isProcessing}
         >
-          <Text style={styles.payButtonText}>
-            {isProcessing ? '处理中...' : `立即支付 $${currentPrice}`}
-          </Text>
+          {isProcessing ? (
+            <ActivityIndicator color="#0A0A0F" size="small" />
+          ) : wallet.isConnected ? (
+            <Text style={styles.payButtonText}>立即支付 ${currentPrice}</Text>
+          ) : (
+            <View style={styles.payButtonContent}>
+              <Text style={styles.payButtonText}>🐼 连接 TP 钱包支付</Text>
+            </View>
+          )}
         </TouchableOpacity>
 
         {/* Bottom Spacing */}
@@ -337,14 +437,39 @@ const styles = StyleSheet.create({
     borderColor: '#00F0FF',
   },
   paymentIcon: {
-    fontSize: 24,
+    fontSize: 28,
     marginRight: 12,
+  },
+  paymentInfo: {
+    flex: 1,
   },
   paymentName: {
     flex: 1,
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  paymentDesc: {
+    fontSize: 13,
+    color: '#6B6B7B',
+    marginTop: 2,
+  },
+  paymentAddress: {
+    fontSize: 13,
+    color: '#00FF88',
+    marginTop: 2,
+    fontFamily: 'monospace',
+  },
+  paymentCardConnected: {
+    borderColor: '#00FF88',
+  },
+  connectedBadge: {
+    marginLeft: 8,
+  },
+  payButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   checkmark: {
     width: 22,

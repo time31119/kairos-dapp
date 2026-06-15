@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl, TouchableOpacity, Modal } from 'react-native';
+import { Image } from 'expo-image';
 import { Screen } from '@/components/Screen';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -392,6 +393,8 @@ export default function HomeScreen() {
   const [categoryLoading, setCategoryLoading] = useState(true);
   const [categoryLastUpdate, setCategoryLastUpdate] = useState<Date | null>(null);
   const [categoryFlash, setCategoryFlash] = useState(false);
+  const [newsData, setNewsData] = useState<any[]>([]);
+  const [newsLoading, setNewsLoading] = useState(true);
 
   // 兑换功能
   const [swapModalVisible, setSwapModalVisible] = useState(false);
@@ -486,6 +489,30 @@ export default function HomeScreen() {
   }, [fetchFeaturedData]);
 
   // 获取赛道分类实时数据
+  // 获取全球资讯
+  const fetchNewsData = useCallback(async () => {
+    try {
+      const response = await fetch(API_URL + '/api/v1/news/');
+      const result = await response.json();
+      if (result.success && result.data) {
+        setNewsData(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch news data:', error);
+    } finally {
+      setNewsLoading(false);
+    }
+  }, []);
+
+  // 30秒更新资讯
+  useEffect(() => {
+    fetchNewsData();
+    const newsInterval = setInterval(() => {
+      fetchNewsData();
+    }, 30000);
+    return () => clearInterval(newsInterval);
+  }, [fetchNewsData]);
+
   const fetchCategoryData = useCallback(async () => {
     try {
       const response = await fetch(API_URL + '/api/v1/screener/scenarios/realtime');
@@ -886,37 +913,95 @@ export default function HomeScreen() {
                 )) || <Text style={{ color: '#6B7280', fontSize: 13, textAlign: 'center', paddingVertical: 20 }}>暂无数据</Text>}
               </View>
               
-              {/* 资讯快讯 */}
-              <View style={styles.billboardSection}>
-                <View style={styles.billboardHeader}>
-                  <View style={[styles.billboardBadge, { backgroundColor: '#00F0FF22' }]}>
-                    <Ionicons name="newspaper" size={12} color="#00F0FF" />
-                    <Text style={[styles.billboardBadgeText, { color: '#00F0FF' }]}>资讯快讯</Text>
+              {/* 今日资讯 */}
+              <View style={styles.newsSection}>
+                <View style={styles.newsHeader}>
+                  <View style={styles.newsHeaderLeft}>
+                    <Ionicons name="globe" size={16} color="#00F0FF" />
+                    <Text style={styles.newsHeaderTitle}>今日资讯</Text>
+                    <View style={styles.liveIndicator}>
+                      <View style={styles.liveDot} />
+                      <Text style={styles.liveText}>LIVE</Text>
+                    </View>
                   </View>
                   <TouchableOpacity onPress={() => router.push('/news')}>
-                    <Text style={{ color: '#00F0FF', fontSize: 12 }}>更多 {'>'}</Text>
-                  </TouchableOpacity>
-                </View>
-                {[
-                  { title: 'BTC 突破 70000 USDT，创历史新高', time: '2分钟前', tag: '热点' },
-                  { title: 'DeFi 锁仓量突破 2000 亿美元', time: '15分钟前', tag: '行业' },
-                  { title: '以太坊 Gas 费降至近期最低', time: '30分钟前', tag: '数据' },
-                  { title: 'Meme 币热潮持续，PEPE 领涨', time: '1小时前', tag: '热门' },
-                ].map((news: any, idx: number) => (
-                  <TouchableOpacity 
-                    key={idx}
-                    style={styles.newsItem}
-                    onPress={() => router.push('/news')}
-                  >
-                    <View style={styles.newsContent}>
-                      <Text style={styles.newsTitle} numberOfLines={2}>{news.title}</Text>
-                      <View style={styles.newsMeta}>
-                        <Text style={styles.newsTag}>{news.tag}</Text>
-                        <Text style={styles.newsTime}>{news.time}</Text>
-                      </View>
+                    <View style={styles.moreButton}>
+                      <Text style={styles.moreText}>更多</Text>
+                      <Ionicons name="chevron-forward" size={14} color="#6B7280" />
                     </View>
                   </TouchableOpacity>
-                ))}
+                </View>
+                
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.newsScrollContent}
+                >
+                  {newsData.length > 0 ? newsData.slice(0, 6).map((news: any, idx: number) => (
+                    <TouchableOpacity 
+                      key={news.id || idx}
+                      style={[
+                        styles.newsCard,
+                        idx === 0 && styles.newsCardFirst
+                      ]}
+                      onPress={() => {
+                        if (news.url && news.url !== '#') {
+                          // 在真实环境中打开新闻链接
+                          router.push('/news');
+                        } else {
+                          router.push('/news');
+                        }
+                      }}
+                    >
+                      {news.imageUrl && (
+                        <Image 
+                          source={{ uri: news.imageUrl }} 
+                          style={styles.newsImage}
+                          resizeMode="cover"
+                        />
+                      )}
+                      <View style={styles.newsCardContent}>
+                        <View style={styles.newsCardBadge}>
+                          <Text style={styles.newsCardTag}>{news.category}</Text>
+                        </View>
+                        <Text style={styles.newsCardTitle} numberOfLines={2}>{news.title}</Text>
+                        <View style={styles.newsCardFooter}>
+                          <Text style={styles.newsCardSource}>{news.source}</Text>
+                          <Text style={styles.newsCardTime}>{news.time}</Text>
+                        </View>
+                      </View>
+                      {news.hot && (
+                        <View style={styles.hotBadge}>
+                          <Ionicons name="flame" size={10} color="#FFF" />
+                          <Text style={styles.hotText}>热</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  )) : (
+                    <View style={styles.newsEmpty}>
+                      <Ionicons name="newspaper-outline" size={32} color="#6B7280" />
+                      <Text style={styles.newsEmptyText}>正在加载全球资讯...</Text>
+                    </View>
+                  )}
+                </ScrollView>
+                
+                {/* 快讯列表 */}
+                <View style={styles.flashNewsSection}>
+                  <Text style={styles.flashNewsTitle}>最新快讯</Text>
+                  {newsData.slice(0, 4).map((news: any, idx: number) => (
+                    <TouchableOpacity 
+                      key={news.id || `flash-${idx}`}
+                      style={styles.flashNewsItem}
+                      onPress={() => router.push('/news')}
+                    >
+                      <View style={styles.flashNewsLeft}>
+                        <View style={[styles.flashDot, news.hot && styles.flashDotHot]} />
+                        <Text style={styles.flashNewsText} numberOfLines={1}>{news.title}</Text>
+                      </View>
+                      <Text style={styles.flashNewsTime}>{news.time}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               </View>
             </>
           )}
@@ -1360,5 +1445,151 @@ const styles = StyleSheet.create({
     borderColor: '#00F0FF40',
     borderWidth: 1,
     borderRadius: 16,
+  },
+
+  // 今日资讯
+  newsSection: {
+    backgroundColor: '#0D0D14',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#1F2937',
+    margin: 16,
+    overflow: 'hidden',
+  },
+  newsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1F2937',
+  },
+  newsHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  newsHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  moreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  moreText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  newsScrollContent: {
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  newsCard: {
+    width: 180,
+    backgroundColor: '#12121A',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#1F2937',
+    overflow: 'hidden',
+  },
+  newsCardFirst: {
+    borderColor: '#00F0FF40',
+  },
+  newsImage: {
+    width: '100%',
+    height: 80,
+    backgroundColor: '#1A1A24',
+  },
+  newsCardContent: {
+    padding: 10,
+  },
+  newsCardBadge: {
+    marginBottom: 6,
+  },
+  newsCardTag: {
+    fontSize: 10,
+    color: '#00F0FF',
+    fontWeight: '600',
+  },
+  newsCardTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFF',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  newsCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  newsCardSource: {
+    fontSize: 10,
+    color: '#6B7280',
+  },
+  newsCardTime: {
+    fontSize: 10,
+    color: '#6B7280',
+  },
+  newsEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 30,
+    width: '100%',
+  },
+  newsEmptyText: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 8,
+  },
+  flashNewsSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#1F2937',
+  },
+  flashNewsTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFF',
+    marginBottom: 10,
+  },
+  flashNewsItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1F1F2E',
+  },
+  flashNewsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 8,
+  },
+  flashDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#00F0FF',
+  },
+  flashDotHot: {
+    backgroundColor: '#FF4444',
+  },
+  flashNewsText: {
+    fontSize: 13,
+    color: '#D1D5DB',
+    flex: 1,
+  },
+  flashNewsTime: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginLeft: 8,
   },
 });

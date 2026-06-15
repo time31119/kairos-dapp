@@ -1,12 +1,12 @@
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import Screen from '@/components/Screen';
 
-export default function ScreenerScreen() {
+export default function NewsScreen() {
   return (
     <Screen contentContainerStyle={styles.container}>
       <ScrollView>
-        <Text style={styles.title}>筛选器</Text>
-        <Text style={styles.placeholder}>筛选器内容即将上线</Text>
+        <Text style={styles.title}>资讯中心</Text>
+        <Text style={styles.placeholder}>资讯内容即将上线</Text>
       </ScrollView>
     </Screen>
   );

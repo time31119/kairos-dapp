@@ -1,12 +1,1 @@
-import { View, Text } from 'react-native';
-import { Screen } from '@/components/Screen';
-
-export default function NotificationsScreen() {
-  return (
-    <Screen>
-      <View className="flex-1 bg-[#0A0A0F] items-center justify-center">
-        <Text className="text-white text-lg">通知页面</Text>
-      </View>
-    </Screen>
-  );
-}
+export { default } from "@/screens/notifications";

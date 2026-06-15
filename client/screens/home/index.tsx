@@ -573,25 +573,25 @@ export default function HomeScreen() {
           
           {/* 快捷操作 */}
           <View style={styles.quickActions}>
-            <Link href="/screener/featured" asChild>
+            <Link href="/screener" asChild>
               <Pressable style={styles.quickBtn}>
                 <Ionicons name="flame" size={16} color="#FF6B6B" />
                 <Text style={styles.quickBtnText}>热门</Text>
               </Pressable>
             </Link>
-            <Link href="/screener/gainer" asChild>
+            <Link href="/screener" asChild>
               <Pressable style={styles.quickBtn}>
                 <Ionicons name="trending-up" size={16} color="#00FF88" />
                 <Text style={styles.quickBtnText}>涨幅榜</Text>
               </Pressable>
             </Link>
-            <Link href="/screener/loser" asChild>
+            <Link href="/screener" asChild>
               <Pressable style={styles.quickBtn}>
                 <Ionicons name="trending-down" size={16} color="#FF4444" />
                 <Text style={styles.quickBtnText}>跌幅榜</Text>
               </Pressable>
             </Link>
-            <Link href="/screener/new" asChild>
+            <Link href="/screener" asChild>
               <Pressable style={styles.quickBtn}>
                 <Ionicons name="sparkles" size={16} color="#FFD700" />
                 <Text style={styles.quickBtnText}>新币</Text>

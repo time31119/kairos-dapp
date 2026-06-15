@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
+import { useSafeRouter } from '@/hooks/useSafeRouter';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || ''
 
@@ -59,6 +60,7 @@ const RISK_COLORS: Record<string, string> = {
 };
 
 export default function CopytradingScreen() {
+  const router = useSafeRouter();
   const [activeTab, setActiveTab] = useState<'traders' | 'portfolio'>('traders');
   const [traders, setTraders] = useState<Trader[]>([]);
   const [portfolio, setPortfolio] = useState<FollowingPosition[]>([]);
@@ -358,6 +360,7 @@ export default function CopytradingScreen() {
               key={trader.id || index}
               style={styles.traderCard}
               activeOpacity={0.8}
+              onPress={() => router.push('/trader', { traderId: trader.id })}
             >
               <View style={styles.traderHeader}>
                 <View style={styles.traderLeft}>
@@ -474,7 +477,7 @@ export default function CopytradingScreen() {
                 <TouchableOpacity 
                   key={trader.id} 
                   style={styles.liveTraderCard}
-                  onPress={() => handleFollow(trader.id, 100)}
+                  onPress={() => router.push('/trader', { traderId: trader.id })}
                 >
                   <View style={styles.liveTraderRank}>
                     <Text style={styles.liveRankText}>#{index + 1}</Text>

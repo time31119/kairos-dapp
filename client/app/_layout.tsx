@@ -44,6 +44,11 @@ export default function RootLayout() {
             <Stack.Screen name="notification" />
             <Stack.Screen name="support" />
             <Stack.Screen name="trading" />
+            <Stack.Screen name="trader" />
+            <Stack.Screen name="news" />
+            <Stack.Screen name="follow" />
+            <Stack.Screen name="notifications" />
+            <Stack.Screen name="screener" />
           </Stack>
           <Toast />
         </SubscriptionProvider>

@@ -387,6 +387,8 @@ export default function HomeScreen() {
 
   // 赛道分类实时数据
   const [categoryData, setCategoryData] = useState<any[]>([]);
+  const [globalGainers, setGlobalGainers] = useState<any[]>([]);
+  const [globalLosers, setGlobalLosers] = useState<any[]>([]);
   const [categoryLoading, setCategoryLoading] = useState(true);
   const [categoryLastUpdate, setCategoryLastUpdate] = useState<Date | null>(null);
   const [categoryFlash, setCategoryFlash] = useState(false);
@@ -490,6 +492,8 @@ export default function HomeScreen() {
       const result = await response.json();
       if (result.success) {
         setCategoryData(result.data);
+        setGlobalGainers(result.globalGainers || []);
+        setGlobalLosers(result.globalLosers || []);
         setCategoryLastUpdate(new Date());
         
         // 触发闪烁效果
@@ -844,7 +848,7 @@ export default function HomeScreen() {
                     <Text style={styles.liveText}>实时</Text>
                   </View>
                 </View>
-                {categoryData[0]?.globalGainers?.slice(0, 10).map((token: any, idx: number) => (
+                {globalGainers.slice(0, 10).map((token: any, idx: number) => (
                   <View key={token.symbol + '-gain'} style={styles.rankRow}>
                     <Text style={styles.rankNumber}>{idx + 1}</Text>
                     <View style={styles.rankInfo}>
@@ -869,7 +873,7 @@ export default function HomeScreen() {
                     <Text style={styles.liveText}>实时</Text>
                   </View>
                 </View>
-                {categoryData[0]?.globalLosers?.slice(0, 10).map((token: any, idx: number) => (
+                {globalLosers.slice(0, 10).map((token: any, idx: number) => (
                   <View key={token.symbol + '-loss'} style={styles.rankRow}>
                     <Text style={styles.rankNumber}>{idx + 1}</Text>
                     <View style={styles.rankInfo}>

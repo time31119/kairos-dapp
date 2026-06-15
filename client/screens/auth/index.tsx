@@ -15,7 +15,6 @@ import {
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useWeb3 } from '@/contexts/Web3Context';
-import WalletConnectQR from '@/components/WalletConnectQR';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || ''
@@ -56,11 +55,9 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
 
 export default function LoginScreen() {
   const router = useSafeRouter();
-  const { wallet, connect, disconnect, signMessage, initiateWalletConnect, completeWalletConnect, cancelWalletConnect } = useWeb3();
+  const { wallet, connect, disconnect, signMessage } = useWeb3();
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [showWCQR, setShowWCQR] = useState(false);
-  const [wcUri, setWcUri] = useState('');
 
   // 钱包连接后自动登录
   useEffect(() => {
@@ -132,17 +129,6 @@ export default function LoginScreen() {
     }
   };
 
-  // 处理 WalletConnect URI 变化
-  const handleWCUriChange = (uri: string) => {
-    setWcUri(uri);
-  };
-
-  // 关闭 WalletConnect QR
-  const handleWCClose = () => {
-    setShowWCQR(false);
-    cancelWalletConnect();
-  };
-
   // 跳过登录（游客模式）
   const handleGuestMode = async () => {
     await AsyncStorage.setItem('login_type', 'guest');
@@ -188,36 +174,20 @@ export default function LoginScreen() {
             </TouchableOpacity>
           )}
 
-          {/* 钱包选项 */}
+          {/* TP 钱包连接按钮 */}
           <View style={styles.connectSection}>
             <TouchableOpacity
-              style={styles.connectButton}
-              onPress={() => handleConnectWallet('metamask')}
+              style={[styles.connectButton, { width: '100%', paddingVertical: 20 }]}
+              onPress={() => handleConnectWallet('tp')}
             >
-              <View style={styles.iconBox}>
-                <Text style={styles.emoji}>🦊</Text>
+              <View style={[styles.iconBox, { width: 50, height: 50, borderRadius: 25 }]}>
+                <Text style={styles.emoji}>🐼</Text>
               </View>
-              <Text style={styles.walletName}>MetaMask</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.connectButton}
-              onPress={() => handleConnectWallet('walletconnect')}
-            >
-              <View style={styles.iconBox}>
-                <Text style={styles.emoji}>👛</Text>
+              <View style={styles.walletInfo}>
+                <Text style={[styles.walletName, { fontSize: 18 }]}>TokenPocket</Text>
+                <Text style={styles.walletDesc}>连接 TP 钱包</Text>
               </View>
-              <Text style={styles.walletName}>WalletConnect</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.connectButton}
-              onPress={() => handleConnectWallet('browser')}
-            >
-              <View style={styles.iconBox}>
-                <Text style={styles.emoji}>📱</Text>
-              </View>
-              <Text style={styles.walletName}>DApp Browser</Text>
+              <Text style={styles.arrowIcon}>›</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -249,7 +219,7 @@ export default function LoginScreen() {
           </Text>
         </View>
 
-        {/* 钱包选择弹窗 */}
+        {/* TP 钱包连接（Modal 简化版） */}
         {showModal && (
           <TouchableOpacity
             style={styles.modalOverlay}
@@ -258,42 +228,20 @@ export default function LoginScreen() {
           >
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>选择钱包</Text>
+                <Text style={styles.modalTitle}>连接钱包</Text>
                 <TouchableOpacity onPress={() => setShowModal(false)}>
                   <Text style={styles.modalClose}>×</Text>
                 </TouchableOpacity>
               </View>
 
               <TouchableOpacity
-                style={styles.modalOption}
-                onPress={() => handleConnectWallet('metamask')}
+                style={[styles.modalOption, { paddingVertical: 16 }]}
+                onPress={() => handleConnectWallet('tp')}
               >
-                <Text style={styles.modalEmoji}>🦊</Text>
+                <Text style={styles.modalEmoji}>🐼</Text>
                 <View style={styles.modalOptionInfo}>
-                  <Text style={styles.modalOptionName}>MetaMask</Text>
-                  <Text style={styles.modalOptionDesc}>最流行的以太坊钱包</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.modalOption}
-                onPress={() => handleConnectWallet('walletconnect')}
-              >
-                <Text style={styles.modalEmoji}>👛</Text>
-                <View style={styles.modalOptionInfo}>
-                  <Text style={styles.modalOptionName}>WalletConnect</Text>
-                  <Text style={styles.modalOptionDesc}>支持多种钱包连接</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.modalOption}
-                onPress={() => handleConnectWallet('coinbase')}
-              >
-                <Text style={styles.modalEmoji}>💰</Text>
-                <View style={styles.modalOptionInfo}>
-                  <Text style={styles.modalOptionName}>Coinbase Wallet</Text>
-                  <Text style={styles.modalOptionDesc}>安全可靠的托管钱包</Text>
+                  <Text style={[styles.modalOptionName, { fontSize: 18 }]}>TokenPocket</Text>
+                  <Text style={styles.modalOptionDesc}>TP 钱包一键连接</Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -307,14 +255,6 @@ export default function LoginScreen() {
             <Text style={styles.loadingText}>验证签名中...</Text>
           </View>
         )}
-
-        {/* WalletConnect QR 码 */}
-        <WalletConnectQR
-          visible={showWCQR}
-          uri={wcUri || wallet.wcUri || ''}
-          onClose={handleWCClose}
-          onUriChange={handleWCUriChange}
-        />
       </View>
     </Screen>
   );

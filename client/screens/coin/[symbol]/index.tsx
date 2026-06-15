@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, TextInput } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
@@ -221,19 +221,6 @@ export default function CoinDetail() {
           </View>
         )}
 
-        {/* Swap Modal */}
-        <SwapModal
-          visible={swapModalVisible}
-          onClose={() => setSwapModalVisible(false)}
-          initialFromToken={{ symbol: 'USDT', name: 'Tether USD', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', logo: 'https://assets.coingecko.com/coins/images/12559/small/usdt.png' }}
-          initialToToken={{ symbol: tokenInfo.symbol, name: tokenInfo.name, address: tokenInfo.contract || '', logo: tokenInfo.logo }}
-          initialAmount={swapAmount}
-        />
-      </ScrollView>
-    </Screen>
-  );
-}
-
         {/* Info Cards */}
         <View style={styles.infoSection}>
           <Text style={styles.sectionTitle}>基本信息</Text>
@@ -275,7 +262,19 @@ export default function CoinDetail() {
             </Text>
           </View>
         </View>
+
+        {/* Bottom padding */}
+        <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Swap Modal */}
+      <SwapModal
+        visible={swapModalVisible}
+        onClose={() => setSwapModalVisible(false)}
+        initialFromToken={{ symbol: 'USDT', name: 'Tether USD', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', logo: 'https://assets.coingecko.com/coins/images/12559/small/usdt.png' }}
+        initialToToken={{ symbol: tokenInfo.symbol, name: tokenInfo.name, address: '', logo: '' }}
+        initialAmount={swapAmount}
+      />
     </Screen>
   );
 }
@@ -332,6 +331,10 @@ const styles = StyleSheet.create({
   tradeInputs: { marginBottom: 16 },
   tradeInputGroup: { marginBottom: 12 },
   tradeLabel: { fontSize: 13, color: colors.textSecondary, marginBottom: 8 },
+  tradeTextInput: {
+    backgroundColor: colors.background, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: colors.cardBorder,
+    fontSize: 18, color: colors.text,
+  },
   tradeInput: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: colors.background, borderRadius: 12, padding: 16, borderWidth: 1, borderColor: colors.cardBorder,

@@ -130,8 +130,8 @@ export default function TraderDetailModal({
       transparent={true}
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+      <View style={styles.modalOverlay as any}>
+        <View style={styles.modalContent as any}>
           {/* Header */}
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -235,10 +235,10 @@ export default function TraderDetailModal({
                 </View>
 
                 {activeTab === 'performance' ? (
-                  <View style={styles.performanceContent}>
+                  <View style={styles.performanceContent as any}>
                     {/* Period Performance */}
-                    <View style={styles.periodGrid}>
-                      <View style={styles.periodItem}>
+                    <View style={styles.periodGrid as any}>
+                      <View style={styles.periodItem as any}>
                         <Text style={styles.periodLabel}>今日</Text>
                         <Text style={[
                           styles.periodValue,
@@ -247,17 +247,17 @@ export default function TraderDetailModal({
                           {displayData.todayPnl}%
                         </Text>
                       </View>
-                      <View style={styles.periodItem}>
+                      <View style={styles.periodItem as any}>
                         <Text style={styles.periodLabel}>本周</Text>
                         <Text style={styles.periodValue}>+{displayData.weeklyPnL}%</Text>
                       </View>
-                      <View style={styles.periodItem}>
+                      <View style={styles.periodItem as any}>
                         <Text style={styles.periodLabel}>最大回撤</Text>
                         <Text style={[styles.periodValue, { color: '#FF6B6B' }]}>
                           -{displayData.maxDrawdown}%
                         </Text>
                       </View>
-                      <View style={styles.periodItem}>
+                      <View style={styles.periodItem as any}>
                         <Text style={styles.periodLabel}>夏普比率</Text>
                         <Text style={styles.periodValue}>{displayData.sharpeRatio}</Text>
                       </View>

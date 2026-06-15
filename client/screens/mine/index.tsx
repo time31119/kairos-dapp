@@ -70,16 +70,19 @@ export default function MineScreen() {
   const [showAddress, setShowAddress] = useState(false);
 
   useEffect(() => {
-    if (wallet.isConnected) {
-      // 模拟真实数据
-      setUserStats({
-        totalOrders: 12,
-        totalFollowers: 5,
-        totalProfit: 8.67,
-        vipLevel: 1,
-      });
-    }
-  }, [wallet.isConnected, wallet.address]);
+    // 钱包连接时更新用户统计数据
+    const updateStats = () => {
+      if (wallet.isConnected) {
+        setUserStats({
+          totalOrders: 12,
+          totalFollowers: 5,
+          totalProfit: 8.67,
+          vipLevel: 1,
+        });
+      }
+    };
+    updateStats();
+  }, [wallet.isConnected]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

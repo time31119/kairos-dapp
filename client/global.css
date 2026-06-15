@@ -109,8 +109,10 @@
       /* Cyber Neon Colors */
       --accent: #00F0FF;        /* Neon Cyan - 上涨信号 */
       --accent-foreground: #0A0A0F;
+      --neon-cyan: #00F0FF;     /* Neon Cyan */
       --neon-purple: #BF00FF;   /* Neon Purple - 下跌信号 */
       --neon-gold: #FFD700;     /* Neon Gold - 强调 */
+      --neon-green: #00FF88;    /* Neon Green - 成功 */
 
       /* Form Field Defaults - Colors (only the ones that are different from light theme) */
       --field-background: oklch(0.2103 0.0059 285.89);
@@ -166,6 +168,7 @@
   --color-neon-cyan: #00F0FF;
   --color-neon-purple: #BF00FF;
   --color-neon-gold: #FFD700;
+  --color-neon-green: #00FF88;
 
   --color-segment: var(--segment);
   --color-segment-foreground: var(--segment-foreground);

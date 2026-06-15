@@ -1,9 +1,8 @@
 'use client';
 
 /**
- * 我的页面 - DAPP 版本
- * 支持钱包连接和 Web3 身份
- * 暗黑科技风格全面优化
+ * 我的页面 - KAIROS DAPP
+ * 暗黑科技风格，优化链接到实际存在页面
  */
 import { Screen } from '@/components/Screen';
 import { Text, View, TouchableOpacity, ScrollView, Alert, RefreshControl } from 'react-native';
@@ -27,12 +26,20 @@ const colors = {
   error: '#EF4444',
 };
 
-// VIP功能入口数据
+// VIP功能入口 - 只链接到实际存在的页面
 const VIP_FUNCTIONS = [
-  { icon: 'people', label: '一键跟单', color: '#FFD700', path: '/vip', desc: '复制顶尖交易员' },
+  { icon: 'people', label: '一键跟单', color: '#FFD700', path: '/copytrading', desc: '复制顶尖交易员' },
   { icon: 'chart-line', label: 'K线分析', color: '#00F0FF', path: '/analysis', desc: '专业技术指标' },
-  { icon: 'git-branch', label: '策略跟投', color: '#BF00FF', path: '/strategy', desc: '自动跟投策略' },
-  { icon: 'bell', label: '价格提醒', color: '#10B981', path: '/alerts', desc: '自定义价格通知' },
+  { icon: 'repeat', label: '币币兑换', color: '#BF00FF', path: '/swap', desc: '多链即时兑换' },
+  { icon: 'trending-up', label: '热门赛道', color: '#10B981', path: '/categories', desc: '赛道行情分析' },
+];
+
+// 交易功能 - 只链接到实际存在的页面
+const TRADING_FUNCTIONS = [
+  { icon: 'document-text-outline', label: '我的持仓', color: '#00F0FF', path: '/trading', desc: '当前仓位' },
+  { icon: 'people-outline', label: '一键跟单', color: '#FFD700', path: '/copytrading', desc: '跟单记录' },
+  { icon: 'star-outline', label: '关注列表', color: '#10B981', path: '/categories', desc: '自选代币' },
+  { icon: 'repeat-outline', label: '兑换记录', color: '#BF00FF', path: '/swap', desc: '兑换历史' },
 ];
 
 interface UserStats {
@@ -42,19 +49,17 @@ interface UserStats {
   vipLevel: number;
 }
 
-const MENU_ITEMS = [
-  { icon: 'settings-outline', label: '设置', color: '#6B7280', path: '/settings', badge: '' },
-  { icon: 'shield-outline', label: '隐私设置', color: '#6B7280', path: '/settings/privacy', badge: '' },
-  { icon: 'key-outline', label: '安全中心', color: '#6B7280', path: '/settings/security', badge: '' },
-  { icon: 'language-outline', label: '语言', color: '#6B7280', path: '/settings/language', badge: '简体中文' },
-  { icon: 'help-circle-outline', label: '帮助中心', color: '#6B7280', path: '/settings/help', badge: '' },
-  { icon: 'document-text-outline', label: '用户协议', color: '#6B7280', path: '/settings/terms', badge: '' },
-  { icon: 'information-circle-outline', label: '关于我们', color: '#6B7280', path: '/settings/about', badge: '' },
+const UTILITY_ITEMS = [
+  { icon: 'shield-outline', label: '安全中心', color: '#00FF88' },
+  { icon: 'language-outline', label: '语言设置', color: '#8B5CF6', badge: '简体中文' },
+  { icon: 'help-circle-outline', label: '帮助中心', color: '#F97316' },
+  { icon: 'document-text-outline', label: '用户协议', color: '#6B7280' },
+  { icon: 'information-circle-outline', label: '关于我们', color: '#6B7280' },
 ];
 
 export default function MineScreen() {
   const router = useSafeRouter();
-  const { wallet, connect, disconnect, switchChain } = useWeb3();
+  const { wallet, connect, disconnect } = useWeb3();
   const [refreshing, setRefreshing] = useState(false);
   const [userStats, setUserStats] = useState<UserStats>({
     totalOrders: 0,
@@ -63,16 +68,15 @@ export default function MineScreen() {
     vipLevel: 0,
   });
   const [showAddress, setShowAddress] = useState(false);
-  const [priceAlertEnabled, setPriceAlertEnabled] = useState(false);
-  const [kycStatus, setKycStatus] = useState<'none' | 'pending' | 'verified'>('none');
 
   useEffect(() => {
     if (wallet.isConnected) {
+      // 模拟真实数据
       setUserStats({
-        totalOrders: Math.floor(Math.random() * 50),
-        totalFollowers: Math.floor(Math.random() * 20),
-        totalProfit: (Math.random() * 10 - 5).toFixed(2) as unknown as number,
-        vipLevel: Math.floor(Math.random() * 3),
+        totalOrders: 12,
+        totalFollowers: 5,
+        totalProfit: 8.67,
+        vipLevel: 1,
       });
     }
   }, [wallet.isConnected, wallet.address]);
@@ -80,16 +84,19 @@ export default function MineScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await new Promise(resolve => setTimeout(resolve, 1000));
-    setUserStats(prev => ({
-      ...prev,
-      totalOrders: prev.totalOrders + Math.floor(Math.random() * 5),
-    }));
+    if (wallet.isConnected) {
+      setUserStats(prev => ({
+        ...prev,
+        totalOrders: prev.totalOrders + Math.floor(Math.random() * 3),
+        totalProfit: parseFloat((Math.random() * 15 - 5).toFixed(2)),
+      }));
+    }
     setRefreshing(false);
-  }, []);
+  }, [wallet.isConnected]);
 
-  const handleLogin = async () => {
+  const handleConnectWallet = async () => {
     try {
-      await connect('tp');
+      await connect('trust');
     } catch (error) {
       Alert.alert('连接失败', '请确保已安装 TP 钱包');
     }
@@ -119,27 +126,25 @@ export default function MineScreen() {
 
   const getNetworkName = (id: string | null) => {
     switch (id) {
-      case 'ethereum': return 'Ethereum';
-      case 'sepolia': return 'Sepolia';
-      case 'polygon': return 'Polygon';
+      case 'ethereum': return 'ETH';
+      case 'polygon': return 'MATIC';
       case 'bsc': return 'BSC';
-      case 'arbitrum': return 'Arbitrum';
-      case 'optimism': return 'Optimism';
-      case 'bscTestnet': return 'BSC Testnet';
-      default: return 'Unknown';
+      case 'arbitrum': return 'ARB';
+      case 'optimism': return 'OP';
+      case 'tron': return 'TRX';
+      default: return 'ETH';
     }
   };
 
   const getNetworkColor = (id: string | null) => {
     switch (id) {
       case 'ethereum': return '#627EEA';
-      case 'sepolia': return '#F3BA2F';
       case 'polygon': return '#8247E5';
       case 'bsc': return '#F3BA2F';
       case 'arbitrum': return '#28A0F0';
       case 'optimism': return '#FF0420';
-      case 'bscTestnet': return '#F3BA2F';
-      default: return '#6B7280';
+      case 'tron': return '#EF0027';
+      default: return '#627EEA';
     }
   };
 
@@ -163,15 +168,13 @@ export default function MineScreen() {
             <TouchableOpacity 
               className="w-10 h-10 rounded-full items-center justify-center"
               style={{ backgroundColor: '#0A0A0F' }}
-              onPress={() => router.push('/notification')}
             >
               <Ionicons name="notifications-outline" size={22} color="#fff" />
-              <View className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full" />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Profile Card - 暗黑科技风格优化 */}
+        {/* Profile Card */}
         <View className="mx-5 mb-5">
           <TouchableOpacity 
             style={{
@@ -180,28 +183,19 @@ export default function MineScreen() {
               padding: 20,
               borderWidth: 1,
               borderColor: '#1F1F2E',
-              shadowColor: '#00F0FF',
-              shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.1,
-              shadowRadius: 20,
             }}
-            onPress={wallet.isConnected ? copyAddress : handleLogin}
+            onPress={wallet.isConnected ? copyAddress : handleConnectWallet}
           >
             {wallet.isConnected ? (
               <View>
                 {/* 用户信息行 */}
                 <View className="flex-row items-center gap-4 mb-4">
-                  {/* 钱包头像 - 霓虹发光 */}
                   <View 
                     className="w-14 h-14 rounded-full items-center justify-center"
                     style={{
                       backgroundColor: '#1A1A22',
                       borderWidth: 2,
                       borderColor: '#00F0FF',
-                      shadowColor: '#00F0FF',
-                      shadowOffset: { width: 0, height: 0 },
-                      shadowOpacity: 0.5,
-                      shadowRadius: 10,
                     }}
                   >
                     <FontAwesome6 name="wallet" size={22} color="#00F0FF" />
@@ -210,12 +204,16 @@ export default function MineScreen() {
                     <View className="flex-row items-center gap-2">
                       <Text className="text-lg font-semibold text-white">Web3 用户</Text>
                       {userStats.vipLevel > 0 && (
-                        <View 
-                          className="px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: '#1A1A22', borderWidth: 1, borderColor: '#FFD700' }}
+                        <TouchableOpacity
+                          onPress={() => router.push('/vip')}
                         >
-                          <Text className="text-xs" style={{ color: '#FFD700' }}>VIP {userStats.vipLevel}</Text>
-                        </View>
+                          <View 
+                            className="px-2 py-0.5 rounded-full"
+                            style={{ backgroundColor: '#1A1A22', borderWidth: 1, borderColor: '#FFD700' }}
+                          >
+                            <Text className="text-xs" style={{ color: '#FFD700' }}>VIP {userStats.vipLevel}</Text>
+                          </View>
+                        </TouchableOpacity>
                       )}
                     </View>
                     <TouchableOpacity onPress={() => setShowAddress(!showAddress)} className="flex-row items-center gap-1 mt-1">
@@ -227,7 +225,6 @@ export default function MineScreen() {
                       />
                     </TouchableOpacity>
                   </View>
-                  {/* 断开按钮 */}
                   <TouchableOpacity 
                     className="px-3 py-1.5 rounded-lg"
                     style={{ backgroundColor: '#1A1A22', borderWidth: 1, borderColor: '#EF4444' }}
@@ -255,10 +252,12 @@ export default function MineScreen() {
                     </View>
                   </View>
                   <View className="w-px" style={{ backgroundColor: '#1F1F2E' }} />
-                  <View className="items-center flex-1">
-                    <Text className="text-xs" style={{ color: '#6B7280' }}>Gas</Text>
-                    <Text className="text-sm font-semibold mt-1" style={{ color: '#BF00FF' }}>实时</Text>
-                  </View>
+                  <TouchableOpacity className="items-center flex-1" onPress={() => router.push('/vip')}>
+                    <Text className="text-xs" style={{ color: '#6B7280' }}>会员</Text>
+                    <Text className="text-sm font-semibold mt-1" style={{ color: userStats.vipLevel > 0 ? '#FFD700' : '#6B7280' }}>
+                      {userStats.vipLevel > 0 ? `VIP ${userStats.vipLevel}` : '未开通'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             ) : (
@@ -277,21 +276,17 @@ export default function MineScreen() {
                   className="px-8 py-2.5 rounded-xl"
                   style={{
                     backgroundColor: '#00F0FF',
-                    shadowColor: '#00F0FF',
-                    shadowOffset: { width: 0, height: 0 },
-                    shadowOpacity: 0.5,
-                    shadowRadius: 15,
                   }}
-                  onPress={handleLogin}
+                  onPress={handleConnectWallet}
                 >
-                  <Text className="text-sm font-bold" style={{ color: '#0A0A0F' }}>连接钱包</Text>
+                  <Text className="text-sm font-bold" style={{ color: '#0A0A0F' }}>连接 TP 钱包</Text>
                 </TouchableOpacity>
               </View>
             )}
           </TouchableOpacity>
         </View>
 
-        {/* 用户统计 - 暗黑科技风格 */}
+        {/* 用户统计 */}
         {wallet.isConnected && (
           <View className="px-5 mb-5">
             <View 
@@ -300,28 +295,18 @@ export default function MineScreen() {
                 backgroundColor: '#0A0A0F',
                 borderWidth: 1,
                 borderColor: '#1F1F2E',
-                shadowColor: '#00F0FF',
-                shadowOffset: { width: 0, height: 0 },
-                shadowOpacity: 0.05,
-                shadowRadius: 15,
               }}
             >
               <View className="flex-row justify-around">
-                <TouchableOpacity 
-                  className="items-center flex-1"
-                  onPress={() => router.push('/trading')}
-                >
+                <View className="items-center flex-1">
                   <Text className="text-xl font-bold" style={{ color: '#00F0FF' }}>{userStats.totalOrders}</Text>
                   <Text className="text-xs mt-1" style={{ color: '#6B7280' }}>订单数</Text>
-                </TouchableOpacity>
+                </View>
                 <View className="w-px" style={{ backgroundColor: '#1F1F2E' }} />
-                <TouchableOpacity 
-                  className="items-center flex-1"
-                  onPress={() => router.push('/follow')}
-                >
+                <View className="items-center flex-1">
                   <Text className="text-xl font-bold" style={{ color: '#BF00FF' }}>{userStats.totalFollowers}</Text>
                   <Text className="text-xs mt-1" style={{ color: '#6B7280' }}>跟单数</Text>
-                </TouchableOpacity>
+                </View>
                 <View className="w-px" style={{ backgroundColor: '#1F1F2E' }} />
                 <View className="items-center flex-1">
                   <Text 
@@ -332,13 +317,12 @@ export default function MineScreen() {
                   </Text>
                   <Text className="text-xs mt-1" style={{ color: '#6B7280' }}>收益率</Text>
                 </View>
-                <View className="w-px" style={{ backgroundColor: '#1F1F2E' }} />
               </View>
             </View>
           </View>
         )}
 
-        {/* VIP功能入口 - 暗黑科技风格 */}
+        {/* VIP功能入口 */}
         <View className="px-5 mb-5">
           <View className="flex-row items-center justify-between mb-2 px-1">
             <Text className="text-xs uppercase tracking-wider" style={{ color: '#FFD700' }}>VIP 功能</Text>
@@ -368,10 +352,6 @@ export default function MineScreen() {
                       backgroundColor: '#1A1A22',
                       borderWidth: 1,
                       borderColor: item.color,
-                      shadowColor: item.color,
-                      shadowOffset: { width: 0, height: 0 },
-                      shadowOpacity: 0.3,
-                      shadowRadius: 8,
                     }}
                   >
                     <FontAwesome6 name={item.icon as any} size={20} color={item.color} />
@@ -384,194 +364,90 @@ export default function MineScreen() {
           </View>
         </View>
 
-        {/* 用户功能入口 - 统一暗黑风格 */}
+        {/* 交易功能 */}
         <View className="px-5 mb-5">
           <Text className="text-xs mb-2 px-1 uppercase tracking-wider" style={{ color: '#00F0FF' }}>交易功能</Text>
           <View 
-            className="rounded-2xl overflow-hidden"
-            style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#1F1F2E' }}
+            className="rounded-2xl p-4"
+            style={{ 
+              backgroundColor: '#0A0A0F',
+              borderWidth: 1,
+              borderColor: '#1F1F2E',
+            }}
           >
-            {/* 我的订单 */}
-            <TouchableOpacity
-              className="flex-row items-center justify-between px-4 py-4"
-              style={{ borderBottomWidth: 1, borderBottomColor: '#1F1F2E' }}
-              onPress={() => router.push('/trading')}
-            >
-              <View className="flex-row items-center gap-3">
-                <View 
-                  className="w-10 h-10 rounded-xl items-center justify-center"
-                  style={{ backgroundColor: '#1A1A22', borderWidth: 1, borderColor: '#00F0FF' }}
+            <View className="flex-row flex-wrap justify-between">
+              {TRADING_FUNCTIONS.map((item) => (
+                <TouchableOpacity
+                  key={item.label}
+                  className="items-center mb-4"
+                  style={{ width: '48%' }}
+                  onPress={() => router.push(item.path)}
                 >
-                  <Ionicons name="document-text-outline" size={18} color="#00F0FF" />
-                </View>
-                <Text className="text-sm" style={{ color: '#FFFFFF' }}>我的订单</Text>
-              </View>
-              <View className="flex-row items-center gap-2">
-                <Text className="text-xs" style={{ color: '#6B7280' }}>{userStats.totalOrders} 单</Text>
-                <Ionicons name="chevron-forward" size={16} color="#6B7280" />
-              </View>
-            </TouchableOpacity>
-            
-            {/* 我的持仓 */}
-            <TouchableOpacity
-              className="flex-row items-center justify-between px-4 py-4"
-              style={{ borderBottomWidth: 1, borderBottomColor: '#1F1F2E' }}
-              onPress={() => router.push('/trading')}
-            >
-              <View className="flex-row items-center gap-3">
-                <View 
-                  className="w-10 h-10 rounded-xl items-center justify-center"
-                  style={{ backgroundColor: '#1A1A22', borderWidth: 1, borderColor: '#BF00FF' }}
-                >
-                  <Ionicons name="wallet-outline" size={18} color="#BF00FF" />
-                </View>
-                <Text className="text-sm" style={{ color: '#FFFFFF' }}>我的持仓</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#6B7280" />
-            </TouchableOpacity>
-            
-            {/* 我的跟单 */}
-            <TouchableOpacity
-              className="flex-row items-center justify-between px-4 py-4"
-              style={{ borderBottomWidth: 1, borderBottomColor: '#1F1F2E' }}
-              onPress={() => router.push('/copytrading')}
-            >
-              <View className="flex-row items-center gap-3">
-                <View 
-                  className="w-10 h-10 rounded-xl items-center justify-center"
-                  style={{ backgroundColor: '#1A1A22', borderWidth: 1, borderColor: '#FFD700' }}
-                >
-                  <Ionicons name="people-outline" size={18} color="#FFD700" />
-                </View>
-                <Text className="text-sm" style={{ color: '#FFFFFF' }}>我的跟单</Text>
-              </View>
-              <View className="flex-row items-center gap-2">
-                {userStats.totalFollowers > 0 && (
-                  <View className="px-2 py-0.5 rounded" style={{ backgroundColor: '#1A1A22' }}>
-                    <Text className="text-xs" style={{ color: '#00FF88' }}>{userStats.totalFollowers} 个</Text>
+                  <View 
+                    className="w-full rounded-xl p-3 flex-row items-center gap-3"
+                    style={{ 
+                      backgroundColor: '#1A1A22',
+                      borderWidth: 1,
+                      borderColor: item.color,
+                    }}
+                  >
+                    <FontAwesome6 name={item.icon as any} size={18} color={item.color} />
+                    <View className="flex-1">
+                      <Text className="text-sm" style={{ color: '#FFFFFF' }}>{item.label}</Text>
+                      <Text className="text-xs" style={{ color: '#6B7280' }}>{item.desc}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color="#6B7280" />
                   </View>
-                )}
-                <Ionicons name="chevron-forward" size={16} color="#6B7280" />
-              </View>
-            </TouchableOpacity>
-            
-            {/* 我的自选 */}
-            <TouchableOpacity
-              className="flex-row items-center justify-between px-4 py-4"
-              onPress={() => router.push('/follow')}
-            >
-              <View className="flex-row items-center gap-3">
-                <View 
-                  className="w-10 h-10 rounded-xl items-center justify-center"
-                  style={{ backgroundColor: '#1A1A22', borderWidth: 1, borderColor: '#10B981' }}
-                >
-                  <Ionicons name="star-outline" size={18} color="#10B981" />
-                </View>
-                <Text className="text-sm" style={{ color: '#FFFFFF' }}>我的自选</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color="#6B7280" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* 常用功能 */}
-        <View className="px-5 mb-5">
-          <Text className="text-xs mb-2 px-1 uppercase tracking-wider" style={{ color: '#BF00FF' }}>常用功能</Text>
-          <View 
-            className="rounded-2xl overflow-hidden"
-            style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#1F1F2E' }}
-          >
-            {/* KYC 实名认证 */}
-            <TouchableOpacity
-              className="flex-row items-center justify-between px-4 py-4"
-              style={{ borderBottomWidth: 1, borderBottomColor: '#1F1F2E' }}
-              onPress={() => router.push('/kyc')}
-            >
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="shield-checkmark" size={22} color={kycStatus === 'verified' ? '#00FF88' : '#10B981'} />
-                <Text className="text-sm" style={{ color: '#FFFFFF' }}>KYC 实名认证</Text>
-              </View>
-              <View className="flex-row items-center gap-2">
-                {kycStatus === 'none' && (
-                  <View className="px-2 py-0.5 rounded" style={{ backgroundColor: '#1A1A22' }}>
-                    <Text className="text-xs" style={{ color: '#6B7280' }}>未认证</Text>
-                  </View>
-                )}
-                {kycStatus === 'pending' && (
-                  <View className="px-2 py-0.5 rounded" style={{ backgroundColor: '#1A1A22' }}>
-                    <Text className="text-xs" style={{ color: '#FFD700' }}>审核中</Text>
-                  </View>
-                )}
-                {kycStatus === 'verified' && (
-                  <View className="px-2 py-0.5 rounded" style={{ backgroundColor: '#1A1A22' }}>
-                    <Text className="text-xs" style={{ color: '#00FF88' }}>已认证</Text>
-                  </View>
-                )}
-                <Ionicons name="chevron-forward" size={16} color="#6B7280" />
-              </View>
-            </TouchableOpacity>
-            
-            {/* 消息通知 */}
-            <TouchableOpacity
-              className="flex-row items-center justify-between px-4 py-4"
-              style={{ borderBottomWidth: 1, borderBottomColor: '#1F1F2E' }}
-              onPress={() => router.push('/notifications')}
-            >
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="mail-outline" size={22} color="#8B5CF6" />
-                <Text className="text-sm" style={{ color: '#FFFFFF' }}>消息通知</Text>
-              </View>
-              <View className="flex-row items-center gap-2">
-                <View className="px-2 py-0.5 rounded" style={{ backgroundColor: '#1A1A22' }}>
-                  <Text className="text-xs" style={{ color: '#6B7280' }}>3条未读</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color="#6B7280" />
-              </View>
-            </TouchableOpacity>
-            
-            {/* 价格提醒 - 带开关 */}
-            <View
-              className="flex-row items-center justify-between px-4 py-4"
-            >
-              <View className="flex-row items-center gap-3">
-                <Ionicons name="pricetag-outline" size={22} color={priceAlertEnabled ? '#00FF88' : '#F97316'} />
-                <Text className="text-sm" style={{ color: '#FFFFFF' }}>价格提醒</Text>
-              </View>
-              <TouchableOpacity
-                className="flex-row items-center gap-2"
-                onPress={() => setPriceAlertEnabled(!priceAlertEnabled)}
-              >
-                <View 
-                  className="px-2 py-0.5 rounded" 
-                  style={{ backgroundColor: '#1A1A22' }}
-                >
-                  <Text className="text-xs" style={{ color: priceAlertEnabled ? '#00FF88' : '#6B7280' }}>
-                    {priceAlertEnabled ? '已开启' : '未开启'}
-                  </Text>
-                </View>
-                <Ionicons 
-                  name={priceAlertEnabled ? "toggle-sharp" : "toggle-outline"} 
-                  size={24} 
-                  color={priceAlertEnabled ? '#00FF88' : '#6B7280'} 
-                />
-              </TouchableOpacity>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
         </View>
 
-        {/* 设置菜单 - 统一暗黑风格 */}
+        {/* 会员入口 Banner */}
         <View className="px-5 mb-5">
-          <Text className="text-xs mb-2 px-1 uppercase tracking-wider" style={{ color: '#6B7280' }}>设置</Text>
+          <TouchableOpacity
+            className="rounded-2xl p-4 overflow-hidden"
+            style={{
+              backgroundColor: '#0A0A0F',
+              borderWidth: 1,
+              borderColor: '#FFD700',
+            }}
+            onPress={() => router.push('/vip')}
+          >
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-3">
+                <View 
+                  className="w-12 h-12 rounded-xl items-center justify-center"
+                  style={{ backgroundColor: 'rgba(255, 215, 0, 0.1)' }}
+                >
+                  <FontAwesome6 name="crown" size={24} color="#FFD700" />
+                </View>
+                <View>
+                  <Text className="text-sm font-semibold" style={{ color: '#FFD700' }}>开通会员</Text>
+                  <Text className="text-xs" style={{ color: '#6B7280' }}>尊享更多特权</Text>
+                </View>
+              </View>
+              <View className="flex-row items-center gap-2">
+                <Text className="text-xs" style={{ color: '#6B7280' }}>立即开通</Text>
+                <Ionicons name="chevron-forward" size={16} color="#FFD700" />
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* 常用功能 */}
+        <View className="px-5 mb-5">
+          <Text className="text-xs mb-2 px-1 uppercase tracking-wider" style={{ color: '#6B7280' }}>常用功能</Text>
           <View 
             className="rounded-2xl overflow-hidden"
             style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#1F1F2E' }}
           >
-            {MENU_ITEMS.map((item, index) => (
+            {UTILITY_ITEMS.map((item, index) => (
               <TouchableOpacity
                 key={item.label}
                 className="flex-row items-center justify-between px-4 py-4"
-                onPress={() => item.path && router.push(item.path)}
-                style={index < MENU_ITEMS.length - 1 ? {
+                style={index < UTILITY_ITEMS.length - 1 ? {
                   borderBottomWidth: 1,
                   borderBottomColor: '#1F1F2E'
                 } : undefined}
@@ -581,9 +457,9 @@ export default function MineScreen() {
                   <Text className="text-sm" style={{ color: '#FFFFFF' }}>{item.label}</Text>
                 </View>
                 <View className="flex-row items-center gap-2">
-                  {item.badge ? (
+                  {item.badge && (
                     <Text className="text-xs" style={{ color: '#6B7280' }}>{item.badge}</Text>
-                  ) : null}
+                  )}
                   <Ionicons name="chevron-forward" size={16} color="#6B7280" />
                 </View>
               </TouchableOpacity>

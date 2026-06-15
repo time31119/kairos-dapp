@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { Screen } from '@/components/Screen';
-import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
+import { useRouter as useExpoRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { VIP_PLANS } from '@/utils/vipPlans';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
 
 export default function MembershipScreen() {
-  const router = useSafeRouter();
-  const params = useSafeSearchParams<{ plan?: string }>();
-  const planId = String(params.plan || 'professional');
+  const router = useExpoRouter();
+  const params = useLocalSearchParams<{ plan?: string }>();
+  const planId = params.plan || 'professional';
   const selectedPlan = VIP_PLANS.find((p) => p.id === planId) || VIP_PLANS[1];
 
   const [selectedBillingCycle, setSelectedBillingCycle] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly');

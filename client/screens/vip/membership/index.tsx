@@ -10,7 +10,8 @@ const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
 export default function MembershipScreen() {
   const router = useExpoRouter();
   const params = useLocalSearchParams<{ plan?: string }>();
-  const planId = params.plan || 'professional';
+  // 处理数组或字符串类型的 plan 参数
+  const planId = Array.isArray(params.plan) ? params.plan[0] : params.plan || 'professional';
   const selectedPlan = VIP_PLANS.find((p) => p.id === planId) || VIP_PLANS[1];
 
   const [selectedBillingCycle, setSelectedBillingCycle] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly');

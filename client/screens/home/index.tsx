@@ -833,43 +833,6 @@ export default function HomeScreen() {
             </View>
           ) : (
             <>
-              {/* 全局涨跌幅排行榜 */}
-              <View style={styles.billboardContainer}>
-                {/* 全局涨幅前10 */}
-                <View style={styles.billboardSection}>
-                  <View style={styles.billboardHeader}>
-                    <View style={[styles.billboardBadge, { backgroundColor: '#00FF8833' }]}>
-                      <Ionicons name="trending-up" size={12} color="#00FF88" />
-                      <Text style={[styles.billboardBadgeText, { color: '#00FF88' }]}>全球涨幅榜</Text>
-                    </View>
-                  </View>
-                  {categoryData[0]?.globalGainers?.slice(0, 5).map((token: any, idx: number) => (
-                    <View key={token.symbol + '-global-gain'} style={styles.billboardRow}>
-                      <Text style={styles.billboardRank}>{idx + 1}</Text>
-                      <Text style={styles.billboardSymbol}>{token.symbol}</Text>
-                      <Text style={styles.billboardChangeGreen}>+{token.change.toFixed(2)}%</Text>
-                    </View>
-                  )) || <Text style={{ color: '#6B7280', fontSize: 12, textAlign: 'center', paddingVertical: 10 }}>暂无数据</Text>}
-                </View>
-                
-                {/* 全局跌幅前10 */}
-                <View style={styles.billboardSection}>
-                  <View style={styles.billboardHeader}>
-                    <View style={[styles.billboardBadge, { backgroundColor: '#FF444433' }]}>
-                      <Ionicons name="trending-down" size={12} color="#FF4444" />
-                      <Text style={[styles.billboardBadgeText, { color: '#FF4444' }]}>全球跌幅榜</Text>
-                    </View>
-                  </View>
-                  {categoryData[0]?.globalLosers?.slice(0, 5).map((token: any, idx: number) => (
-                    <View key={token.symbol + '-global-loss'} style={styles.billboardRow}>
-                      <Text style={styles.billboardRank}>{idx + 1}</Text>
-                      <Text style={styles.billboardSymbol}>{token.symbol}</Text>
-                      <Text style={styles.billboardChangeRed}>{token.change.toFixed(2)}%</Text>
-                    </View>
-                  )) || <Text style={{ color: '#6B7280', fontSize: 12, textAlign: 'center', paddingVertical: 10 }}>暂无数据</Text>}
-                </View>
-              </View>
-              
               {/* 热门赛道详情列表 */}
               {categoryData.map((scenario: any) => (
                 <HotScenarioCard 
@@ -878,6 +841,59 @@ export default function HomeScreen() {
                   flash={categoryFlash}
                 />
               ))}
+
+              {/* 今日涨幅榜 & 跌幅榜 */}
+              <View style={styles.billboardContainer}>
+                {/* 今日涨幅榜 */}
+                <View style={styles.billboardSection}>
+                  <View style={styles.billboardHeader}>
+                    <View style={[styles.billboardBadge, { backgroundColor: '#00FF8833' }]}>
+                      <Ionicons name="trending-up" size={12} color="#00FF88" />
+                      <Text style={[styles.billboardBadgeText, { color: '#00FF88' }]}>今日涨幅榜</Text>
+                    </View>
+                    <View style={styles.liveIndicator}>
+                      <View style={[styles.liveDot, categoryFlash && styles.liveDotFlash]} />
+                      <Text style={styles.liveText}>实时</Text>
+                    </View>
+                  </View>
+                  {categoryData[0]?.globalGainers?.slice(0, 10).map((token: any, idx: number) => (
+                    <View key={token.symbol + '-gain'} style={styles.billboardRow}>
+                      <Text style={styles.billboardRank}>{idx + 1}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.billboardSymbol}>{token.symbol}</Text>
+                        <Text style={styles.billboardName}>{token.name}</Text>
+                      </View>
+                      <Text style={styles.billboardPrice}>${token.price.toFixed(4)}</Text>
+                      <Text style={styles.billboardChangeGreen}>+{token.change.toFixed(2)}%</Text>
+                    </View>
+                  )) || <Text style={{ color: '#6B7280', fontSize: 12, textAlign: 'center', paddingVertical: 10 }}>暂无数据</Text>}
+                </View>
+
+                {/* 今日跌幅榜 */}
+                <View style={styles.billboardSection}>
+                  <View style={styles.billboardHeader}>
+                    <View style={[styles.billboardBadge, { backgroundColor: '#FF444433' }]}>
+                      <Ionicons name="trending-down" size={12} color="#FF4444" />
+                      <Text style={[styles.billboardBadgeText, { color: '#FF4444' }]}>今日跌幅榜</Text>
+                    </View>
+                    <View style={styles.liveIndicator}>
+                      <View style={[styles.liveDot, categoryFlash && styles.liveDotFlash]} />
+                      <Text style={styles.liveText}>实时</Text>
+                    </View>
+                  </View>
+                  {categoryData[0]?.globalLosers?.slice(0, 10).map((token: any, idx: number) => (
+                    <View key={token.symbol + '-loss'} style={styles.billboardRow}>
+                      <Text style={styles.billboardRank}>{idx + 1}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.billboardSymbol}>{token.symbol}</Text>
+                        <Text style={styles.billboardName}>{token.name}</Text>
+                      </View>
+                      <Text style={styles.billboardPrice}>${token.price.toFixed(4)}</Text>
+                      <Text style={styles.billboardChangeRed}>{token.change.toFixed(2)}%</Text>
+                    </View>
+                  )) || <Text style={{ color: '#6B7280', fontSize: 12, textAlign: 'center', paddingVertical: 10 }}>暂无数据</Text>}
+                </View>
+              </View>
               
               {/* 资讯快讯 */}
               <View style={styles.billboardSection}>
@@ -1225,6 +1241,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#FFF',
+  },
+  billboardName: {
+    fontSize: 10,
+    color: '#6B7280',
+    marginTop: 1,
+  },
+  billboardPrice: {
+    fontSize: 10,
+    color: '#A0A0B0',
+    marginRight: 4,
   },
   billboardChangeGreen: {
     fontSize: 12,

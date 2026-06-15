@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { useRouter } from '@/hooks/useSafeRouter';
+import { useSafeRouter } from '@/hooks/useSafeRouter';
 import Screen from '@/components/Screen';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -39,7 +39,7 @@ interface Trader {
 }
 
 export default function TraderDetailScreen() {
-  const router = useRouter();
+  const router = useSafeRouter();
   const [trader, setTrader] = useState<Trader | null>(null);
   const [loading, setLoading] = useState(true);
   const [followingLoading, setFollowingLoading] = useState(false);

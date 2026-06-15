@@ -85,7 +85,7 @@ export default function Membership() {
         <View style={{ width: 60 }} />
       </View>
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* 头部介绍 */}
         <View style={styles.header}>
           <View style={styles.headerIcon}>
@@ -382,6 +382,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0A0A0F',
     paddingHorizontal: 16,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   header: {
     alignItems: 'center',

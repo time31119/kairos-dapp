@@ -139,16 +139,6 @@ export default function SwapModal({ visible, token, onClose, onSwap }: SwapModal
     setToAmount(tempAmount);
   };
 
-  // 选择代币
-  const handleSelectToken = (symbol: string) => {
-    if (selectingTokenFor === 'from') {
-      setFromToken(symbol);
-    } else if (selectingTokenFor === 'to') {
-      setToToken(symbol);
-    }
-    setSelectingTokenFor(null);
-  };
-
   const handleSwap = async () => {
     if (!fromAmount || !fromToken || !toToken) return;
     

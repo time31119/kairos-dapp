@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, TextInput } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { Ionicons } from '@expo/vector-icons';
 import { useWeb3 } from '@/contexts/Web3Context';
+import SwapModal from '@/components/payment/SwapModal';
 
 // 暗黑科技风配色
 const colors = {
@@ -51,6 +52,8 @@ export default function CoinDetail() {
 
   const [chartType, setChartType] = useState<'24h' | '7d' | '30d'>('24h');
   const [showTrade, setShowTrade] = useState(false);
+  const [swapModalVisible, setSwapModalVisible] = useState(false);
+  const [swapAmount, setSwapAmount] = useState('');
 
   const formatNumber = (num: number) => {
     if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
@@ -180,10 +183,15 @@ export default function CoinDetail() {
             <View style={styles.tradeInputs}>
               <View style={styles.tradeInputGroup}>
                 <Text style={styles.tradeLabel}>支付</Text>
-                <View style={styles.tradeInput}>
-                  <Text style={styles.tradeInputValue}>0.00</Text>
-                  <Text style={styles.tradeInputSymbol}>USDT</Text>
-                </View>
+                <TextInput
+                  style={styles.tradeTextInput}
+                  placeholder="0.00"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="decimal-pad"
+                  value={swapAmount}
+                  onChangeText={setSwapAmount}
+                />
+                <Text style={styles.tradeInputSymbol}>USDT</Text>
               </View>
 
               <View style={styles.tradeArrow}>
@@ -193,29 +201,38 @@ export default function CoinDetail() {
               <View style={styles.tradeInputGroup}>
                 <Text style={styles.tradeLabel}>获得</Text>
                 <View style={styles.tradeInput}>
-                  <Text style={styles.tradeInputValue}>0.00</Text>
+                  <Text style={styles.tradeInputValue}>{swapAmount || '0.00'}</Text>
                   <Text style={styles.tradeInputSymbol}>{tokenInfo.symbol}</Text>
                 </View>
               </View>
             </View>
 
             <TouchableOpacity
-              style={[styles.tradeButton, !wallet.isConnected && styles.tradeButtonDisabled]}
-              disabled={!wallet.isConnected}
+              style={[styles.tradeButton, !swapAmount && styles.tradeButtonDisabled]}
+              disabled={!swapAmount}
               onPress={() => {
-                if (!wallet.isConnected) {
-                  router.push('/auth');
-                } else {
-                  // 交易逻辑
-                }
+                setSwapModalVisible(true);
               }}
             >
               <Text style={styles.tradeButtonText}>
-                {wallet.isConnected ? '兑换' : '连接钱包'}
+                {swapAmount ? '兑换' : '请输入数量'}
               </Text>
             </TouchableOpacity>
           </View>
         )}
+
+        {/* Swap Modal */}
+        <SwapModal
+          visible={swapModalVisible}
+          onClose={() => setSwapModalVisible(false)}
+          initialFromToken={{ symbol: 'USDT', name: 'Tether USD', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', logo: 'https://assets.coingecko.com/coins/images/12559/small/usdt.png' }}
+          initialToToken={{ symbol: tokenInfo.symbol, name: tokenInfo.name, address: tokenInfo.contract || '', logo: tokenInfo.logo }}
+          initialAmount={swapAmount}
+        />
+      </ScrollView>
+    </Screen>
+  );
+}
 
         {/* Info Cards */}
         <View style={styles.infoSection}>

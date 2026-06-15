@@ -63,7 +63,7 @@ const FEATURED_TAGS = [
 ];
 
 // 赛道区块 - 基于技术分析
-function CategorySection({ category, onPress }: { category: any; onPress: () => void }) {
+function CategorySection({ category, onPress, onTokenPress }: { category: any; onPress: () => void; onTokenPress?: (token: any) => void }) {
   return (
     <Pressable style={styles.categorySection} onPress={onPress}>
       <View style={styles.categoryHeader}>
@@ -101,7 +101,11 @@ function CategorySection({ category, onPress }: { category: any; onPress: () => 
       
       <View style={styles.tokenList}>
         {category.tokens?.slice(0, 3).map((t: any, i: number) => (
-          <View key={t.symbol} style={styles.miniTokenRow}>
+          <Pressable 
+            key={t.symbol} 
+            style={styles.miniTokenRow}
+            onPress={() => onTokenPress?.(t)}
+          >
             <View style={styles.miniTokenLeft}>
               <Text style={styles.miniRank}>{t.rank || i + 1}</Text>
               <Text style={styles.miniSymbol}>{t.symbol}</Text>
@@ -122,7 +126,7 @@ function CategorySection({ category, onPress }: { category: any; onPress: () => 
                 {t.change >= 0 ? '+' : ''}{t.change.toFixed(1)}%
               </Text>
             </View>
-          </View>
+          </Pressable>
         ))}
       </View>
       
@@ -801,7 +805,7 @@ export default function HomeScreen() {
                       techStats: cat.stats,
                     }} 
                     onPress={() => router.push('/screener/' + cat.id)}
-                    onPress={() => router.push('/screener/' + cat.id)}
+                    onTokenPress={(token) => router.push({ pathname: '/screener/' + cat.id, params: { token: JSON.stringify(token) } })}
                   />
                 </Pressable>
               );

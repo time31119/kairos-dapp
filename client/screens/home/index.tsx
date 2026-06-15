@@ -518,9 +518,19 @@ export default function HomeScreen() {
       const response = await fetch(API_URL + '/api/v1/screener/scenarios/realtime');
       const result = await response.json();
       if (result.success) {
+        // 数据去重处理，确保涨跌幅榜没有重复
+        const uniqueGainers = (result.globalGainers || []).filter(
+          (token: any, index: number, self: any[]) =>
+            index === self.findIndex((t: any) => t.symbol === token.symbol)
+        );
+        const uniqueLosers = (result.globalLosers || []).filter(
+          (token: any, index: number, self: any[]) =>
+            index === self.findIndex((t: any) => t.symbol === token.symbol)
+        );
+        
         setCategoryData(result.data);
-        setGlobalGainers(result.globalGainers || []);
-        setGlobalLosers(result.globalLosers || []);
+        setGlobalGainers(uniqueGainers.slice(0, 10));
+        setGlobalLosers(uniqueLosers.slice(0, 10));
         setCategoryLastUpdate(new Date());
         
         // 触发闪烁效果
@@ -875,17 +885,21 @@ export default function HomeScreen() {
                     <Text style={styles.liveText}>实时</Text>
                   </View>
                 </View>
-                {globalGainers.slice(0, 10).map((token: any, idx: number) => (
-                  <View key={token.symbol + '-gain'} style={styles.rankRow}>
-                    <Text style={styles.rankNumber}>{idx + 1}</Text>
-                    <View style={styles.rankInfo}>
-                      <Text style={styles.rankSymbol}>{token.symbol}</Text>
-                      <Text style={styles.rankName}>{token.name}</Text>
+                {globalGainers.slice(0, 10).map((token: any, idx: number) => {
+                  const price = typeof token.price === 'number' && !isNaN(token.price) ? token.price : 0;
+                  const change = typeof token.change === 'number' && !isNaN(token.change) ? token.change : 0;
+                  return (
+                    <View key={`${token.symbol}-gain-${idx}`} style={styles.rankRow}>
+                      <Text style={styles.rankNumber}>{idx + 1}</Text>
+                      <View style={styles.rankInfo}>
+                        <Text style={styles.rankSymbol}>{token.symbol || 'N/A'}</Text>
+                        <Text style={styles.rankName}>{token.name || 'Unknown'}</Text>
+                      </View>
+                      <Text style={styles.rankPrice}>${price.toFixed(4)}</Text>
+                      <Text style={styles.rankChangeGreen}>+{change.toFixed(2)}%</Text>
                     </View>
-                    <Text style={styles.rankPrice}>${token.price.toFixed(4)}</Text>
-                    <Text style={styles.rankChangeGreen}>+{token.change.toFixed(2)}%</Text>
-                  </View>
-                )) || <Text style={{ color: '#6B7280', fontSize: 13, textAlign: 'center', paddingVertical: 20 }}>暂无数据</Text>}
+                  );
+                }) || <Text style={{ color: '#6B7280', fontSize: 13, textAlign: 'center', paddingVertical: 20 }}>暂无数据</Text>}
               </View>
 
               {/* 今日跌幅榜 */}
@@ -900,17 +914,21 @@ export default function HomeScreen() {
                     <Text style={styles.liveText}>实时</Text>
                   </View>
                 </View>
-                {globalLosers.slice(0, 10).map((token: any, idx: number) => (
-                  <View key={token.symbol + '-loss'} style={styles.rankRow}>
-                    <Text style={styles.rankNumber}>{idx + 1}</Text>
-                    <View style={styles.rankInfo}>
-                      <Text style={styles.rankSymbol}>{token.symbol}</Text>
-                      <Text style={styles.rankName}>{token.name}</Text>
+                {globalLosers.slice(0, 10).map((token: any, idx: number) => {
+                  const price = typeof token.price === 'number' && !isNaN(token.price) ? token.price : 0;
+                  const change = typeof token.change === 'number' && !isNaN(token.change) ? token.change : 0;
+                  return (
+                    <View key={`${token.symbol}-loss-${idx}`} style={styles.rankRow}>
+                      <Text style={styles.rankNumber}>{idx + 1}</Text>
+                      <View style={styles.rankInfo}>
+                        <Text style={styles.rankSymbol}>{token.symbol || 'N/A'}</Text>
+                        <Text style={styles.rankName}>{token.name || 'Unknown'}</Text>
+                      </View>
+                      <Text style={styles.rankPrice}>${price.toFixed(4)}</Text>
+                      <Text style={styles.rankChangeRed}>{change.toFixed(2)}%</Text>
                     </View>
-                    <Text style={styles.rankPrice}>${token.price.toFixed(4)}</Text>
-                    <Text style={styles.rankChangeRed}>{token.change.toFixed(2)}%</Text>
-                  </View>
-                )) || <Text style={{ color: '#6B7280', fontSize: 13, textAlign: 'center', paddingVertical: 20 }}>暂无数据</Text>}
+                  );
+                }) || <Text style={{ color: '#6B7280', fontSize: 13, textAlign: 'center', paddingVertical: 20 }}>暂无数据</Text>}
               </View>
               
               {/* 今日资讯 */}

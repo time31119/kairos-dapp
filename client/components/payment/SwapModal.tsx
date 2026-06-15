@@ -25,7 +25,7 @@ interface SwapModalProps {
   onSwap?: (fromToken: string, toToken: string, amount: string) => void;
 }
 
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || ''
 
 // 常用代币列表
 const POPULAR_TOKENS = [

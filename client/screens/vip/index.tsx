@@ -15,7 +15,7 @@ import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { VIP_PLANS } from '@/utils/vipPlans';
 import TraderDetailModal from '@/components/payment/TraderDetailModal';
 
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || ''
 
 interface Trader {
   id: string;

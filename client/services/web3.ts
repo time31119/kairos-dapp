@@ -20,7 +20,7 @@ import {
 } from '@/services/metamask';
 
 // API 基础 URL
-const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || ''
 
 // 存储键
 const WALLET_STORAGE_KEY = 'wallet_info';

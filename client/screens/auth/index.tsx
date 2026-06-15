@@ -18,7 +18,7 @@ import { useWeb3 } from '@/contexts/Web3Context';
 import WalletConnectQR from '@/components/WalletConnectQR';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || ''
 
 // DAPP 暗黑科技风配色
 const colors = {

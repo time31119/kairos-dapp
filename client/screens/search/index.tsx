@@ -11,7 +11,7 @@ import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || ''
 
 const HISTORY_KEY = 'search_history';
 const MAX_HISTORY = 10;

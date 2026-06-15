@@ -25,7 +25,7 @@ interface TradeModalProps {
   onTrade?: (token: string, amount: string, type: 'buy' | 'sell') => void;
 }
 
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || ''
 
 // 快捷金额选项
 const QUICK_AMOUNTS = ['$100', '$500', '$1,000', '$5,000'];

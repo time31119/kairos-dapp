@@ -87,8 +87,12 @@ export default function MineScreen() {
     setRefreshing(false);
   }, []);
 
-  const handleLogin = () => {
-    router.push('/auth');
+  const handleLogin = async () => {
+    try {
+      await connect('tp');
+    } catch (error) {
+      Alert.alert('连接失败', '请确保已安装 TP 钱包');
+    }
   };
 
   const copyAddress = () => {

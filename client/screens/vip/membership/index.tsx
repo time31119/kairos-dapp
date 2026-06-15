@@ -150,19 +150,27 @@ export default function MembershipScreen() {
           paymentMethod: 'tp_wallet',
           status: 'confirmed',
           walletAddress,
+          planId: selectedPlan.id,
+          billingCycle: selectedBillingCycle,
         }),
       });
 
       if (response.ok) {
-        Alert.alert('支付成功', '您的订阅已开通，请注意查收', [
-          { text: '确定', onPress: () => router.back() },
-        ]);
+        const data = await response.json();
+        if (data.success) {
+          Alert.alert('支付成功', '您的订阅已开通，请注意查收', [
+            { text: '确定', onPress: () => router.back() },
+          ]);
+        } else {
+          Alert.alert('支付确认中', '我们正在确认您的转账，请稍后刷新页面查看状态');
+          router.back();
+        }
       } else {
-        Alert.alert('支付确认中', '我们正在确认您的转账，请稍后刷新页面查看状态');
-        router.back();
+        Alert.alert('确认失败', '请稍后重试或联系客服');
       }
     } catch (error) {
       Alert.alert('确认失败', '请稍后重试或联系客服');
+    } finally {
       setIsProcessing(false);
     }
   };

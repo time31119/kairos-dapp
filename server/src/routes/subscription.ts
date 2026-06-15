@@ -52,14 +52,13 @@ router.post('/create-order', async (req, res) => {
     const price = plan.price[billingCycle as keyof typeof plan.price];
     const orderId = `ORD${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     
-    // 生成支付地址（根据支付方式）
-    // 收款地址配置
-    const PAYMENT_ADDRESSES = {
-      USDT_TRC20: 'TSV8UGKBeXrj26PUiBUhhLunfzVSmvyqWq', // TRON
-      USDT_BNB: '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d', // BNB Chain (BEP20)
-    };
+    // 收款地址配置（TP钱包使用TRC20）
+    const PAYMENT_ADDRESS = 'TSV8UGKBeXrj26PUiBUhhLunfzVSmvyqWq'; // USDT TRC20
+    const PAYMENT_ADDRESS_BNB = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d'; // USDT BEP20
     
-    let paymentAddress = PAYMENT_ADDRESSES[paymentMethod as keyof typeof PAYMENT_ADDRESSES] || 'PAYMENT_ADDRESS_PENDING';
+    // TP钱包默认使用TRC20
+    let paymentAddress = PAYMENT_ADDRESS;
+    let paymentChain = 'TRC20';
 
     const order = {
       orderId,
@@ -87,26 +86,45 @@ router.post('/create-order', async (req, res) => {
 // 模拟支付回调（实际项目中由支付网关调用）
 router.post('/callback', async (req, res) => {
   try {
-    const { orderId, paymentMethod, txHash, status } = req.body;
+    const { orderId, paymentMethod, txHash, status, walletAddress, planId, billingCycle } = req.body;
+    const userId = req.headers['x-user-id'] as string || 'demo-user';
     
-    if (status === 'confirmed') {
-      const userId = req.headers['x-user-id'] as string || 'demo-user';
-      
-      // 获取订单信息（实际应从数据库查询）
+    if (status === 'confirmed' && planId) {
+      // 获取套餐信息
       const plans = getSubscriptionPlans();
+      const plan = plans.find(p => p.id === planId);
       
+      if (!plan) {
+        return res.status(400).json({ success: false, message: '无效的套餐' });
+      }
+
+      // 根据计费周期计算过期时间
+      let days = 30;
+      if (billingCycle === 'quarterly') days = 90;
+      else if (billingCycle === 'yearly') days = 365;
+
       // 创建/更新订阅
       createSubscription(userId, {
-        plan: 'professional',
+        plan: planId,
         status: 'active',
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
       });
 
-      res.json({ success: true, message: '支付确认成功' });
+      console.log(`[订阅] 用户 ${userId} 订阅成功 - 套餐: ${plan.name}, 周期: ${billingCycle}, 到期: ${new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()}`);
+
+      res.json({ 
+        success: true, 
+        message: '支付确认成功',
+        data: {
+          plan: plan.name,
+          expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+        }
+      });
     } else {
       res.json({ success: false, message: '支付未确认' });
     }
   } catch (error) {
+    console.error('支付回调处理失败:', error);
     res.status(500).json({ success: false, message: '处理回调失败' });
   }
 });

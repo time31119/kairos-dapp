@@ -363,7 +363,10 @@ export default function CopytradingScreen() {
               key={trader.id || index}
               style={styles.traderCard}
               activeOpacity={0.8}
-              onPress={() => router.push('/trader', { traderId: trader.id })}
+              onPress={() => {
+                setSelectedTrader(trader);
+                setModalVisible(true);
+              }}
             >
               <View style={styles.traderHeader}>
                 <View style={styles.traderLeft}>

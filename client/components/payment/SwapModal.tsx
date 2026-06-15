@@ -44,6 +44,37 @@ export default function SwapModal({ visible, token, onClose, onSwap }: SwapModal
   const [exchangeRate, setExchangeRate] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [slippage, setSlippage] = useState<number>(0.5);
+  const [selectingTokenFor, setSelectingTokenFor] = useState<'from' | 'to' | null>(null);
+
+  // 常用代币列表
+  const commonTokens = [
+    { symbol: 'ETH', name: 'Ethereum', icon: 'E', price: 3456.78 },
+    { symbol: 'USDT', name: 'Tether USD', icon: 'U', price: 1.00 },
+    { symbol: 'USDC', name: 'USD Coin', icon: 'U', price: 1.00 },
+    { symbol: 'BTC', name: 'Bitcoin', icon: 'B', price: 67890.12 },
+    { symbol: 'BNB', name: 'BNB', icon: 'B', price: 567.89 },
+    { symbol: 'SOL', name: 'Solana', icon: 'S', price: 145.67 },
+    { symbol: 'XRP', name: 'Ripple', icon: 'X', price: 0.52 },
+    { symbol: 'ADA', name: 'Cardano', icon: 'A', price: 0.45 },
+    { symbol: 'DOGE', name: 'Dogecoin', icon: 'D', price: 0.12 },
+    { symbol: 'DOT', name: 'Polkadot', icon: 'D', price: 7.23 },
+  ];
+
+  // 选择代币处理
+  const handleSelectToken = (symbol: string) => {
+    if (selectingTokenFor === 'from') {
+      setFromToken(symbol);
+      if (symbol === toToken) {
+        setToToken(fromToken || 'ETH');
+      }
+    } else {
+      setToToken(symbol);
+      if (symbol === fromToken) {
+        setFromToken(toToken || 'USDT');
+      }
+    }
+    setSelectingTokenFor(null);
+  };
 
   // 当选择目标代币时获取汇率
   useEffect(() => {
@@ -108,6 +139,16 @@ export default function SwapModal({ visible, token, onClose, onSwap }: SwapModal
     setToAmount(tempAmount);
   };
 
+  // 选择代币
+  const handleSelectToken = (symbol: string) => {
+    if (selectingTokenFor === 'from') {
+      setFromToken(symbol);
+    } else if (selectingTokenFor === 'to') {
+      setToToken(symbol);
+    }
+    setSelectingTokenFor(null);
+  };
+
   const handleSwap = async () => {
     if (!fromAmount || !fromToken || !toToken) return;
     
@@ -160,7 +201,7 @@ export default function SwapModal({ visible, token, onClose, onSwap }: SwapModal
               <View style={styles.tokenRow}>
                 <TouchableOpacity 
                   style={styles.tokenSelector}
-                  onPress={() => {}}
+                  onPress={() => setSelectingTokenFor('from')}
                 >
                   <View style={[styles.tokenIcon, { backgroundColor: getTokenInfo(fromToken).color + '30' }]}>
                     <Text style={[styles.tokenIconText, { color: getTokenInfo(fromToken).color }]}>
@@ -193,7 +234,7 @@ export default function SwapModal({ visible, token, onClose, onSwap }: SwapModal
               <View style={styles.tokenRow}>
                 <TouchableOpacity 
                   style={styles.tokenSelector}
-                  onPress={() => {}}
+                  onPress={() => setSelectingTokenFor('to')}
                 >
                   <View style={[styles.tokenIcon, { backgroundColor: getTokenInfo(toToken).color + '30' }]}>
                     <Text style={[styles.tokenIconText, { color: getTokenInfo(toToken).color }]}>
@@ -294,17 +335,48 @@ export default function SwapModal({ visible, token, onClose, onSwap }: SwapModal
             <TouchableOpacity
               style={[
                 styles.swapSubmitBtn,
-                (!fromAmount || loading) && styles.swapSubmitBtnDisabled
+                (!fromToken || !toToken || loading) && styles.swapSubmitBtnDisabled
               ]}
               onPress={handleSwap}
-              disabled={!fromAmount || loading}
+              disabled={!fromToken || !toToken || loading}
             >
               <Text style={styles.swapSubmitText}>
-                {loading ? '兑换中...' : `兑换 ${fromAmount || '0'} ${fromToken}`}
+                {loading ? '兑换中...' : `兑换 ${fromToken} → ${toToken}`}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* 代币选择器 */}
+        <Modal visible={selectingTokenFor !== null} transparent animationType="slide">
+          <View style={styles.overlay}>
+            <View style={styles.tokenSelectorContainer}>
+              <View style={styles.tokenSelectorHeader}>
+                <Text style={styles.tokenSelectorTitle}>选择代币</Text>
+                <TouchableOpacity onPress={() => setSelectingTokenFor(null)}>
+                  <Ionicons name="close" size={24} color="#8B8B9A" />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={styles.tokenList}>
+                {POPULAR_TOKENS.map((t) => (
+                  <TouchableOpacity
+                    key={t.symbol}
+                    style={styles.tokenItem}
+                    onPress={() => handleSelectToken(t.symbol)}
+                  >
+                    <View style={[styles.tokenIcon, { backgroundColor: t.color + '30' }]}>
+                      <Text style={[styles.tokenIconText, { color: t.color }]}>{t.icon}</Text>
+                    </View>
+                    <View style={styles.tokenItemInfo}>
+                      <Text style={styles.tokenItemSymbol}>{t.symbol}</Text>
+                      <Text style={styles.tokenItemName}>{t.name}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
       </View>
     </Modal>
   );
@@ -500,5 +572,50 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#0A0A0F',
+  },
+  // 代币选择器样式
+  tokenSelectorContainer: {
+    backgroundColor: '#1A1A2E',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '70%',
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+  },
+  tokenSelectorHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2D2D44',
+  },
+  tokenSelectorTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  tokenList: {
+    padding: 16,
+  },
+  tokenItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#0D0D1A',
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  tokenItemInfo: {
+    marginLeft: 12,
+  },
+  tokenItemSymbol: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  tokenItemName: {
+    fontSize: 12,
+    color: '#8B8B9A',
+    marginTop: 2,
   },
 });

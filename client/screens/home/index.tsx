@@ -13,7 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import SwapModal from '@/components/payment/SwapModal';
 
-const API_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+const API_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
 
 // 赛道分类 - 完整信息
 const CATEGORIES = [

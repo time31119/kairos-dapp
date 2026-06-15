@@ -725,7 +725,11 @@ export default function VipScreen() {
 
   return (
     <Screen>
-      <View style={styles.container}>
+      <ScrollView 
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>会员中心</Text>
@@ -794,7 +798,7 @@ export default function VipScreen() {
           }}
           onFollow={handleFollow}
         />
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
@@ -803,6 +807,9 @@ const styles = {
   container: {
     flex: 1,
     backgroundColor: '#0A0A0F',
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   header: {
     backgroundColor: '#0A0A0F',

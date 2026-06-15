@@ -842,57 +842,54 @@ export default function HomeScreen() {
                 />
               ))}
 
-              {/* 今日涨幅榜 & 跌幅榜 */}
-              <View style={styles.billboardContainer}>
-                {/* 今日涨幅榜 */}
-                <View style={styles.billboardSection}>
-                  <View style={styles.billboardHeader}>
-                    <View style={[styles.billboardBadge, { backgroundColor: '#00FF8833' }]}>
-                      <Ionicons name="trending-up" size={12} color="#00FF88" />
-                      <Text style={[styles.billboardBadgeText, { color: '#00FF88' }]}>今日涨幅榜</Text>
-                    </View>
-                    <View style={styles.liveIndicator}>
-                      <View style={[styles.liveDot, categoryFlash && styles.liveDotFlash]} />
-                      <Text style={styles.liveText}>实时</Text>
-                    </View>
+              {/* 今日涨幅榜 */}
+              <View style={styles.rankCard}>
+                <View style={styles.rankHeader}>
+                  <View style={[styles.rankBadge, { backgroundColor: '#00FF8833' }]}>
+                    <Ionicons name="trending-up" size={14} color="#00FF88" />
+                    <Text style={[styles.rankBadgeText, { color: '#00FF88' }]}>今日涨幅榜</Text>
                   </View>
-                  {categoryData[0]?.globalGainers?.slice(0, 10).map((token: any, idx: number) => (
-                    <View key={token.symbol + '-gain'} style={styles.billboardRow}>
-                      <Text style={styles.billboardRank}>{idx + 1}</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.billboardSymbol}>{token.symbol}</Text>
-                        <Text style={styles.billboardName}>{token.name}</Text>
-                      </View>
-                      <Text style={styles.billboardPrice}>${token.price.toFixed(4)}</Text>
-                      <Text style={styles.billboardChangeGreen}>+{token.change.toFixed(2)}%</Text>
-                    </View>
-                  )) || <Text style={{ color: '#6B7280', fontSize: 12, textAlign: 'center', paddingVertical: 10 }}>暂无数据</Text>}
+                  <View style={styles.liveIndicator}>
+                    <View style={[styles.liveDot, categoryFlash && styles.liveDotFlash]} />
+                    <Text style={styles.liveText}>实时</Text>
+                  </View>
                 </View>
+                {categoryData[0]?.globalGainers?.slice(0, 10).map((token: any, idx: number) => (
+                  <View key={token.symbol + '-gain'} style={styles.rankRow}>
+                    <Text style={styles.rankNumber}>{idx + 1}</Text>
+                    <View style={styles.rankInfo}>
+                      <Text style={styles.rankSymbol}>{token.symbol}</Text>
+                      <Text style={styles.rankName}>{token.name}</Text>
+                    </View>
+                    <Text style={styles.rankPrice}>${token.price.toFixed(4)}</Text>
+                    <Text style={styles.rankChangeGreen}>+{token.change.toFixed(2)}%</Text>
+                  </View>
+                )) || <Text style={{ color: '#6B7280', fontSize: 13, textAlign: 'center', paddingVertical: 20 }}>暂无数据</Text>}
+              </View>
 
-                {/* 今日跌幅榜 */}
-                <View style={styles.billboardSection}>
-                  <View style={styles.billboardHeader}>
-                    <View style={[styles.billboardBadge, { backgroundColor: '#FF444433' }]}>
-                      <Ionicons name="trending-down" size={12} color="#FF4444" />
-                      <Text style={[styles.billboardBadgeText, { color: '#FF4444' }]}>今日跌幅榜</Text>
-                    </View>
-                    <View style={styles.liveIndicator}>
-                      <View style={[styles.liveDot, categoryFlash && styles.liveDotFlash]} />
-                      <Text style={styles.liveText}>实时</Text>
-                    </View>
+              {/* 今日跌幅榜 */}
+              <View style={styles.rankCard}>
+                <View style={styles.rankHeader}>
+                  <View style={[styles.rankBadge, { backgroundColor: '#FF444433' }]}>
+                    <Ionicons name="trending-down" size={14} color="#FF4444" />
+                    <Text style={[styles.rankBadgeText, { color: '#FF4444' }]}>今日跌幅榜</Text>
                   </View>
-                  {categoryData[0]?.globalLosers?.slice(0, 10).map((token: any, idx: number) => (
-                    <View key={token.symbol + '-loss'} style={styles.billboardRow}>
-                      <Text style={styles.billboardRank}>{idx + 1}</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.billboardSymbol}>{token.symbol}</Text>
-                        <Text style={styles.billboardName}>{token.name}</Text>
-                      </View>
-                      <Text style={styles.billboardPrice}>${token.price.toFixed(4)}</Text>
-                      <Text style={styles.billboardChangeRed}>{token.change.toFixed(2)}%</Text>
-                    </View>
-                  )) || <Text style={{ color: '#6B7280', fontSize: 12, textAlign: 'center', paddingVertical: 10 }}>暂无数据</Text>}
+                  <View style={styles.liveIndicator}>
+                    <View style={[styles.liveDot, categoryFlash && styles.liveDotFlash]} />
+                    <Text style={styles.liveText}>实时</Text>
+                  </View>
                 </View>
+                {categoryData[0]?.globalLosers?.slice(0, 10).map((token: any, idx: number) => (
+                  <View key={token.symbol + '-loss'} style={styles.rankRow}>
+                    <Text style={styles.rankNumber}>{idx + 1}</Text>
+                    <View style={styles.rankInfo}>
+                      <Text style={styles.rankSymbol}>{token.symbol}</Text>
+                      <Text style={styles.rankName}>{token.name}</Text>
+                    </View>
+                    <Text style={styles.rankPrice}>${token.price.toFixed(4)}</Text>
+                    <Text style={styles.rankChangeRed}>{token.change.toFixed(2)}%</Text>
+                  </View>
+                )) || <Text style={{ color: '#6B7280', fontSize: 13, textAlign: 'center', paddingVertical: 20 }}>暂无数据</Text>}
               </View>
               
               {/* 资讯快讯 */}
@@ -1189,16 +1186,77 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  // 今日涨跌幅榜独立卡片样式
+  rankCard: {
+    backgroundColor: '#13131A',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  rankHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   rankBadge: {
-    backgroundColor: '#00FF8820',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   rankBadgeText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  rankRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1F1F2E',
+  },
+  rankNumber: {
+    width: 24,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  rankInfo: {
+    flex: 1,
+    marginLeft: 8,
+  },
+  rankSymbol: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  rankName: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  rankPrice: {
     fontSize: 12,
+    color: '#A0A0B0',
+    marginRight: 12,
+  },
+  rankChangeGreen: {
+    fontSize: 14,
     fontWeight: '700',
     color: '#00FF88',
+    minWidth: 70,
+    textAlign: 'right',
+  },
+  rankChangeRed: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FF4444',
+    minWidth: 70,
+    textAlign: 'right',
   },
   billboardContainer: {
     flexDirection: 'row',

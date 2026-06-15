@@ -530,7 +530,13 @@ export default function TradingScreen() {
     <Screen>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>我的实盘</Text>
+        <View style={styles.headerRow}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>我的实盘</Text>
+          <View style={styles.headerPlaceholder} />
+        </View>
         <View style={styles.headerTabs}>
           {[
             { key: 'overview', label: '账户' },
@@ -618,11 +624,27 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 240, 255, 0.2)',
   },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerPlaceholder: {
+    width: 40,
+  },
   headerTitle: {
     color: '#FFF',
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 12,
+    flex: 1,
+    textAlign: 'center',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   headerTabs: {
     flexDirection: 'row',

@@ -110,7 +110,7 @@ export default function PaymentModal({
     Alert.alert('已复制', `${label}已复制到剪贴板`);
   };
 
-  const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+  const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
   
   const handleCreateOrder = async () => {
     if (!plan) return;

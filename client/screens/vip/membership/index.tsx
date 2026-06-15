@@ -12,9 +12,7 @@ import {
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { Screen } from '@/components/Screen';
 import { Ionicons } from '@expo/vector-icons';
-import { FontAwesome6 } from '@expo/vector-icons';
 import { useWeb3 } from '@/contexts/Web3Context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { VIP_PLANS } from '@/utils/vipPlans';
 
 const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'https://api.example.com';
@@ -120,7 +118,6 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
       if (canOpen) {
         await Linking.openURL(deeplink);
       } else {
-        // Fallback: copy address
         Alert.alert('收款地址', `USDT TRC20\n${trc20Address}\n\n金额: ${amount} USDT\n\n请手动转账到上方地址`, [
           { text: '复制地址', onPress: () => {} },
           { text: '确定' },
@@ -151,7 +148,11 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
                 {selectedPlan.name}
               </Text>
             </View>
-            <Text style={styles.summaryPrice}>${currentPrice}</Text>
+            <View style={styles.priceContainer}>
+              <Text style={styles.priceCurrency}>$</Text>
+              <Text style={styles.summaryPrice}>{currentPrice}</Text>
+              <Text style={styles.priceUnit}>/{selectedBillingCycle === 'monthly' ? '月' : selectedBillingCycle === 'quarterly' ? '季' : '年'}</Text>
+            </View>
           </View>
           
           <View style={styles.summaryDetails}>
@@ -165,7 +166,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
             <View style={styles.divider} />
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>支付方式</Text>
-              <Text style={styles.summaryValue}>USDT</Text>
+              <Text style={[styles.summaryValue, { color: '#00E5CC' }]}>USDT</Text>
             </View>
           </View>
         </View>
@@ -184,16 +185,16 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
                   key={cycle}
                   style={[
                     styles.cycleCard,
-                    isSelected && { borderColor: selectedPlan.color, borderWidth: 2 }
+                    isSelected && { borderColor: '#00E5CC', borderWidth: 2, backgroundColor: '#00E5CC10' }
                   ]}
                   onPress={() => setSelectedBillingCycle(cycle)}
                 >
-                  <Text style={[styles.cycleText, isSelected && { color: selectedPlan.color }]}>
+                  <Text style={[styles.cycleText, isSelected && { color: '#00E5CC', fontWeight: '600' }]}>
                     {cycle === 'monthly' ? '月付' : cycle === 'quarterly' ? '季付' : '年付'}
                   </Text>
-                  <Text style={[styles.cyclePrice]}>${price}</Text>
+                  <Text style={[styles.cyclePrice, isSelected && { color: '#FFFFFF' }]}>${price}</Text>
                   {discount ? (
-                    <View style={[styles.discountBadge, { backgroundColor: '#00FF88' }]}>
+                    <View style={[styles.discountBadge, { backgroundColor: '#00E5CC' }]}>
                       <Text style={styles.discountText}>{discount}</Text>
                     </View>
                   ) : null}
@@ -212,7 +213,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
                 <Ionicons
                   name={feature.enabled ? 'checkmark-circle' : 'close-circle'}
                   size={18}
-                  color={feature.enabled ? '#00FF88' : '#4A4A5A'}
+                  color={feature.enabled ? '#00E5CC' : '#4A4A5A'}
                 />
                 <Text style={styles.featureText}>{feature.text}</Text>
               </View>
@@ -227,7 +228,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
           <View style={styles.addressCard}>
             <View style={styles.addressRow}>
               <Text style={styles.addressLabel}>币种</Text>
-              <Text style={styles.addressValue}>USDT (TRC20)</Text>
+              <Text style={[styles.addressValue, { color: '#00E5CC' }]}>USDT (TRC20)</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.addressRow}>
@@ -239,7 +240,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
             <View style={styles.divider} />
             <View style={styles.addressRow}>
               <Text style={styles.addressLabel}>金额</Text>
-              <Text style={[styles.addressValue, { color: '#00FF88', fontWeight: '700' }]}>
+              <Text style={[styles.addressValue, { color: '#00E5CC', fontWeight: '700' }]}>
                 ≈ ${currentPrice} USDT
               </Text>
             </View>
@@ -253,7 +254,9 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
             style={[styles.walletCard, wallet.wallet.isConnected && styles.walletCardConnected]}
             onPress={wallet.wallet.isConnected ? undefined : handleConnectTPWallet}
           >
-            <FontAwesome6 name="wallet" size={24} color={wallet.wallet.isConnected ? '#00FF88' : '#F59E0B'} />
+            <View style={[styles.walletIcon, wallet.wallet.isConnected && styles.walletIconConnected]}>
+              <Ionicons name="wallet" size={22} color={wallet.wallet.isConnected ? '#0A0A0F' : '#00E5CC'} />
+            </View>
             <View style={styles.walletInfo}>
               <Text style={styles.walletName}>TP 钱包</Text>
               {wallet.wallet.isConnected && wallet.wallet.address ? (
@@ -265,8 +268,8 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
               )}
             </View>
             {wallet.wallet.isConnected ? (
-              <View style={styles.connectedBadge}>
-                <Ionicons name="checkmark-circle" size={22} color="#00FF88" />
+              <View style={[styles.connectedBadge, { backgroundColor: '#00E5CC' }]}>
+                <Ionicons name="checkmark" size={14} color="#0A0A0F" />
               </View>
             ) : wallet.wallet.isConnecting ? (
               <ActivityIndicator size="small" color="#888888" />
@@ -285,22 +288,19 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
         <TouchableOpacity
           style={[
             styles.payButton,
-            { backgroundColor: wallet.wallet.isConnected ? selectedPlan.color : '#333333' }
+            { backgroundColor: wallet.wallet.isConnected ? '#00E5CC' : '#333333' }
           ]}
           onPress={wallet.wallet.isConnected ? handleOpenTPWallet : handleConnectTPWallet}
           disabled={isProcessing}
         >
           {isProcessing ? (
             <ActivityIndicator color="#0A0A0F" size="small" />
-          ) : wallet.wallet.isConnected ? (
-            <View style={styles.payButtonContent}>
-              <FontAwesome6 name="paper-plane" size={18} color="#0A0A0F" />
-              <Text style={styles.payButtonText}>打开 TP 钱包支付</Text>
-            </View>
           ) : (
             <View style={styles.payButtonContent}>
-              <FontAwesome6 name="link" size={18} color="#FFFFFF" />
-              <Text style={[styles.payButtonText, { color: '#FFFFFF' }]}>连接 TP 钱包</Text>
+              <Ionicons name="paper-plane" size={18} color={wallet.wallet.isConnected ? '#0A0A0F' : '#FFFFFF'} />
+              <Text style={[styles.payButtonText, { color: wallet.wallet.isConnected ? '#0A0A0F' : '#FFFFFF' }]}>
+                {wallet.wallet.isConnected ? '打开 TP 钱包支付' : '连接 TP 钱包'}
+              </Text>
             </View>
           )}
         </TouchableOpacity>
@@ -336,47 +336,64 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0A0A0F',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   section: {
-    marginTop: 20,
+    marginTop: 24,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#888888',
-    marginBottom: 10,
+    color: '#666666',
+    marginBottom: 12,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
   },
   summaryCard: {
-    backgroundColor: '#13131A',
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 16,
+    backgroundColor: '#16161F',
+    borderRadius: 20,
+    padding: 20,
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: '#252530',
   },
   summaryHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   planTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
   },
   planTagText: {
     fontSize: 14,
     fontWeight: '600',
   },
+  priceContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  priceCurrency: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginRight: 2,
+  },
   summaryPrice: {
-    fontSize: 28,
+    fontSize: 36,
     fontWeight: '700',
     color: '#FFFFFF',
   },
+  priceUnit: {
+    fontSize: 14,
+    color: '#888888',
+    marginLeft: 4,
+  },
   summaryDetails: {
-    gap: 12,
+    gap: 14,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -394,140 +411,156 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#2A2A3A',
+    backgroundColor: '#252530',
     marginVertical: 4,
   },
   cycleContainer: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
   },
   cycleCard: {
     flex: 1,
-    backgroundColor: '#13131A',
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: '#16161F',
+    borderRadius: 16,
+    padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2A2A3A',
+    borderColor: '#252530',
   },
   cycleText: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#888888',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   cyclePrice: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#CCCCCC',
   },
   discountBadge: {
-    marginTop: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    marginTop: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   discountText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
     color: '#0A0A0F',
   },
   featuresCard: {
-    backgroundColor: '#13131A',
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: '#16161F',
+    borderRadius: 16,
+    padding: 16,
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 8,
+    gap: 12,
+    marginBottom: 12,
   },
   featureText: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#CCCCCC',
   },
   moreFeatures: {
     fontSize: 12,
-    color: '#666666',
-    marginTop: 4,
+    color: '#555555',
+    marginTop: 8,
     textAlign: 'center',
   },
   addressCard: {
-    backgroundColor: '#13131A',
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: '#16161F',
+    borderRadius: 16,
+    padding: 16,
   },
   addressRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 8,
   },
   addressLabel: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#888888',
   },
   addressValue: {
     fontSize: 13,
     color: '#FFFFFF',
-    maxWidth: '60%',
+    maxWidth: '55%',
   },
   walletCard: {
-    backgroundColor: '#13131A',
-    borderRadius: 12,
+    backgroundColor: '#16161F',
+    borderRadius: 16,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#2A2A3A',
+    borderColor: '#252530',
   },
   walletCardConnected: {
-    borderColor: '#00FF88',
+    borderColor: '#00E5CC',
+    backgroundColor: '#00E5CC08',
+  },
+  walletIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#00E5CC15',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  walletIconConnected: {
+    backgroundColor: '#00E5CC',
   },
   walletInfo: {
     flex: 1,
     marginLeft: 14,
   },
   walletName: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
   },
   walletAddress: {
     fontSize: 12,
     color: '#888888',
-    marginTop: 2,
+    marginTop: 4,
+    fontFamily: 'monospace',
   },
   walletHint: {
     fontSize: 12,
-    color: '#666666',
-    marginTop: 2,
+    color: '#555555',
+    marginTop: 4,
   },
   connectedBadge: {
-    marginLeft: 10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   termsText: {
     fontSize: 11,
-    color: '#666666',
+    color: '#444444',
     textAlign: 'center',
-    marginTop: 20,
-    lineHeight: 16,
+    marginTop: 24,
+    lineHeight: 18,
   },
   payButton: {
     marginTop: 16,
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 16,
+    paddingVertical: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
   payButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   payButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0A0A0F',
+    fontSize: 17,
+    fontWeight: '700',
   },
 });

@@ -12,7 +12,6 @@ import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import SwapModal from '@/components/payment/SwapModal';
-import TradeModal from '@/components/payment/TradeModal';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
@@ -64,7 +63,7 @@ const FEATURED_TAGS = [
 ];
 
 // 赛道区块 - 基于技术分析
-function CategorySection({ category, onPress, onSwapToken, onTradeToken }: { category: any; onPress: () => void; onSwapToken: (token: any) => void; onTradeToken: (token: any, mode: 'buy' | 'sell') => void }) {
+function CategorySection({ category, onPress }: { category: any; onPress: () => void }) {
   return (
     <Pressable style={styles.categorySection} onPress={onPress}>
       <View style={styles.categoryHeader}>
@@ -103,7 +102,7 @@ function CategorySection({ category, onPress, onSwapToken, onTradeToken }: { cat
       <View style={styles.tokenList}>
         {category.tokens?.slice(0, 3).map((t: any, i: number) => (
           <View key={t.symbol} style={styles.miniTokenRow}>
-            <Pressable style={styles.miniTokenLeft} onPress={() => onTradeToken(t, 'buy')}>
+            <View style={styles.miniTokenLeft}>
               <Text style={styles.miniRank}>{t.rank || i + 1}</Text>
               <Text style={styles.miniSymbol}>{t.symbol}</Text>
               {/* 技术分析信号标签 */}
@@ -116,26 +115,12 @@ function CategorySection({ category, onPress, onSwapToken, onTradeToken }: { cat
                   ))}
                 </View>
               )}
-            </Pressable>
+            </View>
             <View style={styles.miniTokenRight}>
               <Text style={styles.miniPrice}>${formatPrice(t.price)}</Text>
               <Text style={[styles.miniChange, { color: t.change >= 0 ? '#00FF88' : '#FF4444' }]}>
                 {t.change >= 0 ? '+' : ''}{t.change.toFixed(1)}%
               </Text>
-              <View style={styles.tradeBtnRow}>
-                <Pressable 
-                  style={[styles.tradeActionBtn, styles.buyActionBtn]} 
-                  onPress={() => onTradeToken(t, 'buy')}
-                >
-                  <Text style={styles.tradeActionBtnText}>买入</Text>
-                </Pressable>
-                <Pressable 
-                  style={[styles.tradeActionBtn, styles.sellActionBtn]} 
-                  onPress={() => onTradeToken(t, 'sell')}
-                >
-                  <Text style={styles.tradeActionBtnText}>卖出</Text>
-                </Pressable>
-              </View>
             </View>
           </View>
         ))}
@@ -409,17 +394,6 @@ export default function HomeScreen() {
   const handleSwapToken = useCallback((token: any) => {
     setSelectedSwapToken(token);
     setSwapModalVisible(true);
-  }, []);
-
-  // 交易功能
-  const [tradeModalVisible, setTradeModalVisible] = useState(false);
-  const [selectedTradeToken, setSelectedTradeToken] = useState<any>(null);
-  const [tradeMode, setTradeMode] = useState<'buy' | 'sell'>('buy');
-  
-  const handleTradeToken = useCallback((token: any, mode: 'buy' | 'sell') => {
-    setSelectedTradeToken(token);
-    setTradeMode(mode);
-    setTradeModalVisible(true);
   }, []);
 
   const fetchData = useCallback(() => {
@@ -827,8 +801,7 @@ export default function HomeScreen() {
                       techStats: cat.stats,
                     }} 
                     onPress={() => router.push('/screener/' + cat.id)}
-                    onSwapToken={handleSwapToken}
-                    onTradeToken={handleTradeToken}
+                    onPress={() => router.push('/screener/' + cat.id)}
                   />
                 </Pressable>
               );
@@ -940,16 +913,6 @@ export default function HomeScreen() {
         }}
       />
 
-      {/* 代币交易弹窗 */}
-      <TradeModal
-        visible={tradeModalVisible}
-        token={selectedTradeToken}
-        mode={tradeMode}
-        onClose={() => {
-          setTradeModalVisible(false);
-          setSelectedTradeToken(null);
-        }}
-      />
     </Screen>
   );
 }

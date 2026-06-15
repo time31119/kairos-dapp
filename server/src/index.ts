@@ -9,6 +9,7 @@ import contractsRouter from "./routes/contracts";
 import signatureRouter from "./routes/signature";
 import newsRouter from "./routes/news";
 import subscriptionRouter from "./routes/subscription";
+import referralRouter from "./routes/referral";
 
 const app = express();
 const port = process.env.PORT || 9091;
@@ -33,6 +34,7 @@ app.use('/api/v1/web3/contracts', contractsRouter);
 app.use('/api/v1/web3/signature', signatureRouter);
 app.use('/api/v1/news', newsRouter);
 app.use('/api/v1/subscription', subscriptionRouter);
+app.use('/api/v1/referral', referralRouter);
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}/`);

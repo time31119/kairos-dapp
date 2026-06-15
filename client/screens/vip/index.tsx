@@ -141,12 +141,59 @@ function SubscribeTab() {
 // 邀请奖励Tab
 function ReferralTab() {
   const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [stats, setStats] = useState({
+    referralLink: 'https://kairos.app/inv/kai_',
+    referralCode: 'kai_9x7m2k',
+    thisMonthReward: 0,
+    pendingReward: 0,
+    totalReferrals: 0,
+  });
+  const [records, setRecords] = useState<any[]>([]);
 
-  const handleCopy = () => {
-    // 使用原生复制功能
+  // 获取邀请数据
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
+      
+      // 获取统计数据
+      const statsRes = await fetch(`${API_BASE}/api/v1/referral/info?userId=default_user`);
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        if (statsData.data) {
+          setStats(prev => ({ 
+            ...prev, 
+            thisMonthReward: statsData.data.directReward + statsData.data.monthlySupportReward,
+            totalReferrals: statsData.data.totalReferrals 
+          }));
+        }
+      }
+      
+      // 获取推荐记录
+      const recordsRes = await fetch(`${API_BASE}/api/v1/referral/records`);
+      if (recordsRes.ok) {
+        const recordsData = await recordsRes.json();
+        setRecords(recordsData.records || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch referral data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleCopy = async () => {
+    const fullLink = `${stats.referralLink}${stats.referralCode}`;
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const referralLink = `${stats.referralLink}${stats.referralCode}`;
 
   return (
     <View style={styles.tabContent}>
@@ -158,7 +205,7 @@ function ReferralTab() {
         <View style={styles.linkContainer}>
           <View style={styles.linkBox}>
             <Text style={styles.linkText} numberOfLines={1}>
-              {REFERRAL_REWARDS.link}{REFERRAL_REWARDS.code}
+              {referralLink}
             </Text>
           </View>
           <TouchableOpacity style={styles.copyButton} onPress={handleCopy}>

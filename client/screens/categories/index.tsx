@@ -40,7 +40,7 @@ export default function CategoriesScreen() {
     const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
       defi: 'trending-up',
       meme: 'chatbubbles',
-      ai: 'cpu',
+      ai: 'hardware-chip',
       gaming: 'game-controller',
       infrastructure: 'server',
       layer2: 'layers',
@@ -95,13 +95,21 @@ export default function CategoriesScreen() {
                   {globalGainers.slice(0, 10).map((token, idx) => {
                     const rankStyle = getRankStyle(idx);
                     return (
-                      <View key={token.symbol + '-g'} style={styles.billboardHalfRow}>
+                      <TouchableOpacity 
+                        key={token.symbol + '-g'} 
+                        style={styles.billboardHalfRow}
+                        onPress={() => router.push('/swap', { 
+                          fromToken: token.symbol, 
+                          fromChain: 'ethereum',
+                          scenario: '全球涨幅榜'
+                        })}
+                      >
                         <View style={[styles.rankBadge, { backgroundColor: rankStyle.bg, borderColor: rankStyle.border }]}>
                           <Text style={[styles.rankBadgeText, { color: rankStyle.text }]}>{idx + 1}</Text>
                         </View>
                         <Text style={styles.tokenSymbol} numberOfLines={1}>{token.symbol}</Text>
                         <Text style={styles.tokenChangeGreen}>+{token.change.toFixed(1)}%</Text>
-                      </View>
+                      </TouchableOpacity>
                     );
                   })}
                 </View>
@@ -117,13 +125,21 @@ export default function CategoriesScreen() {
                   {globalLosers.slice(0, 10).map((token, idx) => {
                     const rankStyle = getRankStyle(idx);
                     return (
-                      <View key={token.symbol + '-l'} style={styles.billboardHalfRow}>
+                      <TouchableOpacity 
+                        key={token.symbol + '-l'} 
+                        style={styles.billboardHalfRow}
+                        onPress={() => router.push('/swap', { 
+                          fromToken: token.symbol, 
+                          fromChain: 'ethereum',
+                          scenario: '全球跌幅榜'
+                        })}
+                      >
                         <View style={[styles.rankBadge, { backgroundColor: rankStyle.bg, borderColor: rankStyle.border }]}>
                           <Text style={[styles.rankBadgeText, { color: rankStyle.text }]}>{idx + 1}</Text>
                         </View>
                         <Text style={styles.tokenSymbol} numberOfLines={1}>{token.symbol}</Text>
                         <Text style={styles.tokenChangeRed}>{token.change.toFixed(1)}%</Text>
-                      </View>
+                      </TouchableOpacity>
                     );
                   })}
                 </View>
@@ -169,7 +185,16 @@ export default function CategoriesScreen() {
                         <Text style={styles.statLabel}>涨幅TOP5</Text>
                         <View style={styles.statTokens}>
                           {scenario.gainers?.slice(0, 5).map((t: any) => (
-                            <Text key={t.symbol} style={styles.statTokenGreen}>+{t.change.toFixed(1)}% {t.symbol}</Text>
+                            <TouchableOpacity 
+                              key={t.symbol} 
+                              onPress={() => router.push('/swap', { 
+                                fromToken: t.symbol, 
+                                fromChain: 'ethereum',
+                                scenario: scenario.name 
+                              })}
+                            >
+                              <Text style={styles.statTokenGreen}>+{t.change.toFixed(1)}% {t.symbol}</Text>
+                            </TouchableOpacity>
                           ))}
                         </View>
                       </View>
@@ -178,7 +203,16 @@ export default function CategoriesScreen() {
                         <Text style={styles.statLabel}>跌幅TOP5</Text>
                         <View style={styles.statTokens}>
                           {scenario.losers?.slice(0, 5).map((t: any) => (
-                            <Text key={t.symbol} style={styles.statTokenRed}>{t.change.toFixed(1)}% {t.symbol}</Text>
+                            <TouchableOpacity 
+                              key={t.symbol} 
+                              onPress={() => router.push('/swap', { 
+                                fromToken: t.symbol, 
+                                fromChain: 'ethereum',
+                                scenario: scenario.name 
+                              })}
+                            >
+                              <Text style={styles.statTokenRed}>{t.change.toFixed(1)}% {t.symbol}</Text>
+                            </TouchableOpacity>
                           ))}
                         </View>
                       </View>

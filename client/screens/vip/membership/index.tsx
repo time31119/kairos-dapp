@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator, Linking } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, FontAwesome6 } from '@expo/vector-icons';
 import { VIP_PLANS } from '@/utils/vipPlans';
 import { useWeb3 } from '@/contexts/Web3Context';
 
@@ -272,7 +272,7 @@ export default function MembershipScreen() {
             onPress={wallet.isConnected ? undefined : handleConnectTPWallet}
           >
             <View style={styles.paymentItem}>
-              <Text style={styles.paymentIcon}>🐼</Text>
+              <FontAwesome6 name="wallet" size={24} color="#F59E0B" />
               <View style={styles.paymentInfo}>
                 <Text style={styles.paymentName}>TP 钱包</Text>
                 {wallet.isConnected && wallet.address ? (

@@ -9,7 +9,7 @@ import {
   Alert,
   Linking,
 } from 'react-native';
-import { useSafeRouter } from '@/hooks/useSafeRouter';
+import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { Screen } from '@/components/Screen';
 import { Ionicons } from '@expo/vector-icons';
 import { useWeb3 } from '@/contexts/Web3Context';
@@ -24,8 +24,13 @@ interface Props {
 export default function MembershipPage({ initialPlanId = 'professional' }: Props) {
   const router = useSafeRouter();
   const wallet = useWeb3();
+  const params = useSafeSearchParams<{ plan?: string }>();
   
-  const [selectedPlan, setSelectedPlan] = useState(VIP_PLANS.find((p: any) => p.id === initialPlanId) || VIP_PLANS[1]);
+  // Get plan from route params, fallback to initialPlanId prop or default to 'professional'
+  const planId = params.plan || initialPlanId || 'professional';
+  const initialPlan = VIP_PLANS.find((p) => p.id === planId) || VIP_PLANS.find((p) => p.id === 'professional') || VIP_PLANS[0];
+  
+  const [selectedPlan, setSelectedPlan] = useState(initialPlan);
   const [selectedBillingCycle, setSelectedBillingCycle] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly');
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderId, setOrderId] = useState<string>('');

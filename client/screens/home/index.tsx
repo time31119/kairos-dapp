@@ -220,7 +220,7 @@ function getIconName(icon: string): keyof typeof Ionicons.glyphMap {
     layer2: 'layers',
     DeFi: 'trending-up',
     Meme: 'chatbubbles',
-    AI: 'cpu',
+    AI: 'hardware-chip',
     GameFi: 'game-controller',
     Infrastructure: 'server',
     Layer2: 'layers',
@@ -573,30 +573,22 @@ export default function HomeScreen() {
           
           {/* 快捷操作 */}
           <View style={styles.quickActions}>
-            <Link href="/screener" asChild>
-              <Pressable style={styles.quickBtn}>
-                <Ionicons name="flame" size={16} color="#FF6B6B" />
-                <Text style={styles.quickBtnText}>热门</Text>
-              </Pressable>
-            </Link>
-            <Link href="/screener" asChild>
-              <Pressable style={styles.quickBtn}>
-                <Ionicons name="trending-up" size={16} color="#00FF88" />
-                <Text style={styles.quickBtnText}>涨幅榜</Text>
-              </Pressable>
-            </Link>
-            <Link href="/screener" asChild>
-              <Pressable style={styles.quickBtn}>
-                <Ionicons name="trending-down" size={16} color="#FF4444" />
-                <Text style={styles.quickBtnText}>跌幅榜</Text>
-              </Pressable>
-            </Link>
-            <Link href="/screener" asChild>
-              <Pressable style={styles.quickBtn}>
-                <Ionicons name="sparkles" size={16} color="#FFD700" />
-                <Text style={styles.quickBtnText}>新币</Text>
-              </Pressable>
-            </Link>
+            <Pressable style={styles.quickBtn}>
+              <Ionicons name="flame" size={16} color="#FF6B6B" />
+              <Text style={styles.quickBtnText}>热门</Text>
+            </Pressable>
+            <Pressable style={styles.quickBtn}>
+              <Ionicons name="trending-up" size={16} color="#00FF88" />
+              <Text style={styles.quickBtnText}>涨幅榜</Text>
+            </Pressable>
+            <Pressable style={styles.quickBtn}>
+              <Ionicons name="trending-down" size={16} color="#FF4444" />
+              <Text style={styles.quickBtnText}>跌幅榜</Text>
+            </Pressable>
+            <Pressable style={styles.quickBtn}>
+              <Ionicons name="sparkles" size={16} color="#FFD700" />
+              <Text style={styles.quickBtnText}>新币</Text>
+            </Pressable>
           </View>
         </View>
 
@@ -805,7 +797,7 @@ export default function HomeScreen() {
                       techStats: cat.stats,
                     }} 
                     onPress={() => router.push('/screener/' + cat.id)}
-                    onTokenPress={(token) => router.push({ pathname: '/screener/' + cat.id, params: { token: JSON.stringify(token) } })}
+                    onTokenPress={(token) => router.push('/screener/' + cat.id + '?token=' + encodeURIComponent(JSON.stringify(token)))}
                   />
                 </Pressable>
               );
@@ -895,7 +887,7 @@ export default function HomeScreen() {
                     <Text style={[styles.billboardBadgeText, { color: '#00F0FF' }]}>资讯快讯</Text>
                   </View>
                   <TouchableOpacity onPress={() => router.push('/news')}>
-                    <Text style={{ color: '#00F0FF', fontSize: 12 }}>更多 ></Text>
+                    <Text style={{ color: '#00F0FF', fontSize: 12 }}>更多 {'>'}</Text>
                   </TouchableOpacity>
                 </View>
                 {[
@@ -993,6 +985,7 @@ const styles = StyleSheet.create({
   techSection: { padding: 16 },
   liveIndicator: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#00FF88' },
+  liveDotFlash: { backgroundColor: '#00F0FF' },
   liveText: { fontSize: 11, color: '#6B7280' },
   
   // 筛选和排序

@@ -2,9 +2,7 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
-import { EXPO_PUBLIC_BACKEND_BASE_URL } from '@/utils/api';
-
-const API_BASE = EXPO_PUBLIC_BACKEND_BASE_URL || '';
+const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
 
 interface PlanFeature {
   text: string;
@@ -76,12 +74,11 @@ export default function MembershipScreen() {
   const planId = params.planId || 'pro';
   const selectedPlan = plans.find((p) => p.id === planId) || plans[1];
 
-  const [selectedPayment, setSelectedPayment] = useState<string>('tp_wallet');
+  const [selectedPayment] = useState<string>('tp_wallet');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const paymentMethods = [
     { id: 'tp_wallet', name: 'TP 钱包', icon: '💳' },
-    { id: 'crypto', name: '加密货币', icon: '₿' },
   ];
 
   const handlePayment = async () => {
@@ -154,30 +151,18 @@ export default function MembershipScreen() {
           ))}
         </View>
 
-        {/* Payment Methods */}
+        {/* Payment Method */}
         <View className="bg-white mx-4 mt-3 rounded-2xl p-4">
           <Text className="text-gray-900 font-bold mb-3">支付方式</Text>
-          {paymentMethods.map((method) => (
-            <TouchableOpacity
-              key={method.id}
-              onPress={() => setSelectedPayment(method.id)}
-              className={`flex-row items-center p-3 rounded-xl mb-2 ${
-                selectedPayment === method.id ? 'bg-blue-50 border-2 border-[#002FA7]' : 'bg-gray-50'
-              }`}
-            >
-              <Text className="text-2xl mr-3">{method.icon}</Text>
-              <View className="flex-1">
-                <Text className="text-gray-900 font-medium">{method.name}</Text>
-              </View>
-              <View
-                className={`w-5 h-5 rounded-full border-2 items-center justify-center ${
-                  selectedPayment === method.id ? 'border-[#002FA7] bg-[#002FA7]' : 'border-gray-300'
-                }`}
-              >
-                {selectedPayment === method.id && <Text className="text-white text-xs">✓</Text>}
-              </View>
-            </TouchableOpacity>
-          ))}
+          <View className="flex-row items-center p-3 rounded-xl bg-blue-50 border-2 border-[#002FA7]">
+            <Text className="text-2xl mr-3">💳</Text>
+            <View className="flex-1">
+              <Text className="text-gray-900 font-medium">TP 钱包</Text>
+            </View>
+            <View className="w-5 h-5 rounded-full border-2 border-[#002FA7] bg-[#002FA7] items-center justify-center">
+              <Text className="text-white text-xs">✓</Text>
+            </View>
+          </View>
         </View>
 
         {/* Amount */}

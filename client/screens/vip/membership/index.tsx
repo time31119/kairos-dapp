@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { Screen } from '@/components/Screen';
-import { useRouter as useExpoRouter, useLocalSearchParams } from 'expo-router';
+import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { Ionicons } from '@expo/vector-icons';
 import { VIP_PLANS } from '@/utils/vipPlans';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
 
 export default function MembershipScreen() {
-  const router = useExpoRouter();
-  const params = useLocalSearchParams<{ plan?: string }>();
-  // 处理数组或字符串类型的 plan 参数
-  const planId = Array.isArray(params.plan) ? params.plan[0] : params.plan || 'professional';
+  const router = useSafeRouter();
+  const params = useSafeSearchParams<{ plan?: string }>();
+  // 获取 plan 参数，使用 professional 作为默认值
+  const planId = params.plan || 'professional';
   const selectedPlan = VIP_PLANS.find((p) => p.id === planId) || VIP_PLANS[1];
 
   const [selectedBillingCycle, setSelectedBillingCycle] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly');

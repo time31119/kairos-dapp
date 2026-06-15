@@ -1,8 +1,14 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
-import { Ionicons } from '@expo/vector-icons';
 import { VIP_PLANS } from '@/utils/vipPlans';
 
 export default function VipScreen() {
@@ -17,14 +23,16 @@ export default function VipScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>会员中心</Text>
+          <Text style={styles.headerTitle}>会员订阅</Text>
           <Text style={styles.headerSubtitle}>解锁高级会员权益</Text>
         </View>
 
-        {/* Subscribe Section */}
-        <View style={styles.subscribeSection}>
-          <Text style={styles.sectionTitle}>会员订阅</Text>
-          <Text style={styles.sectionSubtitle}>选择适合您的方案</Text>
+        {/* Subscribe Content */}
+        <View style={styles.subscribeContainer}>
+          <View style={styles.subscribeHeader}>
+            <Text style={styles.subscribeTitle}>会员订阅</Text>
+            <Text style={styles.subscribeSubtitle}>解锁全部高级功能</Text>
+          </View>
 
           {VIP_PLANS.map((plan) => (
             <TouchableOpacity 
@@ -46,13 +54,11 @@ export default function VipScreen() {
                   </View>
                 )}
               </View>
-
               <View style={styles.planPrice}>
                 <Text style={styles.priceCurrency}>$</Text>
                 <Text style={[styles.priceAmount, { color: plan.color }]}>{plan.price.monthly}</Text>
                 <Text style={styles.pricePeriod}>/月</Text>
               </View>
-
               <View style={styles.planFeatures}>
                 {plan.features.filter(f => f.enabled).map((feature, i) => (
                   <View key={i} style={styles.featureItem}>
@@ -61,7 +67,6 @@ export default function VipScreen() {
                   </View>
                 ))}
               </View>
-
               <View style={[styles.planButton, plan.recommended && { backgroundColor: plan.color }]}>
                 <Text style={[styles.planButtonText, plan.recommended && { color: '#0A0A0F' }]}>
                   查看详情
@@ -70,15 +75,12 @@ export default function VipScreen() {
             </TouchableOpacity>
           ))}
         </View>
-
-        {/* Bottom Spacing */}
-        <View style={{ height: 40 }} />
       </ScrollView>
     </Screen>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = {
   container: {
     flex: 1,
     backgroundColor: '#0A0A0F',
@@ -90,11 +92,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#0A0A0F',
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 20,
+    paddingBottom: 12,
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     color: '#FFFFFF',
   },
   headerSubtitle: {
@@ -102,25 +104,29 @@ const styles = StyleSheet.create({
     color: '#A0A0B0',
     marginTop: 4,
   },
-  subscribeSection: {
+  subscribeContainer: {
+    flex: 1,
     padding: 16,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 4,
+  subscribeHeader: {
+    alignItems: 'center' as const,
+    marginBottom: 24,
   },
-  sectionSubtitle: {
+  subscribeTitle: {
+    fontSize: 24,
+    fontWeight: '700' as const,
+    color: '#FFFFFF',
+  },
+  subscribeSubtitle: {
     fontSize: 14,
     color: '#8B8B9A',
-    marginBottom: 16,
+    marginTop: 4,
   },
   planCard: {
     backgroundColor: '#13131A',
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#1F1F2E',
   },
@@ -129,43 +135,43 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   planHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'flex-start' as const,
+    marginBottom: 8,
   },
   planName: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '600' as const,
     color: '#FFFFFF',
   },
   planSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#8B8B9A',
     marginTop: 2,
   },
   recommendedBadge: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 4,
   },
   recommendedText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '600' as const,
   },
   planPrice: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 16,
+    flexDirection: 'row' as const,
+    alignItems: 'baseline' as const,
+    marginBottom: 12,
   },
   priceCurrency: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#8B8B9A',
+    fontWeight: '600' as const,
+    color: '#FFFFFF',
   },
   priceAmount: {
     fontSize: 32,
-    fontWeight: '700',
+    fontWeight: '700' as const,
     marginLeft: 2,
   },
   pricePeriod: {
@@ -177,8 +183,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
     marginBottom: 8,
   },
   featureText: {
@@ -190,11 +196,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#1F1F2E',
     borderRadius: 12,
     paddingVertical: 14,
-    alignItems: 'center',
+    alignItems: 'center' as const,
   },
   planButtonText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '600' as const,
     color: '#FFFFFF',
   },
-});
+};

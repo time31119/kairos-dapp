@@ -68,7 +68,8 @@ export default function CoinDetail() {
   const priceRange = maxPrice - minPrice;
 
   return (
-    <Screen style={styles.container}>
+    <>
+      <Screen style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -275,7 +276,7 @@ export default function CoinDetail() {
         initialToToken={{ symbol: tokenInfo.symbol, name: tokenInfo.name, address: '', logo: '' }}
         initialAmount={swapAmount}
       />
-    </Screen>
+    </>
   );
 }
 

@@ -31,6 +31,19 @@ export default function RootLayout() {
             <Stack.Screen name="auth" />
             <Stack.Screen name="vip" />
             <Stack.Screen name="vip/membership" />
+            <Stack.Screen name="settings" />
+            <Stack.Screen name="settings/language" />
+            <Stack.Screen name="settings/security" />
+            <Stack.Screen name="settings/terms" />
+            <Stack.Screen name="alerts" />
+            <Stack.Screen name="analysis" />
+            <Stack.Screen name="categories" />
+            <Stack.Screen name="copytrading" />
+            <Stack.Screen name="demo" />
+            <Stack.Screen name="kyc" />
+            <Stack.Screen name="notification" />
+            <Stack.Screen name="support" />
+            <Stack.Screen name="trading" />
           </Stack>
           <Toast />
         </SubscriptionProvider>

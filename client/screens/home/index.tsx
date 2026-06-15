@@ -819,12 +819,11 @@ export default function HomeScreen() {
                 </View>
               )}
             </View>
-            <Link href="/categories" asChild>
-              <Pressable style={styles.moreBtn}>
-                <Text style={styles.moreBtnText}>更多</Text>
-                <Ionicons name="chevron-forward" size={14} color="#00F0FF" />
-              </Pressable>
-            </Link>
+            {/* 更多按钮 - 无链接 */}
+            <View style={styles.moreBtn}>
+              <Text style={styles.moreBtnText}>更多</Text>
+              <Ionicons name="chevron-forward" size={14} color="#00F0FF" />
+            </View>
           </View>
           
           {categoryLoading ? (
@@ -833,15 +832,6 @@ export default function HomeScreen() {
             </View>
           ) : (
             <>
-              {/* 热门赛道详情列表 */}
-              {categoryData.map((scenario: any) => (
-                <HotScenarioCard 
-                  key={scenario.id} 
-                  scenario={scenario} 
-                  flash={categoryFlash}
-                />
-              ))}
-
               {/* 今日涨幅榜 */}
               <View style={styles.rankCard}>
                 <View style={styles.rankHeader}>

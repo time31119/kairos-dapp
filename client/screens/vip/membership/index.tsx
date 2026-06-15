@@ -11,7 +11,7 @@ const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
 export default function MembershipScreen() {
   const router = useSafeRouter();
   const params = useSafeSearchParams<{ plan?: string }>();
-  const { wallet, connect, isConnecting } = useWeb3();
+  const { wallet, connect, signMessage } = useWeb3();
   
   // 获取 plan 参数，使用 professional 作为默认值
   const planId = params.plan || 'professional';
@@ -25,7 +25,7 @@ export default function MembershipScreen() {
   // TP钱包连接处理
   const handleConnectTPWallet = async () => {
     try {
-      await connect('tp');
+      await connect('trust');
     } catch (error: any) {
       Alert.alert('连接失败', error.message || '请安装 TP 钱包后重试');
     }
@@ -70,29 +70,26 @@ export default function MembershipScreen() {
         // 如果返回了需要签名的消息，进行签名
         if (data.signMessage) {
           try {
-            // 调用 TP 钱包签名
-            const { signMessage } = wallet;
-            if (signMessage) {
-              const signature = await signMessage(data.signMessage);
-              
-              // 发送签名完成支付
-              const confirmResponse = await fetch(`${API_BASE}/api/v1/vip/confirm-payment`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  orderId: data.orderId,
-                  signature,
-                  walletAddress: wallet.address,
-                }),
-              });
+            // 调用钱包签名
+            const signature = await signMessage(data.signMessage);
+            
+            // 发送签名完成支付
+            const confirmResponse = await fetch(`${API_BASE}/api/v1/vip/confirm-payment`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                orderId: data.orderId,
+                signature,
+                walletAddress: wallet.address,
+              }),
+            });
 
-              if (confirmResponse.ok) {
-                Alert.alert('支付成功', `您已成功订阅 ${selectedPlan.name}`, [
-                  { text: '确定', onPress: () => router.back() },
-                ]);
-              } else {
-                throw new Error('支付确认失败');
-              }
+            if (confirmResponse.ok) {
+              Alert.alert('支付成功', `您已成功订阅 ${selectedPlan.name}`, [
+                { text: '确定', onPress: () => router.back() },
+              ]);
+            } else {
+              throw new Error('支付确认失败');
             }
           } catch (signError: any) {
             // 用户取消签名
@@ -232,7 +229,7 @@ export default function MembershipScreen() {
                 <View style={styles.connectedBadge}>
                   <Ionicons name="checkmark-circle" size={20} color="#00FF88" />
                 </View>
-              ) : isConnecting ? (
+              ) : wallet.isConnecting ? (
                 <ActivityIndicator size="small" color="#888888" />
               ) : (
                 <View style={styles.checkmark}>

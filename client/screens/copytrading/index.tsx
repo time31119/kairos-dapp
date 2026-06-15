@@ -654,7 +654,18 @@ export default function CopytradingScreen() {
 
   return (
     <Screen>
-      <View style={styles.container}>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#00F0FF"
+            colors={['#00F0FF']}
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>一键跟单</Text>
@@ -694,12 +705,12 @@ export default function CopytradingScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Tab Content */}
+        {/* Tab Content - scrolls with the page */}
         <View style={styles.contentContainer}>
           {activeTab === 'traders' && renderTradersTab()}
           {activeTab === 'portfolio' && renderPortfolioTab()}
         </View>
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
@@ -708,6 +719,9 @@ const styles = {
   container: {
     flex: 1,
     backgroundColor: '#0A0A0F',
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   header: {
     backgroundColor: '#0A0A0F',

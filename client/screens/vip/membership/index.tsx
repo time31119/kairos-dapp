@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator, Linking } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { Ionicons } from '@expo/vector-icons';
@@ -58,7 +58,7 @@ export default function MembershipScreen() {
       };
 
       // 发送到后端创建订单
-      const response = await fetch(`${API_BASE}/api/v1/vip/subscribe`, {
+      const response = await fetch(`${API_BASE}/api/v1/subscription/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(paymentData),
@@ -67,38 +67,59 @@ export default function MembershipScreen() {
       if (response.ok) {
         const data = await response.json();
         
-        // 如果返回了需要签名的消息，进行签名
-        if (data.signMessage) {
-          try {
-            // 调用钱包签名
-            const signature = await signMessage(data.signMessage);
-            
-            // 发送签名完成支付
-            const confirmResponse = await fetch(`${API_BASE}/api/v1/vip/confirm-payment`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                orderId: data.orderId,
-                signature,
-                walletAddress: wallet.address,
-              }),
-            });
-
-            if (confirmResponse.ok) {
-              Alert.alert('支付成功', `您已成功订阅 ${selectedPlan.name}`, [
-                { text: '确定', onPress: () => router.back() },
-              ]);
-            } else {
-              throw new Error('支付确认失败');
-            }
-          } catch (signError: any) {
-            // 用户取消签名
-            if (signError.message?.includes('User rejected') || signError.code === 4001) {
-              Alert.alert('支付取消', '您已取消支付');
-            } else {
-              Alert.alert('签名失败', signError.message || '请重试');
-            }
-          }
+        // TP钱包支付：跳转到TP钱包进行USDT转账
+        const paymentAddress = data.data?.paymentAddress;
+        const orderId = data.data?.orderId;
+        const amount = data.data?.price || currentPrice;
+        
+        if (paymentAddress) {
+          // TRON (TRC20) 转账deeplink
+          // 格式: tron://transfer?contract=TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t&to=接收地址&amount=金额
+          // USDT TRC20 合约地址: TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t
+          const usdtContract = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+          const tpDeeplink = `tron://transfer?contract=${usdtContract}&to=${paymentAddress}&amount=${amount}`;
+          
+          // 同时构造TP钱包的Universal Link
+          const tpUniversalLink = `https://tp-lab.tokenpocket.pro/wallet?tron&action=transfer&contract=${usdtContract}&to=${paymentAddress}&amount=${amount}`;
+          
+          Alert.alert(
+            '确认支付',
+            `请向以下地址转账 $${amount} USDT (TRC20):\n\n${paymentAddress}\n\n订单号: ${orderId}`,
+            [
+              { text: '取消', style: 'cancel', onPress: () => setIsProcessing(false) },
+              { 
+                text: '打开 TP 钱包', 
+                onPress: async () => {
+                  try {
+                    // 尝试打开TP钱包
+                    const supported = await Linking.canOpenURL(tpDeeplink);
+                    if (supported) {
+                      await Linking.openURL(tpDeeplink);
+                    } else {
+                      // 如果deeplink不支持，尝试Universal Link
+                      await Linking.openURL(tpUniversalLink);
+                    }
+                    
+                    // 提示用户完成转账后确认
+                    Alert.alert(
+                      '转账提示',
+                      '请在 TP 钱包中完成 USDT 转账后，点击下方按钮确认支付',
+                      [
+                        { text: '稍后确认' },
+                        { 
+                          text: '已完成转账', 
+                          onPress: () => confirmPayment(orderId, wallet.address || '') 
+                        }
+                      ]
+                    );
+                  } catch (err) {
+                    Alert.alert('打开失败', '请手动打开 TP 钱包进行转账');
+                    setIsProcessing(false);
+                  }
+                }
+              }
+            ]
+          );
         } else {
           // 后端直接处理完成
           Alert.alert('支付成功', `您已成功订阅 ${selectedPlan.name}`, [
@@ -113,6 +134,35 @@ export default function MembershipScreen() {
       console.error('Payment error:', error);
       Alert.alert('支付失败', error.message || '请稍后重试');
     } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // 确认支付（用户完成转账后调用）
+  const confirmPayment = async (orderId: string, walletAddress: string) => {
+    setIsProcessing(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/subscription/callback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          paymentMethod: 'tp_wallet',
+          status: 'confirmed',
+          walletAddress,
+        }),
+      });
+
+      if (response.ok) {
+        Alert.alert('支付成功', '您的订阅已开通，请注意查收', [
+          { text: '确定', onPress: () => router.back() },
+        ]);
+      } else {
+        Alert.alert('支付确认中', '我们正在确认您的转账，请稍后刷新页面查看状态');
+        router.back();
+      }
+    } catch (error) {
+      Alert.alert('确认失败', '请稍后重试或联系客服');
       setIsProcessing(false);
     }
   };

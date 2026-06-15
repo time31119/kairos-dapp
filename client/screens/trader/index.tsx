@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { useSafeSearchParams } from '@/hooks/useSafeRouter';
+import { useRouter } from '@/hooks/useSafeRouter';
 import Screen from '@/components/Screen';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -39,276 +39,250 @@ interface Trader {
 }
 
 export default function TraderDetailScreen() {
-  const params = useSafeSearchParams<{ traderId?: string }>();
-  const traderId = params.traderId;
-  
+  const router = useRouter();
   const [trader, setTrader] = useState<Trader | null>(null);
-  const [stats, setStats] = useState<TraderStats | null>(null);
-  const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [followingLoading, setFollowingLoading] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
+  const traderId = 'bin_001';
 
   const fetchTraderDetail = useCallback(async () => {
-    if (!traderId) return;
-    
     try {
       setLoading(true);
       const response = await fetch(`${API_BASE}/api/v1/copytrading/traders/${traderId}`);
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.data) {
-          setTrader(data.data);
-          setStats({
-            winRate: data.data.winRate?.toFixed(1) || '0',
-            totalTrades: data.data.totalTrades || 0,
-            avgProfit: data.data.avgProfit || 0,
-            maxDrawdown: data.data.maxDrawdown || '0',
-            sharpeRatio: data.data.sharpeRatio || '0',
-            todayPnl: data.data.todayPnl || '0',
-            weeklyPnL: data.data.weeklyPnL || '0',
-          });
-        }
+        setTrader(data.trader || data);
       }
     } catch (error) {
-      console.error('Failed to fetch trader detail:', error);
+      console.error('Failed to fetch trader:', error);
     } finally {
       setLoading(false);
     }
-  }, [traderId, API_BASE]);
+  }, [API_BASE, traderId]);
+
+  const checkFollowStatus = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/copytrading/following`);
+      if (response.ok) {
+        const data = await response.json();
+        const following = data.following || [];
+        setIsFollowing(following.some((t: Trader) => t.id === traderId));
+      }
+    } catch (error) {
+      console.error('Failed to check follow status:', error);
+    }
+  }, [API_BASE, traderId]);
 
   useEffect(() => {
     fetchTraderDetail();
-  }, [fetchTraderDetail]);
+    checkFollowStatus();
+  }, [fetchTraderDetail, checkFollowStatus]);
 
   const handleFollow = async () => {
     if (!trader) return;
     
+    setFollowingLoading(true);
     try {
-      setFollowingLoading(true);
       const response = await fetch(`${API_BASE}/api/v1/copytrading/follow`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          traderId: trader.id,
-          amount: 100,
-        }),
+        body: JSON.stringify({ traderId: trader.id }),
       });
       
       if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setIsFollowing(true);
-          Alert.alert('跟单成功', `您已成功跟单 ${trader.name}`);
-        }
+        setIsFollowing(true);
+        Alert.alert('成功', `已成功跟单 ${trader.name}`);
+      } else {
+        Alert.alert('失败', '跟单失败，请重试');
       }
     } catch (error) {
-      console.error('Follow failed:', error);
-      Alert.alert('跟单失败', '请稍后重试');
+      Alert.alert('错误', '网络错误，请重试');
     } finally {
       setFollowingLoading(false);
     }
   };
 
-  const handleUnfollow = async () => {
-    if (!trader) return;
-    
-    try {
-      setFollowingLoading(true);
-      const response = await fetch(`${API_BASE}/api/v1/copytrading/unfollow`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          traderId: trader.id,
-        }),
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setIsFollowing(false);
-          Alert.alert('取消跟单', `您已取消跟单 ${trader.name}`);
-        }
-      }
-    } catch (error) {
-      console.error('Unfollow failed:', error);
-    } finally {
-      setFollowingLoading(false);
+  const getRiskColor = (level: string) => {
+    switch (level) {
+      case '低风险': return '#10B981';
+      case '中风险': return '#F59E0B';
+      case '高风险': return '#EF4444';
+      default: return '#6B7280';
     }
   };
 
   if (loading) {
     return (
-      <Screen contentContainerStyle={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#8B5CF6" />
-        <Text style={styles.loadingText}>加载中...</Text>
+      <Screen>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text style={styles.loadingText}>加载中...</Text>
+        </View>
       </Screen>
     );
   }
 
   if (!trader) {
     return (
-      <Screen contentContainerStyle={styles.errorContainer}>
-        <Text style={styles.errorText}>交易员不存在</Text>
+      <Screen>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>未找到交易员信息</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Text style={styles.backButtonText}>返回</Text>
+          </TouchableOpacity>
+        </View>
       </Screen>
     );
   }
 
   return (
-    <Screen contentContainerStyle={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <Screen>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.avatarContainer}>
-            {trader.avatarUrl ? (
-              <View style={styles.avatar}>
-                <Text style={styles.avatarInitial}>{trader.name.charAt(0)}</Text>
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerBack}>
+            <Ionicons name="chevron-back" size={24} color="#1F2937" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>交易员详情</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        {/* Trader Profile Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.profileHeader}>
+            <View style={styles.avatarContainer}>
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>{trader.name.charAt(0)}</Text>
               </View>
-            ) : (
-              <View style={styles.avatar}>
-                <Text style={styles.avatarInitial}>{trader.name.charAt(0)}</Text>
-              </View>
-            )}
-            {trader.blueTick && (
-              <View style={styles.blueTick}>
-                <Ionicons name="checkmark-circle" size={16} color="#00D9FF" />
-              </View>
-            )}
-          </View>
-          
-          <View style={styles.headerInfo}>
-            <View style={styles.nameRow}>
-              <Text style={styles.name}>{trader.name}</Text>
-              <Text style={styles.country}>{trader.country}</Text>
+              {trader.verified && (
+                <View style={styles.verifiedBadge}>
+                  <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                </View>
+              )}
             </View>
-            <Text style={styles.platform}>{trader.platform}</Text>
-            <View style={styles.followerRow}>
-              <Ionicons name="people" size={14} color="#8B8B9A" />
-              <Text style={styles.followerText}>{trader.followers.toLocaleString()} 跟单者</Text>
+            <View style={styles.profileInfo}>
+              <View style={styles.nameRow}>
+                <Text style={styles.traderName}>{trader.name}</Text>
+                {trader.blueTick && (
+                  <Ionicons name="checkmark-circle" size={16} color="#3B82F6" style={{ marginLeft: 4 }} />
+                )}
+              </View>
+              <Text style={styles.platformText}>{trader.platform}</Text>
+              <View style={styles.riskBadge}>
+                <View style={[styles.riskDot, { backgroundColor: getRiskColor(trader.riskLevel) }]} />
+                <Text style={styles.riskText}>{trader.riskLevel}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{trader.winRate}%</Text>
+              <Text style={styles.statLabel}>胜率</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: '#10B981' }]}>{trader.returns > 0 ? '+' : ''}{trader.returns}%</Text>
+              <Text style={styles.statLabel}>累计收益</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{trader.followers}</Text>
+              <Text style={styles.statLabel}>跟单人数</Text>
             </View>
           </View>
         </View>
 
-        {/* Risk Badge */}
-        <View style={styles.riskBadgeContainer}>
-          <View style={[styles.riskBadge, 
-            trader.riskLevel === '低' && styles.riskLow,
-            trader.riskLevel === '中' && styles.riskMedium,
-            trader.riskLevel === '高' && styles.riskHigh,
-            trader.riskLevel === '极高' && styles.riskVeryHigh
-          ]}>
-            <Text style={styles.riskText}>风险等级: {trader.riskLevel}</Text>
-          </View>
-        </View>
-
-        {/* Performance */}
-        <View style={styles.performanceCard}>
+        {/* Performance Section */}
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>业绩表现</Text>
-          <View style={styles.performanceGrid}>
-            <View style={styles.performanceItem}>
-              <Text style={styles.performanceValue}>+{trader.returns.toFixed(1)}%</Text>
-              <Text style={styles.performanceLabel}>累计收益</Text>
-            </View>
-            <View style={styles.performanceItem}>
-              <Text style={styles.performanceValue}>{trader.winRate.toFixed(1)}%</Text>
-              <Text style={styles.performanceLabel}>胜率</Text>
-            </View>
-            <View style={styles.performanceItem}>
-              <Text style={[styles.performanceValue, parseFloat(trader.todayPnl) >= 0 ? styles.positive : styles.negative]}>
-                {parseFloat(trader.todayPnl) >= 0 ? '+' : ''}{trader.todayPnl}%
-              </Text>
-              <Text style={styles.performanceLabel}>今日收益</Text>
-            </View>
-            <View style={styles.performanceItem}>
-              <Text style={[styles.performanceValue, parseFloat(trader.weeklyPnL) >= 0 ? styles.positive : styles.negative]}>
-                {parseFloat(trader.weeklyPnL) >= 0 ? '+' : ''}{trader.weeklyPnL}%
-              </Text>
-              <Text style={styles.performanceLabel}>本周收益</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Stats */}
-        <View style={styles.statsCard}>
-          <Text style={styles.sectionTitle}>详细数据</Text>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>总交易次数</Text>
-              <Text style={styles.statValue}>{trader.totalTrades.toLocaleString()}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>平均收益</Text>
-              <Text style={styles.statValue}>${trader.avgProfit.toLocaleString()}</Text>
-            </View>
-          </View>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>最大回撤</Text>
-              <Text style={[styles.statValue, styles.negative]}>{trader.maxDrawdown}%</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statLabel}>夏普比率</Text>
-              <Text style={styles.statValue}>{trader.sharpeRatio}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Specialties */}
-        <View style={styles.specialtiesCard}>
-          <Text style={styles.sectionTitle}>擅长领域</Text>
-          <View style={styles.tagContainer}>
-            {trader.specialties.map((specialty, index) => (
-              <View key={index} style={styles.tag}>
-                <Text style={styles.tagText}>{specialty}</Text>
+          <View style={styles.performanceCard}>
+            <View style={styles.perfRow}>
+              <View style={styles.perfItem}>
+                <Text style={styles.perfLabel}>今日收益</Text>
+                <Text style={styles.perfValueGreen}>{trader.todayPnl || '+0.00%'}</Text>
               </View>
-            ))}
+              <View style={styles.perfItem}>
+                <Text style={styles.perfLabel}>本周收益</Text>
+                <Text style={styles.perfValueGreen}>{trader.weeklyPnL || '+0.00%'}</Text>
+              </View>
+            </View>
+            <View style={styles.perfDivider} />
+            <View style={styles.perfRow}>
+              <View style={styles.perfItem}>
+                <Text style={styles.perfLabel}>最大回撤</Text>
+                <Text style={[styles.perfValue, { color: '#EF4444' }]}>{trader.maxDrawdown || '0.00%'}</Text>
+              </View>
+              <View style={styles.perfItem}>
+                <Text style={styles.perfLabel}>夏普比率</Text>
+                <Text style={styles.perfValue}>{trader.sharpeRatio || '0.00'}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Detailed Stats */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>详细统计</Text>
+          <View style={styles.statsCard}>
+            <View style={styles.statsGrid}>
+              <View style={styles.gridItem}>
+                <Text style={styles.gridLabel}>总交易次数</Text>
+                <Text style={styles.gridValue}>{trader.totalTrades}</Text>
+              </View>
+              <View style={styles.gridItem}>
+                <Text style={styles.gridLabel}>平均收益</Text>
+                <Text style={styles.gridValue}>{trader.avgProfit}%</Text>
+              </View>
+              <View style={styles.gridItem}>
+                <Text style={styles.gridLabel}>最近交易</Text>
+                <Text style={styles.gridValue}>{trader.lastTradeTime || '刚刚'}</Text>
+              </View>
+              <View style={styles.gridItem}>
+                <Text style={styles.gridLabel}>擅长领域</Text>
+                <Text style={styles.gridValue}>{trader.specialties?.slice(0, 2).join(', ') || '-'}</Text>
+              </View>
+            </View>
           </View>
         </View>
 
         {/* Strategies */}
-        <View style={styles.strategiesCard}>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>交易策略</Text>
-          <View style={styles.tagContainer}>
-            {trader.strategies.map((strategy, index) => (
-              <View key={index} style={[styles.tag, styles.strategyTag]}>
-                <Text style={[styles.tagText, styles.strategyTagText]}>{strategy}</Text>
+          <View style={styles.strategiesContainer}>
+            {trader.strategies?.map((strategy, index) => (
+              <View key={index} style={styles.strategyTag}>
+                <Text style={styles.strategyText}>{strategy}</Text>
               </View>
-            ))}
+            )) || (
+              <Text style={styles.noDataText}>暂无策略信息</Text>
+            )}
           </View>
         </View>
 
-        {/* Last Trade */}
-        <View style={styles.lastTradeCard}>
-          <View style={styles.lastTradeRow}>
-            <Ionicons name="time-outline" size={16} color="#8B8B9A" />
-            <Text style={styles.lastTradeText}>
-              最后交易: {new Date(trader.lastTradeTime).toLocaleString('zh-CN')}
-            </Text>
-          </View>
-        </View>
+        {/* Bottom Spacing */}
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* Follow Button */}
-      <View style={styles.footer}>
+      <View style={styles.bottomBar}>
+        <View style={styles.bottomInfo}>
+          <Text style={styles.followersText}>{trader.followers} 人在跟单</Text>
+        </View>
         <TouchableOpacity
           style={[styles.followButton, isFollowing && styles.followingButton]}
-          onPress={isFollowing ? handleUnfollow : handleFollow}
-          disabled={followingLoading}
+          onPress={handleFollow}
+          disabled={followingLoading || isFollowing}
         >
           {followingLoading ? (
-            <ActivityIndicator size="small" color="#FFF" />
+            <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <>
-              <Ionicons 
-                name={isFollowing ? 'checkmark' : 'add'} 
-                size={20} 
-                color="#FFF" 
-              />
-              <Text style={styles.followButtonText}>
-                {isFollowing ? '已跟单' : '立即跟单'}
-              </Text>
-            </>
+            <Text style={styles.followButtonText}>
+              {isFollowing ? '已跟单' : '立即跟单'}
+            </Text>
           )}
         </TouchableOpacity>
       </View>
@@ -319,58 +293,106 @@ export default function TraderDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0D0D0F',
+    backgroundColor: '#F3F4F6',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0D0D0F',
+    backgroundColor: '#F3F4F6',
   },
   loadingText: {
-    color: '#8B8B9A',
     marginTop: 12,
     fontSize: 14,
+    color: '#6B7280',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#0D0D0F',
+    backgroundColor: '#F3F4F6',
   },
   errorText: {
-    color: '#FF4757',
     fontSize: 16,
+    color: '#6B7280',
+    marginBottom: 16,
+  },
+  backButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: '#3B82F6',
+    borderRadius: 8,
+  },
+  backButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',
-    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  headerBack: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  profileCard: {
+    margin: 16,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  profileHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
   avatarContainer: {
     position: 'relative',
   },
-  avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#8B5CF6',
+  avatarPlaceholder: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarInitial: {
-    fontSize: 28,
+  avatarText: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFF',
+    color: '#FFFFFF',
   },
-  blueTick: {
+  verifiedBadge: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#0D0D0F',
-    borderRadius: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#3B82F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
-  headerInfo: {
+  profileInfo: {
     marginLeft: 16,
     flex: 1,
   },
@@ -378,198 +400,181 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  name: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+  traderName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
   },
-  country: {
-    fontSize: 16,
-    marginLeft: 6,
-  },
-  platform: {
-    fontSize: 14,
-    color: '#8B8B9A',
+  platformText: {
+    fontSize: 13,
+    color: '#6B7280',
     marginTop: 2,
   },
-  followerRow: {
+  riskBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
-  },
-  followerText: {
-    fontSize: 13,
-    color: '#8B8B9A',
-    marginLeft: 4,
-  },
-  riskBadgeContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  riskBadge: {
+    marginTop: 6,
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#2A2A35',
   },
-  riskLow: {
-    backgroundColor: 'rgba(34, 197, 94, 0.2)',
-  },
-  riskMedium: {
-    backgroundColor: 'rgba(250, 204, 21, 0.2)',
-  },
-  riskHigh: {
-    backgroundColor: 'rgba(249, 115, 22, 0.2)',
-  },
-  riskVeryHigh: {
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+  riskDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 4,
   },
   riskText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  performanceCard: {
-    marginHorizontal: 16,
-    backgroundColor: '#13131A',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 16,
-  },
-  performanceGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  performanceItem: {
-    width: '50%',
-    paddingVertical: 8,
-  },
-  performanceValue: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#22C55E',
-  },
-  performanceLabel: {
     fontSize: 12,
-    color: '#8B8B9A',
-    marginTop: 4,
-  },
-  positive: {
-    color: '#22C55E',
-  },
-  negative: {
-    color: '#EF4444',
-  },
-  statsCard: {
-    marginHorizontal: 16,
-    backgroundColor: '#13131A',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    color: '#6B7280',
   },
   statsRow: {
     flexDirection: 'row',
-    marginBottom: 12,
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
   statItem: {
     flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
   },
   statLabel: {
     fontSize: 12,
-    color: '#8B8B9A',
-    marginBottom: 4,
+    color: '#6B7280',
+    marginTop: 4,
   },
-  statValue: {
+  statDivider: {
+    width: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  section: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  specialtiesCard: {
-    marginHorizontal: 16,
-    backgroundColor: '#13131A',
-    borderRadius: 16,
-    padding: 16,
+    color: '#1F2937',
     marginBottom: 12,
   },
-  tagContainer: {
+  performanceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+  },
+  perfRow: {
+    flexDirection: 'row',
+  },
+  perfItem: {
+    flex: 1,
+  },
+  perfLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  perfValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginTop: 4,
+  },
+  perfValueGreen: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#10B981',
+    marginTop: 4,
+  },
+  perfDivider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 12,
+  },
+  statsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  gridItem: {
+    width: '50%',
+    marginBottom: 12,
+  },
+  gridLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  gridValue: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#1F2937',
+    marginTop: 4,
+  },
+  strategiesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  tag: {
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+  strategyTag: {
+    backgroundColor: '#EEF2FF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
   },
-  tagText: {
+  strategyText: {
     fontSize: 13,
-    color: '#A78BFA',
+    color: '#4F46E5',
   },
-  strategiesCard: {
-    marginHorizontal: 16,
-    backgroundColor: '#13131A',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+  noDataText: {
+    fontSize: 14,
+    color: '#9CA3AF',
   },
-  strategyTag: {
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-    borderColor: 'rgba(59, 130, 246, 0.3)',
-  },
-  strategyTagText: {
-    color: '#60A5FA',
-  },
-  lastTradeCard: {
-    marginHorizontal: 16,
-    backgroundColor: '#13131A',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 100,
-  },
-  lastTradeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  lastTradeText: {
-    fontSize: 13,
-    color: '#8B8B9A',
-    marginLeft: 6,
-  },
-  footer: {
+  bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 16,
-    backgroundColor: '#0D0D0F',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: 24,
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#1F1F2E',
+    borderTopColor: '#E5E7EB',
+  },
+  bottomInfo: {
+    flex: 1,
+  },
+  followersText: {
+    fontSize: 13,
+    color: '#6B7280',
   },
   followButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
     borderRadius: 12,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    justifyContent: 'center',
+    minWidth: 140,
     alignItems: 'center',
-    gap: 8,
   },
   followingButton: {
-    backgroundColor: '#22C55E',
+    backgroundColor: '#10B981',
   },
   followButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
 });

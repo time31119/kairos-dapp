@@ -45,7 +45,7 @@ export default function MineScreen() {
   // 钱包类型
   const [walletType, setWalletType] = useState<'trust' | 'metamask' | 'bsc' | null>(null);
 
-  // 获取以太坊提供者 (仅在 Web 端有效)
+  // 获取以太坊提供者 (TP Wallet / MetaMask)
   const getEthereumProvider = () => {
     // 仅在 Web 环境检查
     if (Platform.OS !== 'web') {
@@ -53,12 +53,20 @@ export default function MineScreen() {
     }
 
     if (typeof window !== 'undefined') {
-      // TP Wallet (Trust Wallet)
-      if (window.trustwallet?.isTrust || (window as any).trustwallet) {
+      // TP Wallet (Trust Wallet) - 主要检测方式
+      // Trust Wallet 在内置浏览器中会注入 trustwallet 对象
+      if ((window as any).trustwallet || window.trustwallet?.isTrust) {
         return window;
       }
-      // MetaMask 或其他支持 window.ethereum 的钱包
+      
+      // TP Wallet 也可能注入 ethereum 对象
       if ((window as any).ethereum) {
+        // 检查是否是 Trust Wallet
+        const ethereum = (window as any).ethereum;
+        if (ethereum?.isTrust || ethereum?.isMetaMask === false) {
+          return window;
+        }
+        // 其他钱包 (MetaMask)
         return window;
       }
     }

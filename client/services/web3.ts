@@ -122,22 +122,53 @@ export async function connectCoinbase(): Promise<string> {
   return mockAddress;
 }
 
-// Trust 钱包连接
+// Trust / TP 钱包连接
 export async function connectTrust(): Promise<string> {
-  const mockAddress = generateMockAddress();
+  let address: string;
+  
+  // 检查是否在 TP Wallet 浏览器中
+  if (typeof window !== 'undefined' && (window as any).trustwallet) {
+    try {
+      // 使用 TP Wallet 的 Web3 Provider
+      const provider = (window as any).trustwallet;
+      
+      // 请求 TRON 账户
+      const result = await provider.request({
+        method: 'tron_requestAccounts',
+      });
+      
+      // TP Wallet 返回地址
+      if (result && result.address) {
+        address = result.address;
+      } else if (typeof result === 'string') {
+        // 有些版本直接返回地址字符串
+        address = result;
+      } else {
+        // 尝试从 result.code === 200 获取
+        throw new Error('No address returned');
+      }
+    } catch (error) {
+      console.log('TP Wallet connection error, using mock:', error);
+      // 如果 TP Wallet 连接失败，使用模拟地址作为后备
+      address = generateMockAddress();
+    }
+  } else {
+    // 非 TP Wallet 环境，使用模拟地址
+    address = generateMockAddress();
+  }
   
   const nonce = generateNonce();
-  await storeNonce(mockAddress, nonce);
+  await storeNonce(address, nonce);
   
   const chain = await getSelectedChain();
   await storeWalletInfo({
-    address: mockAddress,
+    address,
     chain,
     connectedAt: Date.now(),
   });
   await storeWalletType('trust');
   
-  return mockAddress;
+  return address;
 }
 
 // Phantom 钱包连接 (Solana)

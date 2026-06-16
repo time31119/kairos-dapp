@@ -680,7 +680,16 @@ export default function CopytradingScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>一键跟单</Text>
+          <View style={styles.headerTop}>
+            <Text style={styles.headerTitle}>一键跟单</Text>
+            <TouchableOpacity 
+              style={styles.bindApiBtn}
+              onPress={() => router.push('/copytrading/binance-api')}
+            >
+              <Ionicons name="link" size={16} color="#00F0FF" />
+              <Text style={styles.bindApiText}>绑定币安</Text>
+            </TouchableOpacity>
+          </View>
           <Text style={styles.headerSubtitle}>
             {activeTab === 'traders' && `${traders.length} 位顶尖交易员`}
             {activeTab === 'portfolio' && '我的跟单实盘'}
@@ -749,6 +758,12 @@ const styles = {
     paddingTop: 16,
     paddingBottom: 12,
   },
+  headerTop: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: 4,
+  },
   headerTitle: {
     fontSize: 28,
     fontWeight: '700' as const,
@@ -758,6 +773,20 @@ const styles = {
     fontSize: 14,
     color: '#A0A0B0',
     marginTop: 4,
+  },
+  bindApiBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: '#1F1F2E',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+  },
+  bindApiText: {
+    fontSize: 12,
+    color: '#00F0FF',
+    fontWeight: '600' as const,
   },
   tabNav: {
     flexDirection: 'row' as const,

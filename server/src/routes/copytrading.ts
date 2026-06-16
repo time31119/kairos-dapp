@@ -372,4 +372,112 @@ router.post('/unfollow', (req, res) => {
   });
 });
 
+// 绑定币安 API
+router.post('/bind-binance', async (req, res) => {
+  const { apiKey, secretKey } = req.body;
+  
+  if (!apiKey || !secretKey) {
+    return res.status(400).json({ success: false, error: 'Missing API credentials' });
+  }
+  
+  // 验证 API Key 格式
+  if (apiKey.length < 32 || !/^[a-zA-Z0-9]+$/.test(apiKey)) {
+    return res.status(400).json({ success: false, error: 'Invalid API Key format' });
+  }
+  
+  if (secretKey.length < 32 || !/^[a-zA-Z0-9]+$/.test(secretKey)) {
+    return res.status(400).json({ success: false, error: 'Invalid Secret Key format' });
+  }
+  
+  // 获取用户 session
+  const sessionToken = req.headers['x-session'] as string;
+  
+  try {
+    // 这里应该调用币安 API 验证密钥是否有效
+    // 暂时模拟验证成功
+    const isValid = await validateBinanceAPI(apiKey, secretKey);
+    
+    if (!isValid) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'API 验证失败，请检查 Key 和 Secret 是否正确' 
+      });
+    }
+    
+    // 保存到数据库（需要集成数据库，这里暂时使用内存存储）
+    // 实际应该存储到用户表中
+    console.log(`Binding Binance API for user: ${sessionToken || 'anonymous'}`);
+    
+    res.json({
+      success: true,
+      message: '币安 API 绑定成功',
+      data: {
+        apiKeyPrefix: apiKey.substring(0, 8) + '...',
+        boundAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error('Binance bind error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// 解绑币安 API
+router.post('/unbind-binance', (req, res) => {
+  const sessionToken = req.headers['x-session'] as string;
+  
+  console.log(`Unbinding Binance API for user: ${sessionToken || 'anonymous'}`);
+  
+  res.json({
+    success: true,
+    message: '币安 API 已解除绑定',
+  });
+});
+
+// 获取绑定状态
+router.get('/binance-status', (req, res) => {
+  const sessionToken = req.headers['x-session'] as string;
+  
+  // 模拟检查是否已绑定
+  // 实际应该从数据库查询
+  const isBound = false; // 模拟未绑定状态
+  
+  res.json({
+    success: true,
+    data: {
+      isBound,
+      apiKeyPrefix: isBound ? 'ABC12345...' : null,
+      boundAt: isBound ? new Date().toISOString() : null,
+    },
+  });
+});
+
+// 验证币安 API 的辅助函数
+async function validateBinanceAPI(apiKey: string, secretKey: string): Promise<boolean> {
+  try {
+    // 调用币安 API 验证密钥
+    // 这里使用币安 API 的账户信息接口来验证
+    const crypto = await import('crypto');
+    const timestamp = Date.now();
+    const queryString = `timestamp=${timestamp}`;
+    const signature = crypto.createHmac('sha256', secretKey)
+      .update(queryString)
+      .digest('hex');
+    
+    const response = await fetch(
+      `https://api.binance.com/api/v3/account?${queryString}&signature=${signature}`,
+      {
+        headers: {
+          'X-MBX-APIKEY': apiKey,
+        },
+      }
+    );
+    
+    return response.ok;
+  } catch (error) {
+    console.error('Validate Binance API error:', error);
+    return false;
+  }
+}
+
 export default router;

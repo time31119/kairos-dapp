@@ -158,13 +158,36 @@ export default function TradingScreen() {
   };
 
   // 获取持仓
+  // 获取持仓 - 对接真实币安API数据
   const fetchPositions = async () => {
-    const result = await apiRequest<{ positions?: Position[] }>('/trading/positions');
-    if (result.success && result.data) {
-      if (result.data.positions) {
-        setPositions(result.data.positions);
-      } else if (Array.isArray(result.data)) {
-        setPositions(result.data as Position[]);
+    // 如果有TP钱包地址，从币安API获取真实持仓
+    const walletAddress = (globalThis as any).walletAddress;
+    if (walletAddress) {
+      const result = await apiRequest<{ 
+        positions?: Position[]; 
+        has_api?: boolean;
+      }>('/positions/my', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallet_address: walletAddress }),
+      });
+      
+      if (result.success && result.data) {
+        if (result.data.positions) {
+          setPositions(result.data.positions);
+        } else if (Array.isArray(result.data)) {
+          setPositions(result.data as Position[]);
+        }
+      }
+    } else {
+      // 无钱包地址，显示默认数据提示用户绑定
+      const result = await apiRequest<{ positions?: Position[] }>('/trading/positions');
+      if (result.success && result.data) {
+        if (result.data.positions) {
+          setPositions(result.data.positions);
+        } else if (Array.isArray(result.data)) {
+          setPositions(result.data as Position[]);
+        }
       }
     }
   };

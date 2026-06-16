@@ -28,6 +28,11 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
   const wallet = useWeb3();
   const params = useSafeSearchParams<{ plan?: string }>();
   
+  // DEBUG: Simple test
+  const testPress = () => {
+    Alert.alert('调试', '测试按钮被点击了！');
+  };
+  
   // Get plan from route params, fallback to initialPlanId prop or default to 'professional'
   const planId = params.plan || initialPlanId || 'professional';
   const initialPlan = VIP_PLANS.find((p) => p.id === planId) || VIP_PLANS.find((p) => p.id === 'professional') || VIP_PLANS[0];
@@ -216,6 +221,14 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
 
   return (
     <Screen>
+      {/* DEBUG BUTTON - Remove after testing */}
+      <TouchableOpacity 
+        style={{ backgroundColor: '#FF0000', padding: 20, margin: 10 }}
+        onPress={() => Alert.alert('DEBUG', 'Button works!')}
+      >
+        <Text style={{ color: '#FFFFFF', textAlign: 'center' }}>TEST BUTTON</Text>
+      </TouchableOpacity>
+      
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>

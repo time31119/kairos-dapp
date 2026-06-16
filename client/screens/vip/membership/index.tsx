@@ -338,7 +338,12 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
           <Text style={styles.sectionTitle}>钱包</Text>
           <TouchableOpacity 
             style={[styles.walletCard, wallet.isConnected && styles.walletCardConnected]}
-            onPress={wallet.isConnected ? undefined : handleConnectTPWallet}
+            onPress={() => {
+              console.log('Wallet card pressed, isConnected:', wallet.isConnected);
+              if (!wallet.isConnected) {
+                handleConnectTPWallet();
+              }
+            }}
           >
             <View style={[styles.walletIcon, wallet.isConnected && styles.walletIconConnected]}>
               <Ionicons name="wallet" size={22} color={wallet.isConnected ? '#0A0A0F' : '#00E5CC'} />
@@ -376,7 +381,15 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
             styles.payButton,
             { backgroundColor: wallet.isConnected ? '#00E5CC' : '#333333' }
           ]}
-          onPress={wallet.isConnected ? handlePayment : handleConnectTPWallet}
+          onPress={() => {
+            console.log('DEBUG: Button clicked, isConnected:', wallet.isConnected);
+            Alert.alert('调试', `按钮已点击, isConnected: ${wallet.isConnected}`);
+            if (wallet.isConnected) {
+              handlePayment();
+            } else {
+              handleConnectTPWallet();
+            }
+          }}
           disabled={isProcessing}
         >
           {isProcessing ? (

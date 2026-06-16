@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { Ionicons, FontAwesome6 } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
+import { formatAddress, isValidAddress } from '@/services/metamask';
 
 // 钱包连接状态
 const WalletStatus = {
@@ -10,6 +12,20 @@ const WalletStatus = {
   CONNECTING: 'connecting',
   CONNECTED: 'connected',
 };
+
+// TP Wallet 提供者类型
+declare global {
+  interface Window {
+    trustwallet?: {
+      isTrust?: boolean;
+      request?: (args: any) => Promise<any>;
+    };
+    BinanceChain?: {
+      bsc?: boolean;
+      request?: (args: any) => Promise<any>;
+    };
+  }
+}
 
 // 我的页面主组件
 export default function MineScreen() {
@@ -26,18 +42,114 @@ export default function MineScreen() {
     vipLevel: 0,
   });
 
+  // 钱包类型
+  const [walletType, setWalletType] = useState<'trust' | 'metamask' | 'bsc' | null>(null);
+
+  // 获取以太坊提供者 (仅在 Web 端有效)
+  const getEthereumProvider = () => {
+    // 仅在 Web 环境检查
+    if (Platform.OS !== 'web') {
+      return null;
+    }
+
+    if (typeof window !== 'undefined') {
+      // TP Wallet (Trust Wallet)
+      if (window.trustwallet?.isTrust || (window as any).trustwallet) {
+        return window;
+      }
+      // MetaMask 或其他支持 window.ethereum 的钱包
+      if ((window as any).ethereum) {
+        return window;
+      }
+    }
+    return null;
+  };
+
+  // 断开钱包连接
+  const disconnectWallet = () => {
+    setWalletAddress('');
+    setWalletStatus(WalletStatus.DISCONNECTED);
+    setWalletType(null);
+  };
+
   // 连接 TP 钱包
   const handleConnectWallet = async () => {
     try {
       setWalletStatus(WalletStatus.CONNECTING);
-      // 模拟 TP 钱包连接
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setWalletAddress('0x1234...5678');
-      setWalletStatus(WalletStatus.CONNECTED);
+
+      // 在 Web 环境尝试连接
+      if (typeof window !== 'undefined') {
+        const provider = getEthereumProvider();
+
+        if (provider) {
+          try {
+            // 请求钱包连接
+            const accounts = await (provider as any).ethereum.request({
+              method: 'eth_requestAccounts',
+            });
+
+            if (accounts && accounts.length > 0 && isValidAddress(accounts[0])) {
+              setWalletAddress(accounts[0]);
+              setWalletStatus(WalletStatus.CONNECTED);
+
+              // 检测钱包类型
+              if ((provider as any).trustwallet?.isTrust || (provider as any).trustwallet) {
+                setWalletType('trust');
+              } else if ((provider as any).BinanceChain?.bsc) {
+                setWalletType('bsc');
+              } else {
+                setWalletType('metamask');
+              }
+              return;
+            }
+          } catch (err: any) {
+            // 用户拒绝或连接失败
+            if (err.code === 4001) {
+              Alert.alert('连接失败', '您拒绝了钱包连接请求');
+            } else {
+              Alert.alert('连接失败', '无法连接到钱包，请确保已安装 TP 钱包或 MetaMask');
+            }
+          }
+        }
+      }
+
+      // 移动端或未检测到钱包时，显示提示
+      Alert.alert(
+        '请安装 TP 钱包',
+        '要连接钱包，请先在您的设备上安装 TP 钱包（Trust Wallet）浏览器扩展或移动应用。',
+        [{ text: '确定' }]
+      );
+
+      setWalletStatus(WalletStatus.DISCONNECTED);
     } catch (error) {
       console.error('Wallet connection failed:', error);
+      Alert.alert('连接失败', '钱包连接过程中发生错误');
       setWalletStatus(WalletStatus.DISCONNECTED);
     }
+  };
+
+  // 复制地址到剪贴板
+  const copyAddress = async () => {
+    try {
+      await Clipboard.setStringAsync(walletAddress);
+      Alert.alert('已复制', '钱包地址已复制到剪贴板');
+    } catch (error) {
+      console.error('Copy failed:', error);
+    }
+  };
+
+  // 获取钱包图标
+  const getWalletIcon = () => {
+    if (walletType === 'trust') return '💎';
+    if (walletType === 'bsc') return '🟡';
+    return '🦊';
+  };
+
+  // 获取钱包名称
+  const getWalletName = () => {
+    if (walletType === 'trust') return 'TP 钱包';
+    if (walletType === 'bsc') return 'BNB 钱包';
+    return 'MetaMask';
   };
 
   return (
@@ -57,8 +169,7 @@ export default function MineScreen() {
               borderWidth: walletStatus === WalletStatus.CONNECTED ? 1 : 0,
               borderColor: '#00F0FF',
             }}
-            onPress={handleConnectWallet}
-            disabled={walletStatus === WalletStatus.CONNECTED}
+            onPress={walletStatus === WalletStatus.CONNECTED ? disconnectWallet : handleConnectWallet}
           >
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-3">
@@ -66,15 +177,15 @@ export default function MineScreen() {
                   className="w-12 h-12 rounded-full items-center justify-center"
                   style={{ backgroundColor: 'rgba(0, 240, 255, 0.1)' }}
                 >
-                  <Ionicons name="wallet" size={24} color="#00F0FF" />
+                  <Text style={{ fontSize: 24 }}>{getWalletIcon()}</Text>
                 </View>
                 <View>
                   {walletStatus === WalletStatus.CONNECTED ? (
                     <>
                       <Text className="text-sm font-medium" style={{ color: '#FFFFFF' }}>
-                        {walletAddress}
+                        {formatAddress(walletAddress)}
                       </Text>
-                      <Text className="text-xs" style={{ color: '#00F0FF' }}>已连接</Text>
+                      <Text className="text-xs" style={{ color: '#00F0FF' }}>{getWalletName()} 已连接</Text>
                     </>
                   ) : (
                     <>
@@ -86,15 +197,38 @@ export default function MineScreen() {
                   )}
                 </View>
               </View>
-              {walletStatus !== WalletStatus.CONNECTED && (
+              {walletStatus === WalletStatus.CONNECTED ? (
+                <TouchableOpacity
+                  className="px-3 py-1.5 rounded-full"
+                  style={{ backgroundColor: 'rgba(255, 68, 68, 0.1)' }}
+                  onPress={disconnectWallet}
+                >
+                  <Text className="text-xs font-medium" style={{ color: '#FF4444' }}>断开</Text>
+                </TouchableOpacity>
+              ) : (
                 <View 
                   className="px-3 py-1.5 rounded-full"
                   style={{ backgroundColor: 'rgba(0, 240, 255, 0.1)' }}
                 >
-                  <Text className="text-xs font-medium" style={{ color: '#00F0FF' }}>连接</Text>
+                  <Text className="text-xs font-medium" style={{ color: '#00F0FF' }}>
+                    {walletStatus === WalletStatus.CONNECTING ? '...' : '连接'}
+                  </Text>
                 </View>
               )}
             </View>
+            {/* 已连接时显示完整地址可复制 */}
+            {walletStatus === WalletStatus.CONNECTED && (
+              <TouchableOpacity 
+                className="mt-3 p-2 rounded-lg"
+                style={{ backgroundColor: 'rgba(0, 240, 255, 0.05)' }}
+                onPress={copyAddress}
+              >
+                <Text className="text-xs" style={{ color: '#6B7280' }} numberOfLines={1}>
+                  {walletAddress}
+                </Text>
+                <Text className="text-xs mt-1" style={{ color: '#00F0FF' }}>点击复制地址</Text>
+              </TouchableOpacity>
+            )}
           </TouchableOpacity>
         </View>
 

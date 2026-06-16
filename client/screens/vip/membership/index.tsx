@@ -47,6 +47,42 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
     }
   };
 
+  // Combined: Create order and initiate payment
+  const handleCreateOrderAndPay = async () => {
+    if (!wallet.wallet.isConnected || !wallet.wallet.address) {
+      Alert.alert('提示', '请先连接钱包');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      // Create order first
+      const response = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/subscription/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planId: selectedPlan.id,
+          billingCycle: selectedBillingCycle,
+          paymentMethod: 'tp_wallet',
+          walletAddress: wallet.wallet.address,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setOrderId(data.orderId);
+        // Now trigger payment
+        await handleOpenTPWallet(data.orderId);
+      } else {
+        Alert.alert('创建订单失败', data.message || '请稍后重试');
+      }
+    } catch (error) {
+      Alert.alert('网络错误', '请检查网络连接');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   // Create order
   const handleCreateOrder = async () => {
     if (!wallet.wallet.isConnected || !wallet.wallet.address) {
@@ -110,26 +146,64 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
     }
   };
 
-  // Open TP Wallet for payment
-  const handleOpenTPWallet = async () => {
+  // Open TP Wallet for payment using Web3
+  const handleOpenTPWallet = async (orderIdToUse?: string) => {
+    if (!wallet.wallet.isConnected || !wallet.wallet.address) {
+      Alert.alert('提示', '请先连接钱包');
+      return;
+    }
+
     const amount = currentPrice;
     const trc20Address = 'TSV8UGKBeXrj26PUiBUhhLunfzVSmvyqWq';
+    const currentOrderId = orderIdToUse || orderId;
     
-    // TP Wallet deep link for USDT TRC20 transfer
-    const deeplink = `tokenpocket://transfer?symbol=USDT&contract=TR7NHqjeKQxGTCi8q8Z5Zmc7U8ypCFXpvTL&toAddress=${trc20Address}&amount=${amount}&chain=trx`;
+    // Check if in TP Wallet browser
+    const isTPWallet = !!(window as any).trustwallet || (window as any).isTrust;
     
-    try {
-      const canOpen = await Linking.canOpenURL(deeplink);
-      if (canOpen) {
-        await Linking.openURL(deeplink);
-      } else {
-        Alert.alert('收款地址', `USDT TRC20\n${trc20Address}\n\n金额: ${amount} USDT\n\n请手动转账到上方地址`, [
-          { text: '复制地址', onPress: () => {} },
-          { text: '确定' },
-        ]);
+    if (isTPWallet && (window as any).trustwallet) {
+      try {
+        // Use TP Wallet's Web3 provider
+        const provider = (window as any).trustwallet;
+        
+        // Request TRON account
+        const result = await provider.request({
+          method: 'tron_requestAccounts',
+        });
+        
+        if (result && (result.address || result.code === 200)) {
+          // Show payment info and guide user
+          Alert.alert(
+            'TP 钱包支付',
+            `请在 TP 钱包中完成以下操作：\n\n发送 ${amount} USDT (TRC20) 到\n\n地址: ${trc20Address}\n\n备注/Order ID: ${currentOrderId}\n\n转账完成后，点击确认支付`,
+            [
+              { text: '取消' },
+              { 
+                text: '已完成转账', 
+                onPress: () => confirmPayment(currentOrderId, wallet.wallet.address || '') 
+              }
+            ]
+          );
+        }
+      } catch (error) {
+        console.log('TP Wallet Web3 error:', error);
+        // Fallback to manual copy
+        Alert.alert(
+          '收款地址',
+          `USDT TRC20\n${trc20Address}\n\n金额: ${amount} USDT\n\n备注: ${currentOrderId}\n\n请复制地址到 TP 钱包转账`,
+          [
+            { text: '确定' }
+          ]
+        );
       }
-    } catch (error) {
-      Alert.alert('提示', `请向以下地址转账 ${amount} USDT (TRC20)\n\n${trc20Address}`);
+    } else {
+      // Fallback for other browsers - show copy address
+      Alert.alert(
+        '收款地址',
+        `USDT TRC20\n${trc20Address}\n\n金额: ${amount} USDT\n\n备注: ${currentOrderId}\n\n请复制地址到 TP 钱包转账`,
+        [
+          { text: '确定' }
+        ]
+      );
     }
   };
 
@@ -295,7 +369,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
             styles.payButton,
             { backgroundColor: wallet.wallet.isConnected ? '#00E5CC' : '#333333' }
           ]}
-          onPress={wallet.wallet.isConnected ? handleOpenTPWallet : handleConnectTPWallet}
+          onPress={wallet.wallet.isConnected ? handleCreateOrderAndPay : handleConnectTPWallet}
           disabled={isProcessing}
         >
           {isProcessing ? (

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
@@ -45,6 +46,38 @@ export default function MineScreen() {
   // 钱包类型
   const [walletType, setWalletType] = useState<'trust' | 'metamask' | 'bsc' | null>(null);
 
+  // 恢复钱包连接状态
+  useEffect(() => {
+    const restoreWallet = async () => {
+      try {
+        // 从本地存储恢复钱包地址
+        const storedAddress = await AsyncStorage.getItem('wallet_address');
+        const storedWalletType = await AsyncStorage.getItem('wallet_type');
+        
+        if (storedAddress) {
+          setWalletAddress(storedAddress);
+          setWalletStatus(WalletStatus.CONNECTED);
+          
+          // 优先使用存储的钱包类型
+          if (storedWalletType) {
+            setWalletType(storedWalletType as 'trust' | 'metamask' | 'bsc');
+          } else {
+            // 如果没有存储类型，检查是否在 TP Wallet 浏览器中
+            if (typeof window !== 'undefined') {
+              if ((window as any).trustwallet || (window as any).trustwallet?.isTrust) {
+                setWalletType('trust');
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Restore wallet failed:', error);
+      }
+    };
+    
+    restoreWallet();
+  }, []);
+
   // 获取以太坊提供者 (TP Wallet / MetaMask)
   const getEthereumProvider = () => {
     // 仅在 Web 环境检查
@@ -74,10 +107,12 @@ export default function MineScreen() {
   };
 
   // 断开钱包连接
-  const disconnectWallet = () => {
+  const disconnectWallet = async () => {
     setWalletAddress('');
     setWalletStatus(WalletStatus.DISCONNECTED);
     setWalletType(null);
+    await AsyncStorage.removeItem('wallet_address');
+    await AsyncStorage.removeItem('wallet_type');
   };
 
   // 连接 TP 钱包
@@ -104,13 +139,17 @@ export default function MineScreen() {
               setWalletStatus(WalletStatus.CONNECTED);
 
               // 检测钱包类型
-              if ((provider as any).trustwallet?.isTrust || (provider as any).trustwallet) {
-                setWalletType('trust');
+              let detectedType: 'trust' | 'metamask' | 'bsc' = 'metamask';
+              if ((provider as any).trustwallet || (window as any).trustwallet) {
+                detectedType = 'trust';
               } else if ((provider as any).BinanceChain?.bsc) {
-                setWalletType('bsc');
-              } else {
-                setWalletType('metamask');
+                detectedType = 'bsc';
               }
+              setWalletType(detectedType);
+              
+              // 保存到本地存储
+              await AsyncStorage.setItem('wallet_address', accounts[0]);
+              await AsyncStorage.setItem('wallet_type', detectedType);
               return;
             } else {
               // 返回了无效地址

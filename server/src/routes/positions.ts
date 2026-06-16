@@ -159,6 +159,52 @@ router.post('/unbind-binance', async (req, res) => {
   }
 });
 
+// ============ 获取用户持仓 (别名) ============
+router.post('/my', async (req, res) => {
+  try {
+    const { wallet_address } = req.body;
+    
+    if (!wallet_address) {
+      return res.status(400).json({ error: 'Missing wallet_address' });
+    }
+    
+    const address = wallet_address.toLowerCase();
+    const user = inMemoryUsers.get(address);
+    
+    // 如果没有绑定 API，返回提示
+    if (!user?.api_key || !user?.api_secret) {
+      return res.json({
+        has_api: false,
+        positions: [],
+        message: '请先绑定 Binance API',
+      });
+    }
+    
+    // 从币安获取真实持仓
+    const positions = await fetchUserPositions(user.api_key, user.api_secret);
+    
+    // 格式化返回数据
+    const formattedPositions = positions.map((p: any) => ({
+      symbol: p.symbol,
+      amount: p.amount,
+      value: p.value,
+      pnl: p.pnl || 0,
+      pnlPercent: p.pnlPercent || 0,
+    }));
+    
+    res.json({
+      has_api: true,
+      positions: formattedPositions,
+      totalValue: formattedPositions.reduce((sum: number, p: any) => sum + p.value, 0),
+      totalPnl: formattedPositions.reduce((sum: number, p: any) => sum + p.pnl, 0),
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('获取持仓失败:', error);
+    res.status(500).json({ error: 'Failed to fetch positions' });
+  }
+});
+
 // ============ 获取用户持仓 ============
 router.get('/positions', async (req, res) => {
   try {

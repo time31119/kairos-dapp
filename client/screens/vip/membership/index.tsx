@@ -11,11 +11,13 @@ import {
   Modal,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { Screen } from '@/components/Screen';
 import { Ionicons } from '@expo/vector-icons';
 import { useWeb3 } from '@/contexts/Web3Context';
 import { VIP_PLANS } from '@/utils/vipPlans';
+import { formatAddress } from '@/services/metamask';
 
 // TP Wallet provider type declaration
 declare global {
@@ -30,6 +32,10 @@ declare global {
     };
   }
 }
+
+const WALLET_ADDRESS_KEY = 'wallet_address';
+const WALLET_TYPE_KEY = 'wallet_type';
+const WALLET_INFO_KEY = 'wallet_info';
 
 const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'https://api.example.com';
 
@@ -72,8 +78,29 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
         });
         
         if (accounts && accounts.length > 0) {
-          console.log('Wallet connected with address:', accounts[0]);
-          // The Web3Context should auto-detect and update
+          const address = accounts[0];
+          console.log('Wallet connected with address:', address);
+          
+          // Validate address format
+          if (/^0x[a-fA-F0-9]{40}$/.test(address)) {
+            // Save wallet info to AsyncStorage (like "我的" page does)
+            await AsyncStorage.setItem(WALLET_ADDRESS_KEY, address);
+            await AsyncStorage.setItem(WALLET_TYPE_KEY, 'trust');
+            await AsyncStorage.setItem(WALLET_INFO_KEY, JSON.stringify({
+              address,
+              chain: 'bsc',
+              connectedAt: Date.now(),
+            }));
+            
+            console.log('Wallet info saved to storage');
+            
+            // Refresh Web3Context state from storage
+            await wallet.refreshWalletState();
+            
+            console.log('Web3Context state refreshed');
+          } else {
+            throw new Error('Invalid address returned');
+          }
         } else {
           throw new Error('No accounts returned');
         }

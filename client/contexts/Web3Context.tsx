@@ -69,6 +69,7 @@ interface Web3ContextType {
   disconnect: () => Promise<void>;
   switchChain: (chain: ChainType) => Promise<void>;
   refreshBalance: () => Promise<void>;
+  refreshWalletState: () => Promise<void>; // 刷新钱包状态（从存储重新读取）
   signMessage: (message?: string) => Promise<string>;
   verifySign: (signature: string) => Promise<boolean>;
   // WalletConnect 专用方法
@@ -334,6 +335,32 @@ export function Web3Provider({ children }: Web3ProviderProps) {
     }
   }, [wallet.address]);
 
+  // 刷新钱包状态（从存储重新读取）
+  const refreshWalletState = useCallback(async () => {
+    try {
+      const info = await getWalletInfo();
+      const type = await getWalletType();
+
+      if (info && type && /^0x[a-fA-F0-9]{40}$/.test(info.address)) {
+        const balance = await getBalance(info.address);
+        setWallet({
+          address: info.address,
+          chain: info.chain,
+          balance,
+          walletType: type,
+          isConnected: true,
+          isConnecting: false,
+          isWalletConnectConnecting: false,
+          wcUri: null,
+          error: null,
+        });
+        console.log('Wallet state refreshed from storage');
+      }
+    } catch (error) {
+      console.error('Failed to refresh wallet state:', error);
+    }
+  }, []);
+
   // 获取签名消息
   const signMessage = useCallback(async (message?: string): Promise<string> => {
     if (!wallet.address) {
@@ -510,6 +537,7 @@ export function Web3Provider({ children }: Web3ProviderProps) {
     disconnect: disconnectWallet,
     switchChain,
     refreshBalance,
+    refreshWalletState,
     signMessage,
     verifySign,
     initiateWalletConnect,

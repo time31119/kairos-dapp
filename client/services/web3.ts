@@ -126,94 +126,97 @@ export async function connectCoinbase(): Promise<string> {
 export async function connectTrust(): Promise<string> {
   let address: string = '';
   
-  // 检查是否在 TP Wallet 浏览器中
+  // TP Wallet 使用标准的 window.ethereum provider
   if (typeof window !== 'undefined') {
-    const trustWallet = (window as any).trustwallet;
+    const ethereum = (window as any).ethereum;
     
-    if (trustWallet) {
-      console.log('TP Wallet provider detected');
+    // 检查是否是 TP Wallet (TokenPocket)
+    const isTokenPocket = ethereum?.isTokenPocket || ethereum?.isTPWallet;
+    
+    if (ethereum && isTokenPocket) {
+      console.log('TP Wallet provider detected via window.ethereum');
       
-      // 优先尝试 tron_requestAccounts (TP Wallet 主要使用 TRON 链)
       try {
-        console.log('Requesting tron_requestAccounts...');
-        const tronResult = await trustWallet.request({
-          method: 'tron_requestAccounts',
-        });
-        
-        console.log('tron_requestAccounts result:', tronResult);
-        
-        if (tronResult) {
-          // TP Wallet 返回格式可能是:
-          // 1. { address: 'Txxx...' }
-          // 2. { code: 200, address: 'Txxx...' }
-          // 3. ['Txxx...'] 直接返回数组
-          // 4. 'Txxx...' 直接返回字符串
-          
-          if (typeof tronResult === 'string') {
-            address = tronResult;
-          } else if (Array.isArray(tronResult)) {
-            address = tronResult[0];
-          } else if (tronResult.address) {
-            address = tronResult.address;
-          } else if (tronResult.code === 200 && tronResult.address) {
-            address = tronResult.address;
-          }
-          
-          if (address) {
-            console.log('Got TRON address from TP Wallet:', address);
-            // TRON 地址以 T 开头
-            if (address.startsWith('T')) {
-              // 存储并返回 TRON 地址
-              const nonce = generateNonce();
-              await storeNonce(address, nonce);
-              
-              await storeWalletInfo({
-                address,
-                chain: 'tron',
-                connectedAt: Date.now(),
-              });
-              await storeWalletType('trust');
-              
-              return address;
-            }
-          }
-        }
-      } catch (tronError) {
-        console.log('tron_requestAccounts error:', tronError);
-      }
-      
-      // 如果 Tron 方式失败或返回的不是 TRON 地址，尝试 eth_requestAccounts
-      // 但需要排除 MetaMask 等其他钱包
-      try {
+        // 使用标准的 eth_requestAccounts
         console.log('Requesting eth_requestAccounts...');
-        const ethResult = await trustWallet.request({
+        const accounts = await ethereum.request({
           method: 'eth_requestAccounts',
         });
         
-        console.log('eth_requestAccounts result:', ethResult);
+        console.log('eth_requestAccounts result:', accounts);
         
-        if (ethResult && ethResult.length > 0) {
-          // 检查是否是有效的以太坊地址
-          const isValidEthAddress = /^0x[a-fA-F0-9]{40}$/.test(ethResult[0]);
-          if (isValidEthAddress) {
-            address = ethResult[0];
-            console.log('Got Ethereum address from TP Wallet:', address);
+        if (accounts && accounts.length > 0) {
+          address = accounts[0];
+          
+          // 验证地址格式
+          if (/^0x[a-fA-F0-9]{40}$/.test(address)) {
+            const nonce = generateNonce();
+            await storeNonce(address, nonce);
+            
+            const chain = await getSelectedChain();
+            await storeWalletInfo({
+              address,
+              chain,
+              connectedAt: Date.now(),
+            });
+            await storeWalletType('trust');
+            
+            console.log('TP Wallet connected successfully:', address);
+            return address;
           }
         }
-      } catch (ethError) {
-        console.log('eth_requestAccounts error:', ethError);
+      } catch (error: any) {
+        console.error('eth_requestAccounts failed:', error);
+        
+        // 尝试 eth_accounts (无需授权)
+        try {
+          console.log('Trying eth_accounts...');
+          const accounts = await ethereum.request({
+            method: 'eth_accounts',
+          });
+          
+          if (accounts && accounts.length > 0 && /^0x[a-fA-F0-9]{40}$/.test(accounts[0])) {
+            address = accounts[0];
+            const nonce = generateNonce();
+            await storeNonce(address, nonce);
+            
+            const chain = await getSelectedChain();
+            await storeWalletInfo({
+              address,
+              chain,
+              connectedAt: Date.now(),
+            });
+            await storeWalletType('trust');
+            return address;
+          }
+        } catch (e: any) {
+          console.error('eth_accounts also failed:', e);
+        }
+        
+        throw new Error('无法连接到 TP Wallet，请确保在 TP Wallet 浏览器中授权');
       }
-    } else {
-      console.log('TrustWallet provider not found in window');
-      console.log('Available providers:', Object.keys(window).filter(k => k.includes('trust') || k.includes('ethereum') || k.includes('bnb')));
     }
-  } else {
-    console.log('Window not defined (not in browser)');
+    
+    // 备选：检查 trustwallet
+    const trustWallet = (window as any).trustwallet;
+    if (trustWallet) {
+      console.log('Trust Wallet provider detected');
+      try {
+        const accounts = await trustWallet.request({
+          method: 'eth_requestAccounts',
+        });
+        if (accounts && accounts.length > 0 && /^0x[a-fA-F0-9]{40}$/.test(accounts[0])) {
+          address = accounts[0];
+        }
+      } catch (e) {
+        console.log('trustwallet eth_requestAccounts failed');
+      }
+    }
   }
   
   // 如果获取地址失败，抛出错误
   if (!address) {
-    throw new Error('无法连接到 TP 钱包，请确保在 TP 钱包的内置浏览器中打开此页面');
+    throw new Error('未检测到 TP Wallet，请确保在 TP Wallet 浏览器中打开此页面');
   }
   
   const nonce = generateNonce();

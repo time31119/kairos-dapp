@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  Linking,
   Modal,
+  Platform,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,7 +19,6 @@ import { useWeb3 } from '@/contexts/Web3Context';
 import { VIP_PLANS } from '@/utils/vipPlans';
 import { formatAddress } from '@/services/metamask';
 
-// TP Wallet provider type declaration
 declare global {
   interface Window {
     ethereum?: {
@@ -33,9 +32,8 @@ declare global {
   }
 }
 
-const WALLET_ADDRESS_KEY = 'wallet_address';
-const WALLET_TYPE_KEY = 'wallet_type';
 const WALLET_INFO_KEY = 'wallet_info';
+const WALLET_TYPE_KEY = 'wallet_type';
 
 const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'https://api.example.com';
 
@@ -43,12 +41,20 @@ interface Props {
   initialPlanId?: string;
 }
 
+interface WalletInfo {
+  address: string;
+  chain: string;
+  connectedAt: number;
+}
+
 export default function MembershipPage({ initialPlanId = 'professional' }: Props) {
   const router = useSafeRouter();
   const wallet = useWeb3();
   const params = useSafeSearchParams<{ plan?: string }>();
   
-  // Get plan from route params, fallback to initialPlanId prop or default to 'professional'
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState<string>('');
+  
   const planId = params.plan || initialPlanId || 'professional';
   const initialPlan = VIP_PLANS.find((p) => p.id === planId) || VIP_PLANS.find((p) => p.id === 'professional') || VIP_PLANS[0];
   
@@ -60,19 +66,34 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
 
   const currentPrice = selectedPlan.price[selectedBillingCycle];
 
-  // Handle connect TP Wallet - use window.ethereum directly like "我的" page
+  useEffect(() => {
+    const initWalletState = async () => {
+      try {
+        const infoStr = await AsyncStorage.getItem(WALLET_INFO_KEY);
+        if (infoStr) {
+          const info: WalletInfo = JSON.parse(infoStr);
+          if (info.address && /^0x[a-fA-F0-9]{40}$/.test(info.address)) {
+            setWalletAddress(info.address);
+            setWalletConnected(true);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to init wallet state:', e);
+      }
+    };
+    initWalletState();
+  }, []);
+
   const handleConnectTPWallet = async () => {
     console.log('handleConnectTPWallet called');
     
     try {
       if (typeof window !== 'undefined' && window.ethereum) {
-        // Detect wallet type
         const isTrust = !!window.ethereum.isTrust || 
                         window.navigator.userAgent.toLowerCase().includes('trust');
         
-        console.log('Detected wallet type:', isTrust ? 'Trust Wallet (TP Wallet)' : 'Other');
+        console.log('Detected wallet type:', isTrust ? 'Trust Wallet' : 'Other');
         
-        // Request accounts using standard eth_requestAccounts method
         const accounts = await window.ethereum.request({ 
           method: 'eth_requestAccounts' 
         });
@@ -81,23 +102,21 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
           const address = accounts[0];
           console.log('Wallet connected with address:', address);
           
-          // Validate address format
           if (/^0x[a-fA-F0-9]{40}$/.test(address)) {
-            // Save wallet info to AsyncStorage (like "我的" page does)
-            await AsyncStorage.setItem(WALLET_ADDRESS_KEY, address);
-            await AsyncStorage.setItem(WALLET_TYPE_KEY, 'trust');
-            await AsyncStorage.setItem(WALLET_INFO_KEY, JSON.stringify({
+            const walletInfo: WalletInfo = {
               address,
               chain: 'bsc',
               connectedAt: Date.now(),
-            }));
+            };
+            await AsyncStorage.setItem(WALLET_INFO_KEY, JSON.stringify(walletInfo));
+            await AsyncStorage.setItem(WALLET_TYPE_KEY, 'trust');
             
-            console.log('Wallet info saved to storage');
+            setWalletAddress(address);
+            setWalletConnected(true);
             
-            // Refresh Web3Context state from storage
-            await wallet.refreshWalletState();
-            
-            console.log('Web3Context state refreshed');
+            if (wallet.refreshWalletState) {
+              await wallet.refreshWalletState();
+            }
           } else {
             throw new Error('Invalid address returned');
           }
@@ -105,466 +124,274 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
           throw new Error('No accounts returned');
         }
       } else {
-        Alert.alert('提示', '未检测到 TP 钱包，请使用 TP 钱包内置浏览器打开此页面');
+        Alert.alert('Tips', 'Please open this page in TP Wallet browser');
       }
     } catch (error: any) {
       console.error('Connect error:', error);
       if (error.code === 4001) {
-        Alert.alert('连接取消', '您取消了钱包连接请求');
+        Alert.alert('Cancelled', 'Wallet connection was rejected');
       } else {
-        Alert.alert('连接失败', error.message || '请确保在 TP 钱包浏览器中打开此页面');
+        Alert.alert('Connection Failed', error.message || 'Please try again');
       }
     }
   };
 
-  // Handle payment - show copy address modal
   const handlePayment = async () => {
-    if (!wallet.wallet.isConnected || !wallet.wallet.address) {
-      Alert.alert('提示', '请先连接钱包');
+    if (!walletConnected || !walletAddress) {
+      Alert.alert('Tips', 'Please connect wallet first');
       return;
     }
-
-    setIsProcessing(true);
+    
     try {
-      // Create order
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/subscription/create-order`, {
+      setIsProcessing(true);
+      
+      const response = await fetch(EXPO_PUBLIC_BACKEND_BASE_URL + '/api/v1/subscription/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           planId: selectedPlan.id,
           billingCycle: selectedBillingCycle,
-          paymentMethod: 'tp_wallet',
-          walletAddress: wallet.wallet.address,
+          walletAddress: walletAddress,
         }),
       });
-
+      
       const data = await response.json();
-      if (data.success) {
+      
+      if (response.ok && data.orderId) {
         setOrderId(data.orderId);
         setShowPaymentModal(true);
       } else {
-        Alert.alert('创建订单失败', data.message || '请稍后重试');
+        Alert.alert('Order Failed', data.message || 'Please try again');
       }
     } catch (error) {
-      Alert.alert('网络错误', '请检查网络连接');
+      console.error('Create order error:', error);
+      Alert.alert('Network Error', 'Please check your connection');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Create order
-  const handleCreateOrder = async () => {
-    if (!wallet.wallet.isConnected || !wallet.wallet.address) {
-      Alert.alert('提示', '请先连接钱包');
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/subscription/create-order`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          planId: selectedPlan.id,
-          billingCycle: selectedBillingCycle,
-          paymentMethod: 'tp_wallet',
-          walletAddress: wallet.wallet.address,
-        }),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setOrderId(data.orderId);
-        setShowPaymentModal(true);
-      } else {
-        Alert.alert('创建订单失败', data.message || '请稍后重试');
-      }
-    } catch (error) {
-      Alert.alert('网络错误', '请检查网络连接');
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleCopyAddress = async () => {
+    await Clipboard.setStringAsync('0x769ecB24694F56d75d6eaaD5F634d99eF12c407d');
+    Alert.alert('Copied', 'Address copied to clipboard');
   };
 
-  // Confirm payment
-  const confirmPayment = async (orderId: string, walletAddress: string) => {
-    setIsProcessing(true);
+  const handleCopyAmount = async () => {
+    await Clipboard.setStringAsync(currentPrice.toString());
+    Alert.alert('Copied', 'Amount copied to clipboard');
+  };
+
+  const handleConfirmPayment = async () => {
+    if (!orderId) return;
+    
     try {
-      const response = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/subscription/callback`, {
+      setIsProcessing(true);
+      
+      const response = await fetch(EXPO_PUBLIC_BACKEND_BASE_URL + '/api/v1/subscription/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId,
-          walletAddress,
-          txHash: 'manual_confirm_' + Date.now(),
+          walletAddress: walletAddress,
         }),
       });
-
+      
       const data = await response.json();
-      if (data.success) {
-        Alert.alert('支付成功', '您的会员已开通，有效期至 ' + data.expireDate, [
-          { text: '确定', onPress: () => router.back() },
-        ]);
+      
+      if (response.ok && data.success) {
+        setShowPaymentModal(false);
+        Alert.alert(
+          'Success', 
+          'You have upgraded to ' + selectedPlan.name + '!',
+          [{ text: 'OK', onPress: () => router.push('/') }]
+        );
       } else {
-        Alert.alert('确认失败', '请稍后重试或联系客服');
+        Alert.alert('Confirmation Failed', data.message || 'Please try again');
       }
     } catch (error) {
-      Alert.alert('网络错误', '请检查网络连接');
+      console.error('Confirm payment error:', error);
+      Alert.alert('Network Error', 'Please check your connection');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Open TP Wallet for payment using Web3
-  const handleOpenTPWallet = async (orderIdToUse?: string) => {
-    if (!wallet.wallet.isConnected || !wallet.wallet.address) {
-      Alert.alert('提示', '请先连接钱包');
-      return;
-    }
-
-    const amount = currentPrice;
-    const bnbAddress = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d';
-    const currentOrderId = orderIdToUse || orderId;
-    
-    // Check if in TP Wallet browser
-    const isTPWallet = !!(window as any).trustwallet || (window as any).isTrust;
-    
-    if (isTPWallet && (window as any).trustwallet) {
-      try {
-        // Use TP Wallet's Web3 provider
-        const provider = (window as any).trustwallet;
-        
-        // Request TRON account
-        const result = await provider.request({
-          method: 'tron_requestAccounts',
-        });
-        
-        if (result && (result.address || result.code === 200)) {
-          // Show payment info and guide user
-          Alert.alert(
-            'TP 钱包支付',
-            `请在 TP 钱包中完成以下操作：\n\n发送 ${amount} USDT (BNB Chain BEP20) 到\n\n地址: ${bnbAddress}\n\n备注/Order ID: ${currentOrderId}\n\n转账完成后，点击确认支付`,
-            [
-              { text: '取消' },
-              { 
-                text: '已完成转账', 
-                onPress: () => confirmPayment(currentOrderId, wallet.wallet.address || '') 
-              }
-            ]
-          );
-        }
-      } catch (error) {
-        console.log('TP Wallet Web3 error:', error);
-        // Fallback to manual copy
-        Alert.alert(
-          '收款地址',
-          `USDT BNB Chain (BEP20)\n${bnbAddress}\n\n金额: ${amount} USDT\n\n备注: ${currentOrderId}\n\n请复制地址到 TP 钱包转账`,
-          [
-            { text: '确定' }
-          ]
-        );
-      }
-    } else {
-      // Fallback for other browsers - show copy address
-      Alert.alert(
-        '收款地址',
-        `USDT BNB Chain (BEP20)\n${bnbAddress}\n\n金额: ${amount} USDT\n\n备注: ${currentOrderId}\n\n请复制地址到 TP 钱包转账`,
-        [
-          { text: '确定' }
-        ]
-      );
-    }
-  };
+  const isConnected = walletConnected && walletAddress;
+  const displayAddress = walletAddress ? formatAddress(walletAddress) : '';
 
   return (
-    <Screen>
-      {/* DEBUG BUTTON - Remove after testing */}
-      <TouchableOpacity 
-        style={{ backgroundColor: '#FF0000', padding: 20, margin: 10 }}
-        onPress={() => Alert.alert('DEBUG', 'Button works!')}
-      >
-        <Text style={{ color: '#FFFFFF', textAlign: 'center' }}>TEST BUTTON</Text>
-      </TouchableOpacity>
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
-          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>订阅支付</Text>
-        <View style={styles.headerButton} />
-      </View>
-
+    <Screen safeAreaStyle={{ backgroundColor: '#0A0A0F' }}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Order Summary Card */}
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
-            <View style={[styles.planTag, { backgroundColor: selectedPlan.color + '20' }]}>
-              <Text style={[styles.planTagText, { color: selectedPlan.color }]}>
-                {selectedPlan.name}
-              </Text>
-            </View>
-            <View style={styles.priceContainer}>
-              <Text style={styles.priceCurrency}>$</Text>
-              <Text style={styles.summaryPrice}>{currentPrice}</Text>
-              <Text style={styles.priceUnit}>/{selectedBillingCycle === 'monthly' ? '月' : selectedBillingCycle === 'quarterly' ? '季' : '年'}</Text>
+        <View style={styles.heroHeader}>
+          <Text style={styles.heroTitle}>Upgrade Membership</Text>
+          <Text style={styles.heroSubtitle}>Unlock all KAIROS features</Text>
+        </View>
+
+        <View style={styles.selectedPlanCard}>
+          <View style={styles.planHeader}>
+            <View style={styles.planBadge}>
+              <Text style={styles.planBadgeText}>Selected</Text>
             </View>
           </View>
-          
-          <View style={styles.summaryDetails}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>订阅时长</Text>
-              <Text style={styles.summaryValue}>
-                {selectedBillingCycle === 'monthly' ? '1个月' : 
-                 selectedBillingCycle === 'quarterly' ? '3个月' : '12个月'}
-              </Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>支付方式</Text>
-              <Text style={[styles.summaryValue, { color: '#00E5CC' }]}>USDT</Text>
-            </View>
+          <Text style={styles.planName}>{selectedPlan.name}</Text>
+          <View style={styles.priceRow}>
+            <Text style={styles.priceCurrency}>$</Text>
+            <Text style={styles.priceAmount}>{currentPrice}</Text>
+            <Text style={styles.pricePeriod}>/{selectedBillingCycle === 'monthly' ? 'mo' : selectedBillingCycle === 'quarterly' ? 'qtr' : 'yr'}</Text>
           </View>
         </View>
 
-        {/* Billing Cycle */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>选择周期</Text>
-          <View style={styles.cycleContainer}>
+        <View style={styles.featuresCard}>
+          <Text style={styles.featuresTitle}>Features</Text>
+          {selectedPlan.features.map((feature, index) => (
+            <View key={index} style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color="#00F0FF" style={styles.featureIcon} />
+              <Text style={styles.featureText}>{feature.text}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.walletSection}>
+          {isConnected ? (
+            <View style={styles.connectedCard}>
+              <View style={styles.connectedInfo}>
+                <View style={styles.connectedDot} />
+                <Text style={styles.connectedText}>TP Wallet Connected</Text>
+              </View>
+              <Text style={styles.walletAddress}>{displayAddress}</Text>
+              <TouchableOpacity 
+                style={styles.payButton}
+                onPress={handlePayment}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator color="#0A0A0F" />
+                ) : (
+                  <Text style={styles.payButtonText}>Pay Now</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity 
+              style={styles.connectButton}
+              onPress={handleConnectTPWallet}
+            >
+              <Ionicons name="wallet-outline" size={24} color="#0A0A0F" />
+              <Text style={styles.connectButtonText}>Connect TP Wallet</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.plansSection}>
+          <Text style={styles.plansTitle}>Select Plan</Text>
+          <View style={styles.plansList}>
+            {VIP_PLANS.map((plan) => (
+              <TouchableOpacity
+                key={plan.id}
+                style={[
+                  styles.planCard,
+                  selectedPlan.id === plan.id && styles.planCardSelected,
+                ]}
+                onPress={() => setSelectedPlan(plan)}
+              >
+                <Text style={[
+                  styles.planCardName,
+                  selectedPlan.id === plan.id && styles.planCardNameSelected,
+                ]}>
+                  {plan.name}
+                </Text>
+                <View style={styles.planCardPrice}>
+                  <Text style={styles.planCardPriceAmount}>${plan.price.monthly}</Text>
+                  <Text style={styles.planCardPricePeriod}>/mo</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.billingSection}>
+          <Text style={styles.billingTitle}>Billing Cycle</Text>
+          <View style={styles.billingOptions}>
             {(['monthly', 'quarterly', 'yearly'] as const).map((cycle) => {
-              const isSelected = selectedBillingCycle === cycle;
-              const price = selectedPlan.price[cycle];
-              const discount = cycle === 'quarterly' ? '省15%' : cycle === 'yearly' ? '省25%' : '';
-              
+              const discount = cycle === 'quarterly' ? '-10%' : cycle === 'yearly' ? '-20%' : '';
               return (
                 <TouchableOpacity
                   key={cycle}
                   style={[
-                    styles.cycleCard,
-                    isSelected && { borderColor: '#00E5CC', borderWidth: 2, backgroundColor: '#00E5CC10' }
+                    styles.billingOption,
+                    selectedBillingCycle === cycle && styles.billingOptionSelected,
                   ]}
                   onPress={() => setSelectedBillingCycle(cycle)}
                 >
-                  <Text style={[styles.cycleText, isSelected && { color: '#00E5CC', fontWeight: '600' }]}>
-                    {cycle === 'monthly' ? '月付' : cycle === 'quarterly' ? '季付' : '年付'}
+                  <Text style={[
+                    styles.billingOptionText,
+                    selectedBillingCycle === cycle && styles.billingOptionTextSelected,
+                  ]}>
+                    {cycle === 'monthly' ? 'Monthly' : cycle === 'quarterly' ? 'Quarterly' : 'Yearly'}
                   </Text>
-                  <Text style={[styles.cyclePrice, isSelected && { color: '#FFFFFF' }]}>${price}</Text>
-                  {discount ? (
-                    <View style={[styles.discountBadge, { backgroundColor: '#00E5CC' }]}>
-                      <Text style={styles.discountText}>{discount}</Text>
-                    </View>
-                  ) : null}
+                  {discount ? <Text style={styles.discountBadge}>{discount}</Text> : null}
                 </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-        {/* Features Preview */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>套餐权益</Text>
-          <View style={styles.featuresCard}>
-            {selectedPlan.features.slice(0, 4).map((feature, index) => (
-              <View key={index} style={styles.featureRow}>
-                <Ionicons
-                  name={feature.enabled ? 'checkmark-circle' : 'close-circle'}
-                  size={18}
-                  color={feature.enabled ? '#00E5CC' : '#4A4A5A'}
-                />
-                <Text style={styles.featureText}>{feature.text}</Text>
-              </View>
-            ))}
-            <Text style={styles.moreFeatures}>等{selectedPlan.features.length}项权益...</Text>
-          </View>
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Questions? Contact support</Text>
         </View>
-
-        {/* Payment Address */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>收款信息</Text>
-          <View style={styles.addressCard}>
-            <View style={styles.addressRow}>
-              <Text style={styles.addressLabel}>币种</Text>
-              <Text style={[styles.addressValue, { color: '#00E5CC' }]}>USDT (BEP20)</Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.addressRow}>
-              <Text style={styles.addressLabel}>地址</Text>
-              <Text style={styles.addressValue} numberOfLines={1}>
-                0x769ecB24694F56d75d6eaaD5F634d99eF12c407d
-              </Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.addressRow}>
-              <Text style={styles.addressLabel}>金额</Text>
-              <Text style={[styles.addressValue, { color: '#00E5CC', fontWeight: '700' }]}>
-                ≈ ${currentPrice} USDT
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Wallet Connection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>钱包</Text>
-          <TouchableOpacity 
-            style={[styles.walletCard, wallet.wallet.isConnected && styles.walletCardConnected]}
-            onPress={() => {
-              if (!wallet.wallet.isConnected) {
-                handleConnectTPWallet();
-              }
-            }}
-          >
-            <View style={[styles.walletIcon, wallet.wallet.isConnected && styles.walletIconConnected]}>
-              <Ionicons name="wallet" size={22} color={wallet.wallet.isConnected ? '#0A0A0F' : '#00E5CC'} />
-            </View>
-            <View style={styles.walletInfo}>
-              <Text style={styles.walletName}>TP 钱包</Text>
-              {wallet.wallet.isConnected && wallet.wallet.address ? (
-                <Text style={styles.walletAddress}>
-                  {wallet.wallet.address.slice(0, 8)}...{wallet.wallet.address.slice(-6)}
-                </Text>
-              ) : (
-                <Text style={styles.walletHint}>点击连接钱包</Text>
-              )}
-            </View>
-            {wallet.wallet.isConnected ? (
-              <View style={[styles.connectedBadge, { backgroundColor: '#00E5CC' }]}>
-                <Ionicons name="checkmark" size={14} color="#0A0A0F" />
-              </View>
-            ) : wallet.isConnecting ? (
-              <ActivityIndicator size="small" color="#888888" />
-            ) : (
-              <Ionicons name="chevron-forward" size={20} color="#666666" />
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Terms */}
-        <Text style={styles.termsText}>
-          支付即表示同意《会员服务协议》和《自动续费协议》
-        </Text>
-
-        {/* Pay Button */}
-        <TouchableOpacity
-          style={[
-            styles.payButton,
-            { backgroundColor: wallet.wallet.isConnected ? '#00E5CC' : '#333333' }
-          ]}
-          onPress={() => {
-            if (wallet.wallet.isConnected) {
-              handlePayment();
-            } else {
-              handleConnectTPWallet();
-            }
-          }}
-          activeOpacity={0.7}
-          disabled={isProcessing}
-        >
-          {isProcessing ? (
-            <ActivityIndicator color="#0A0A0F" size="small" />
-          ) : (
-            <View style={styles.payButtonContent}>
-              <Ionicons name="paper-plane" size={18} color={wallet.wallet.isConnected ? '#0A0A0F' : '#FFFFFF'} />
-              <Text style={[styles.payButtonText, { color: wallet.wallet.isConnected ? '#0A0A0F' : '#FFFFFF' }]}>
-                {wallet.wallet.isConnected ? '去支付' : '连接 TP 钱包'}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        {/* Bottom Spacing */}
-        <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Payment Guide Modal */}
-      <Modal
-        visible={showPaymentModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowPaymentModal(false)}
-      >
+      <Modal visible={showPaymentModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>转账支付</Text>
+              <Text style={styles.modalTitle}>Complete Payment</Text>
               <TouchableOpacity onPress={() => setShowPaymentModal(false)}>
-                <Ionicons name="close" size={24} color="#FFFFFF" />
+                <Ionicons name="close" size={24} color="#4B5563" />
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.paymentInfo}>
-              <Text style={styles.paymentLabel}>请向以下地址转账</Text>
-              
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>币种</Text>
-                <Text style={styles.infoValue}>USDT (BEP20/BSC)</Text>
-              </View>
-              
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>金额</Text>
-                <Text style={styles.amountValue}>{currentPrice} USDT</Text>
-              </View>
-              
-              <View style={styles.addressSection}>
-                <Text style={styles.infoLabel}>收款地址</Text>
-                <View style={styles.addressBox}>
-                  <Text style={styles.addressText} numberOfLines={2}>
-                    0x769ecB24694F56d75d6eaaD5F634d99eF12c407d
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.copyButton}
-                  onPress={async () => {
-                    await Clipboard.setStringAsync('0x769ecB24694F56d75d6eaaD5F634d99eF12c407d');
-                    Alert.alert('已复制', '收款地址已复制到剪贴板');
-                  }}
-                >
-                  <Ionicons name="copy-outline" size={16} color="#00E5CC" />
-                  <Text style={styles.copyButtonText}>复制地址</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.orderSection}>
-                <Text style={styles.infoLabel}>订单号</Text>
-                <View style={styles.orderBox}>
-                  <Text style={styles.orderText}>{orderId}</Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.copyButton}
-                  onPress={async () => {
-                    await Clipboard.setStringAsync(orderId);
-                    Alert.alert('已复制', '订单号已复制到剪贴板');
-                  }}
-                >
-                  <Ionicons name="copy-outline" size={16} color="#00E5CC" />
-                  <Text style={styles.copyButtonText}>复制订单号</Text>
-                </TouchableOpacity>
-              </View>
-              
-              <View style={styles.memoSection}>
-                <Text style={styles.memoWarning}>
-                  ⚠️ 请在 TP 钱包中转账时备注订单号
-                </Text>
-              </View>
+              <Text style={styles.paymentLabel}>Order ID</Text>
+              <Text style={styles.paymentValue}>{orderId}</Text>
             </View>
-            
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setShowPaymentModal(false)}
-              >
-                <Text style={styles.cancelButtonText}>取消</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={() => {
-                  setShowPaymentModal(false);
-                  confirmPayment(orderId, wallet.wallet.address || '');
-                }}
-              >
-                <Text style={styles.confirmButtonText}>我已转账</Text>
+
+            <View style={styles.paymentInfo}>
+              <Text style={styles.paymentLabel}>Receiving Address (BSC)</Text>
+              <TouchableOpacity onPress={handleCopyAddress}>
+                <Text style={styles.paymentValue}>0x769ecB24694F56d75d6eaaD5F634d99eF12c407d</Text>
+                <Text style={styles.copyHint}>Tap to copy</Text>
               </TouchableOpacity>
             </View>
+
+            <View style={styles.paymentInfo}>
+              <Text style={styles.paymentLabel}>Amount (USDT)</Text>
+              <TouchableOpacity onPress={handleCopyAmount}>
+                <Text style={styles.paymentValueLarge}>{currentPrice} USDT</Text>
+                <Text style={styles.copyHint}>Tap to copy</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.networkBadge}>
+              <Ionicons name="globe-outline" size={16} color="#00F0FF" />
+              <Text style={styles.networkText}>BSC (BNB Chain)</Text>
+            </View>
+
+            <Text style={styles.paymentNote}>
+              Transfer {currentPrice} USDT to the address above using TP Wallet
+            </Text>
+
+            <TouchableOpacity 
+              style={styles.confirmButton}
+              onPress={handleConfirmPayment}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator color="#0A0A0F" />
+              ) : (
+                <Text style={styles.confirmButtonText}>Confirm Payment</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -573,398 +400,66 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
 }
 
 const styles = StyleSheet.create({
-  header: {
-    backgroundColor: '#0A0A0F',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 16,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: '#0A0A0F',
-    paddingHorizontal: 20,
-  },
-  section: {
-    marginTop: 24,
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#666666',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-  },
-  summaryCard: {
-    backgroundColor: '#16161F',
-    borderRadius: 20,
-    padding: 20,
-    marginTop: 20,
-    borderWidth: 1,
-    borderColor: '#252530',
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  planTag: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  planTagText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-  },
-  priceCurrency: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginRight: 2,
-  },
-  summaryPrice: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  priceUnit: {
-    fontSize: 14,
-    color: '#888888',
-    marginLeft: 4,
-  },
-  summaryDetails: {
-    gap: 14,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  summaryLabel: {
-    fontSize: 14,
-    color: '#888888',
-  },
-  summaryValue: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    fontWeight: '500',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#252530',
-    marginVertical: 4,
-  },
-  cycleContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  cycleCard: {
-    flex: 1,
-    backgroundColor: '#16161F',
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#252530',
-  },
-  cycleText: {
-    fontSize: 14,
-    color: '#888888',
-    marginBottom: 8,
-  },
-  cyclePrice: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#CCCCCC',
-  },
-  discountBadge: {
-    marginTop: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  discountText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#0A0A0F',
-  },
-  featuresCard: {
-    backgroundColor: '#16161F',
-    borderRadius: 16,
-    padding: 16,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 12,
-  },
-  featureText: {
-    fontSize: 14,
-    color: '#CCCCCC',
-  },
-  moreFeatures: {
-    fontSize: 12,
-    color: '#555555',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  addressCard: {
-    backgroundColor: '#16161F',
-    borderRadius: 16,
-    padding: 16,
-  },
-  addressRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  addressLabel: {
-    fontSize: 14,
-    color: '#888888',
-  },
-  addressValue: {
-    fontSize: 13,
-    color: '#FFFFFF',
-    maxWidth: '55%',
-  },
-  walletCard: {
-    backgroundColor: '#16161F',
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#252530',
-  },
-  walletCardConnected: {
-    borderColor: '#00E5CC',
-    backgroundColor: '#00E5CC08',
-  },
-  walletIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#00E5CC15',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  walletIconConnected: {
-    backgroundColor: '#00E5CC',
-  },
-  walletInfo: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  walletName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  walletAddress: {
-    fontSize: 12,
-    color: '#888888',
-    marginTop: 4,
-    fontFamily: 'monospace',
-  },
-  walletHint: {
-    fontSize: 12,
-    color: '#555555',
-    marginTop: 4,
-  },
-  connectedBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  termsText: {
-    fontSize: 11,
-    color: '#444444',
-    textAlign: 'center',
-    marginTop: 24,
-    lineHeight: 18,
-  },
-  payButton: {
-    marginTop: 16,
-    borderRadius: 16,
-    paddingVertical: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  payButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  payButtonText: {
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: '#16161F',
-    borderRadius: 20,
-    padding: 24,
-    width: '100%',
-    maxWidth: 380,
-    borderWidth: 1,
-    borderColor: '#252530',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  paymentInfo: {
-    gap: 16,
-  },
-  paymentLabel: {
-    fontSize: 14,
-    color: '#888888',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#252530',
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: '#888888',
-  },
-  infoValue: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    fontWeight: '500',
-  },
-  amountValue: {
-    fontSize: 18,
-    color: '#00E5CC',
-    fontWeight: '700',
-  },
-  addressSection: {
-    gap: 8,
-  },
-  addressBox: {
-    backgroundColor: '#0A0A0F',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#252530',
-  },
-  addressText: {
-    fontSize: 12,
-    color: '#00E5CC',
-    fontFamily: 'monospace',
-    lineHeight: 20,
-  },
-  copyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    backgroundColor: '#00E5CC15',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#00E5CC30',
-  },
-  copyButtonText: {
-    fontSize: 13,
-    color: '#00E5CC',
-    fontWeight: '600',
-  },
-  orderSection: {
-    gap: 8,
-  },
-  orderBox: {
-    backgroundColor: '#0A0A0F',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#252530',
-  },
-  orderText: {
-    fontSize: 12,
-    color: '#FFFFFF',
-    fontFamily: 'monospace',
-  },
-  memoSection: {
-    marginTop: 8,
-  },
-  memoWarning: {
-    fontSize: 12,
-    color: '#FFB800',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-  },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#252530',
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#888888',
-  },
-  confirmButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#00E5CC',
-    alignItems: 'center',
-  },
-  confirmButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0A0A0F',
-  },
+  container: { flex: 1, backgroundColor: '#0A0A0F' },
+  heroHeader: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 },
+  heroTitle: { fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 8 },
+  heroSubtitle: { fontSize: 15, color: '#9CA3AF' },
+  selectedPlanCard: { marginHorizontal: 20, marginBottom: 20, padding: 20, backgroundColor: '#1F1F2E', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(0, 240, 255, 0.2)' },
+  planHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  planBadge: { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(0, 240, 255, 0.1)', borderRadius: 4 },
+  planBadgeText: { fontSize: 12, color: '#00F0FF' },
+  planName: { fontSize: 20, fontWeight: '600', color: '#FFFFFF', marginBottom: 8 },
+  priceRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 4 },
+  priceCurrency: { fontSize: 18, color: '#9CA3AF', marginRight: 2 },
+  priceAmount: { fontSize: 36, fontWeight: '700', color: '#FFFFFF' },
+  pricePeriod: { fontSize: 14, color: '#9CA3AF' },
+  featuresCard: { marginHorizontal: 20, marginBottom: 20, padding: 20, backgroundColor: '#1F1F2E', borderRadius: 16 },
+  featuresTitle: { fontSize: 16, fontWeight: '600', color: '#FFFFFF', marginBottom: 16 },
+  featureItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  featureIcon: { marginRight: 12 },
+  featureText: { fontSize: 14, color: '#D1D5DB', flex: 1 },
+  walletSection: { marginHorizontal: 20, marginBottom: 24 },
+  connectButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#00F0FF', paddingVertical: 16, borderRadius: 12, gap: 10 },
+  connectButtonText: { fontSize: 16, fontWeight: '600', color: '#0A0A0F' },
+  connectedCard: { backgroundColor: '#1F1F2E', borderRadius: 12, padding: 16 },
+  connectedInfo: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  connectedDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981', marginRight: 8 },
+  connectedText: { fontSize: 14, color: '#10B981' },
+  walletAddress: { fontSize: 14, color: '#9CA3AF', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', marginBottom: 12 },
+  payButton: { backgroundColor: '#00F0FF', paddingVertical: 14, borderRadius: 10, alignItems: 'center' },
+  payButtonText: { fontSize: 16, fontWeight: '600', color: '#0A0A0F' },
+  plansSection: { marginBottom: 24 },
+  plansTitle: { fontSize: 16, fontWeight: '600', color: '#FFFFFF', marginBottom: 12, paddingHorizontal: 20 },
+  plansList: { paddingHorizontal: 20, gap: 12 },
+  planCard: { backgroundColor: '#1F1F2E', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: 'transparent' },
+  planCardSelected: { borderColor: '#00F0FF' },
+  planCardName: { fontSize: 16, fontWeight: '600', color: '#FFFFFF', marginBottom: 8 },
+  planCardNameSelected: { color: '#00F0FF' },
+  planCardPrice: { flexDirection: 'row', alignItems: 'baseline' },
+  planCardPriceAmount: { fontSize: 24, fontWeight: '700', color: '#FFFFFF' },
+  planCardPricePeriod: { fontSize: 14, color: '#9CA3AF' },
+  billingSection: { paddingHorizontal: 20, marginBottom: 40 },
+  billingTitle: { fontSize: 16, fontWeight: '600', color: '#FFFFFF', marginBottom: 12 },
+  billingOptions: { flexDirection: 'row', gap: 12 },
+  billingOption: { flex: 1, paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#1F1F2E', borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: 'transparent' },
+  billingOptionSelected: { borderColor: '#00F0FF', backgroundColor: 'rgba(0, 240, 255, 0.1)' },
+  billingOptionText: { fontSize: 14, color: '#9CA3AF' },
+  billingOptionTextSelected: { color: '#00F0FF', fontWeight: '600' },
+  discountBadge: { fontSize: 10, color: '#F43F5E', marginTop: 4 },
+  footer: { paddingHorizontal: 20, paddingBottom: 40, alignItems: 'center' },
+  footerText: { fontSize: 13, color: '#6B7280' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.8)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#1F1F2E', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: '#FFFFFF' },
+  paymentInfo: { marginBottom: 20 },
+  paymentLabel: { fontSize: 14, color: '#9CA3AF', marginBottom: 8 },
+  paymentValue: { fontSize: 16, color: '#FFFFFF', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+  paymentValueLarge: { fontSize: 24, fontWeight: '700', color: '#00F0FF' },
+  copyHint: { fontSize: 12, color: '#00F0FF', marginTop: 4 },
+  networkBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0, 240, 255, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, alignSelf: 'flex-start', marginBottom: 16 },
+  networkText: { fontSize: 13, color: '#00F0FF', marginLeft: 6 },
+  paymentNote: { fontSize: 14, color: '#9CA3AF', marginBottom: 24, lineHeight: 20 },
+  confirmButton: { backgroundColor: '#00F0FF', paddingVertical: 16, borderRadius: 12, alignItems: 'center' },
+  confirmButtonText: { fontSize: 16, fontWeight: '600', color: '#0A0A0F' },
 });

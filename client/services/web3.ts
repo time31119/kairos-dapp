@@ -199,39 +199,6 @@ export async function connectTrust(): Promise<string> {
   
   throw new Error('未检测到钱包 provider，请确保在 TP Wallet 浏览器中打开此页面');
 }
-      console.log('Trust Wallet provider detected');
-      try {
-        const accounts = await trustWallet.request({
-          method: 'eth_requestAccounts',
-        });
-        if (accounts && accounts.length > 0 && /^0x[a-fA-F0-9]{40}$/.test(accounts[0])) {
-          address = accounts[0];
-        }
-      } catch (e) {
-        console.log('trustwallet eth_requestAccounts failed');
-      }
-    }
-  }
-  
-  // 如果获取地址失败，抛出错误
-  if (!address) {
-    throw new Error('未检测到 TP Wallet，请确保在 TP Wallet 浏览器中打开此页面');
-  }
-  
-  const nonce = generateNonce();
-  await storeNonce(address, nonce);
-  
-  const chain = await getSelectedChain();
-  await storeWalletInfo({
-    address,
-    chain,
-    connectedAt: Date.now(),
-  });
-  await storeWalletType('trust');
-  
-  return address;
-}
-
 // Phantom 钱包连接 (Solana)
 export async function connectPhantom(): Promise<string> {
   const mockAddress = generateSolanaAddress();

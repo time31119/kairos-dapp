@@ -56,9 +56,9 @@ router.post('/create-order', async (req, res) => {
     const PAYMENT_ADDRESS = 'TSV8UGKBeXrj26PUiBUhhLunfzVSmvyqWq'; // USDT TRC20
     const PAYMENT_ADDRESS_BNB = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d'; // USDT BEP20
     
-    // TP钱包默认使用TRC20
-    let paymentAddress = PAYMENT_ADDRESS;
-    let paymentChain = 'TRC20';
+    // TP钱包默认使用BNB Chain (BEP20)
+    let paymentAddress = PAYMENT_ADDRESS_BNB;
+    let paymentChain = 'BEP20';
 
     const order = {
       orderId,

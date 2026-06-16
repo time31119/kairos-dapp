@@ -58,7 +58,7 @@ export default function PaymentModal({
   onSuccess 
 }: PaymentModalProps) {
   const { activateSubscription } = useSubscription();
-  const [selectedMethod, setSelectedMethod] = useState<string>('USDT_TRC20');
+  const [selectedMethod, setSelectedMethod] = useState<string>('USDT_BNB');
   const [loading, setLoading] = useState(false);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [orderCreated, setOrderCreated] = useState(false);

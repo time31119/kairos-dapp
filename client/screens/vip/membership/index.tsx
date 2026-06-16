@@ -307,13 +307,13 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
           <View style={styles.addressCard}>
             <View style={styles.addressRow}>
               <Text style={styles.addressLabel}>币种</Text>
-              <Text style={[styles.addressValue, { color: '#00E5CC' }]}>USDT (TRC20)</Text>
+              <Text style={[styles.addressValue, { color: '#00E5CC' }]}>USDT (BEP20)</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.addressRow}>
               <Text style={styles.addressLabel}>地址</Text>
               <Text style={styles.addressValue} numberOfLines={1}>
-                TSV8UGKBeXrj26PUiBUhhLunfzVSmvyqWq
+                0x769ecB24694F56d75d6eaaD5F634d99eF12c407d
               </Text>
             </View>
             <View style={styles.divider} />

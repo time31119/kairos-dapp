@@ -53,7 +53,7 @@ router.post('/create-order', async (req, res) => {
     const orderId = `ORD${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     
     // 收款地址配置（TP钱包使用TRC20）
-    const PAYMENT_ADDRESS = 'TSV8UGKBeXrj26PUiBUhhLunfzVSmvyqWq'; // USDT TRC20
+    const PAYMENT_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d'; // USDT BEP20
     const PAYMENT_ADDRESS_BNB = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d'; // USDT BEP20
     
     // TP钱包默认使用BNB Chain (BEP20)

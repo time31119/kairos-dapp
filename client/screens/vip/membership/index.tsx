@@ -84,8 +84,12 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
     initWalletState();
   }, []);
 
+  // Debug: track if button was rendered
+  const [buttonPressCount, setButtonPressCount] = useState(0);
+
   const handleConnectTPWallet = async () => {
-    console.log('handleConnectTPWallet called');
+    setButtonPressCount(prev => prev + 1);
+    Alert.alert('Debug', 'Button clicked! Count: ' + (buttonPressCount + 1));
     
     try {
       if (typeof window !== 'undefined' && window.ethereum) {

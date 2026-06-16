@@ -1,218 +1,178 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+// 内存存储模式 - 用于开发环境
+// 生产环境请配置 Supabase 环境变量
 
-// Supabase 配置 - 使用环境变量
-const supabaseUrl = process.env.SUPABASE_URL || 'https://your-project.supabase.co';
-const supabaseAdmin = process.env.SUPABASE_SERVICE_KEY || '';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
-// 只有在配置了 key 时才创建客户端
-const useSupabase = supabaseUrl && supabaseAdmin;
+// 内存存储数据结构
+interface MemoryStorage {
+  users: Map<string, any>;
+  positions: Map<string, any>;
+  orders: Map<string, any>;
+  subscriptions: Map<string, any>;
+  binanceApis: Map<string, any>;
+}
 
-// 服务端 Supabase 客户端（带管理员权限）
-export const supabaseAdmin: SupabaseClient | null = useSupabase 
-  ? createClient(supabaseUrl, supabaseAdmin, {
+// 全局内存存储
+const memoryStorage: MemoryStorage = {
+  users: new Map(),
+  positions: new Map(),
+  orders: new Map(),
+  subscriptions: new Map(),
+  binanceApis: new Map(),
+};
+
+// 检查是否使用真实 Supabase
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+// 只有在环境变量都配置时才使用 Supabase
+let supabaseClient: SupabaseClient | null = null;
+
+if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
+  // 动态导入以避免环境变量未配置时出错
+  import('@supabase/supabase-js').then(({ createClient }) => {
+    supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
       },
-    })
-  : null;
-
-if (!supabaseAdmin) {
-  console.warn('[Supabase] Service key not configured, using in-memory storage');
+    });
+    console.log('[Supabase] Connected to real Supabase');
+  });
+} else {
+  console.log('[Supabase] Using in-memory storage (no Supabase credentials)');
 }
 
-// 用户相关操作
-export const userService = {
-  // 通过钱包地址获取或创建用户
-  async findOrCreateByWallet(walletAddress: string) {
-    if (!supabaseAdmin) {
-      return null;
-    }
-    
-    try {
-      // 先查找
-      const { data: existing } = await supabaseAdmin
-        .from('users')
-        .select('*')
-        .eq('wallet_address', walletAddress.toLowerCase())
-        .single();
-      
-      if (existing) {
-        return existing;
-      }
-      
-      // 创建新用户
-      const { data: newUser, error } = await supabaseAdmin
-        .from('users')
-        .insert({ wallet_address: walletAddress.toLowerCase() })
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('[Supabase] Create user error:', error);
-        return null;
-      }
-      
-      return newUser;
-    } catch (err) {
-      console.error('[Supabase] User service error:', err);
-      return null;
-    }
-  },
+// 导出 Supabase 客户端（可能是 null）
+export const supabase: SupabaseClient | null = supabaseClient;
 
-  // 获取用户信息
-  async getUser(userId: string) {
-    if (!supabaseAdmin) return null;
-    
-    try {
-      const { data } = await supabaseAdmin
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      return data;
-    } catch (err) {
-      console.error('[Supabase] Get user error:', err);
-      return null;
-    }
-  },
-};
+// 导出内存存储
+export const memory = memoryStorage;
 
-// 持仓相关操作
-export const positionService = {
-  // 保存用户持仓
-  async savePositions(userId: string, positions: Array<{
-    symbol: string;
-    amount: number;
-    avg_price: number;
-    current_price: number;
-    pnl: number;
-    pnl_percent: number;
-  }>) {
-    if (!supabaseAdmin || !userId) return false;
-    
-    try {
-      // 删除旧持仓
-      await supabaseAdmin
-        .from('user_positions')
-        .delete()
-        .eq('user_id', userId);
-      
-      // 插入新持仓
-      if (positions.length > 0) {
-        const positionsWithUser = positions.map(p => ({
-          user_id: userId,
-          symbol: p.symbol,
-          amount: p.amount,
-          avg_price: p.avg_price,
-          current_price: p.current_price,
-          pnl: p.pnl,
-          pnl_percent: p.pnl_percent,
-        }));
-        
-        await supabaseAdmin
-          .from('user_positions')
-          .insert(positionsWithUser);
-      }
-      
-      return true;
-    } catch (err) {
-      console.error('[Supabase] Save positions error:', err);
-      return false;
-    }
-  },
+// 便捷函数：从内存或 Supabase 获取用户
+export async function getUser(walletAddress: string): Promise<any> {
+  if (supabaseClient) {
+    const { data } = await supabaseClient
+      .from('users')
+      .select('*')
+      .eq('wallet_address', walletAddress)
+      .single();
+    return data;
+  }
+  // 内存模式
+  for (const user of memory.users.values()) {
+    if (user.wallet_address === walletAddress) return user;
+  }
+  return null;
+}
 
-  // 获取用户持仓
-  async getPositions(userId: string) {
-    if (!supabaseAdmin) return null;
-    
-    try {
-      const { data } = await supabaseAdmin
-        .from('user_positions')
-        .select('*')
-        .eq('user_id', userId)
-        .order('pnl_percent', { ascending: false });
-      return data || [];
-    } catch (err) {
-      console.error('[Supabase] Get positions error:', err);
-      return null;
-    }
-  },
-};
+// 便捷函数：创建或更新用户
+export async function upsertUser(userData: any): Promise<any> {
+  if (supabaseClient) {
+    const { data } = await supabaseClient
+      .from('users')
+      .upsert(userData)
+      .select()
+      .single();
+    return data;
+  }
+  // 内存模式
+  memory.users.set(userData.wallet_address || userData.id, userData);
+  return userData;
+}
 
-// 币安 API 相关操作
-export const binanceApiService = {
-  // 保存用户币安 API
-  async saveApiKey(userId: string, apiKey: string, apiSecret: string) {
-    if (!supabaseAdmin || !userId) return false;
-    
-    try {
-      // 加密存储（简单加密，生产环境应使用更安全的方式）
-      const encryptedSecret = Buffer.from(apiSecret).toString('base64');
-      
-      await supabaseAdmin
-        .from('user_binance_api')
-        .upsert({
-          user_id: userId,
-          api_key: apiKey,
-          api_secret_encrypted: encryptedSecret,
-          is_active: true,
-        }, {
-          onConflict: 'user_id',
-        });
-      
-      return true;
-    } catch (err) {
-      console.error('[Supabase] Save API key error:', err);
-      return false;
-    }
-  },
+// 便捷函数：获取用户持仓
+export async function getUserPositions(userId: string): Promise<any[]> {
+  if (supabaseClient) {
+    const { data } = await supabaseClient
+      .from('user_positions')
+      .select('*')
+      .eq('user_id', userId);
+    return data || [];
+  }
+  // 内存模式
+  const positions: any[] = [];
+  memory.positions.forEach(pos => {
+    if (pos.user_id === userId) positions.push(pos);
+  });
+  return positions;
+}
 
-  // 获取用户币安 API
-  async getApiKey(userId: string) {
-    if (!supabaseAdmin) return null;
-    
-    try {
-      const { data } = await supabaseAdmin
-        .from('user_binance_api')
-        .select('api_key, api_secret_encrypted')
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .single();
-      
-      if (data) {
-        return {
-          apiKey: data.api_key,
-          apiSecret: Buffer.from(data.api_secret_encrypted, 'base64').toString(),
-        };
-      }
-      return null;
-    } catch (err) {
-      console.error('[Supabase] Get API key error:', err);
-      return null;
-    }
-  },
+// 便捷函数：保存持仓
+export async function saveUserPosition(position: any): Promise<void> {
+  if (supabaseClient) {
+    await supabaseClient.from('user_positions').upsert(position);
+  } else {
+    // 内存模式：用 user_id + symbol 作为 key
+    const key = `${position.user_id}_${position.symbol}`;
+    memory.positions.set(key, position);
+  }
+}
 
-  // 删除用户币安 API
-  async deleteApiKey(userId: string) {
-    if (!supabaseAdmin) return false;
-    
-    try {
-      await supabaseAdmin
-        .from('user_binance_api')
-        .update({ is_active: false })
-        .eq('user_id', userId);
-      return true;
-    } catch (err) {
-      console.error('[Supabase] Delete API key error:', err);
-      return false;
-    }
-  },
-};
+// 便捷函数：获取用户币安 API
+export async function getUserBinanceApi(userId: string): Promise<any> {
+  if (supabaseClient) {
+    const { data } = await supabaseClient
+      .from('user_binance_api')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .single();
+    return data;
+  }
+  // 内存模式
+  for (const api of memory.binanceApis.values()) {
+    if (api.user_id === userId && api.is_active) return api;
+  }
+  return null;
+}
 
-export default {
-  supabaseAdmin,
-  userService,
-  positionService,
-  binanceApiService,
-};
+// 便捷函数：保存币安 API
+export async function saveUserBinanceApi(apiData: any): Promise<void> {
+  if (supabaseClient) {
+    await supabaseClient.from('user_binance_api').upsert(apiData);
+  } else {
+    memory.binanceApis.set(apiData.user_id, apiData);
+  }
+}
+
+// 便捷函数：删除币安 API
+export async function deleteUserBinanceApi(userId: string): Promise<void> {
+  if (supabaseClient) {
+    await supabaseClient
+      .from('user_binance_api')
+      .update({ is_active: false })
+      .eq('user_id', userId);
+  } else {
+    const api = memory.binanceApis.get(userId);
+    if (api) api.is_active = false;
+  }
+}
+
+// 便捷函数：获取订阅
+export async function getUserSubscription(userId: string): Promise<any> {
+  if (supabaseClient) {
+    const { data } = await supabaseClient
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    return data;
+  }
+  // 内存模式
+  for (const sub of memory.subscriptions.values()) {
+    if (sub.user_id === userId) return sub;
+  }
+  return null;
+}
+
+// 便捷函数：保存订阅
+export async function saveSubscription(subData: any): Promise<void> {
+  if (supabaseClient) {
+    await supabaseClient.from('subscriptions').insert(subData);
+  } else {
+    memory.subscriptions.set(subData.id, subData);
+  }
+}

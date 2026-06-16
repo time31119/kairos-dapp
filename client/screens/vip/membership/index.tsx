@@ -42,16 +42,22 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
 
   // Handle connect TP Wallet
   const handleConnectTPWallet = async () => {
+    console.log('handleConnectTPWallet called');
+    console.log('wallet object:', wallet);
+    console.log('wallet.isConnected:', wallet.isConnected);
+    
     try {
       await wallet.connect('trust');
+      console.log('Wallet connected successfully');
     } catch (error: any) {
+      console.error('Connect error:', error);
       Alert.alert('连接失败', error.message || '请确保在 TP 钱包浏览器中打开此页面');
     }
   };
 
   // Handle payment - show copy address modal
   const handlePayment = async () => {
-    if (!wallet.wallet.isConnected || !wallet.wallet.address) {
+    if (!wallet.isConnected || !wallet.address) {
       Alert.alert('提示', '请先连接钱包');
       return;
     }
@@ -66,7 +72,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
           planId: selectedPlan.id,
           billingCycle: selectedBillingCycle,
           paymentMethod: 'tp_wallet',
-          walletAddress: wallet.wallet.address,
+          walletAddress: wallet.address,
         }),
       });
 
@@ -86,7 +92,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
 
   // Create order
   const handleCreateOrder = async () => {
-    if (!wallet.wallet.isConnected || !wallet.wallet.address) {
+    if (!wallet.isConnected || !wallet.address) {
       Alert.alert('提示', '请先连接钱包');
       return;
     }
@@ -100,7 +106,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
           planId: selectedPlan.id,
           billingCycle: selectedBillingCycle,
           paymentMethod: 'tp_wallet',
-          walletAddress: wallet.wallet.address,
+          walletAddress: wallet.address,
         }),
       });
 
@@ -149,7 +155,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
 
   // Open TP Wallet for payment using Web3
   const handleOpenTPWallet = async (orderIdToUse?: string) => {
-    if (!wallet.wallet.isConnected || !wallet.wallet.address) {
+    if (!wallet.isConnected || !wallet.address) {
       Alert.alert('提示', '请先连接钱包');
       return;
     }
@@ -180,7 +186,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
               { text: '取消' },
               { 
                 text: '已完成转账', 
-                onPress: () => confirmPayment(currentOrderId, wallet.wallet.address || '') 
+                onPress: () => confirmPayment(currentOrderId, wallet.address || '') 
               }
             ]
           );
@@ -339,9 +345,9 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
             </View>
             <View style={styles.walletInfo}>
               <Text style={styles.walletName}>TP 钱包</Text>
-              {wallet.wallet.isConnected && wallet.wallet.address ? (
+              {wallet.wallet.isConnected && wallet.address ? (
                 <Text style={styles.walletAddress}>
-                  {wallet.wallet.address.slice(0, 8)}...{wallet.wallet.address.slice(-6)}
+                  {wallet.address.slice(0, 8)}...{wallet.address.slice(-6)}
                 </Text>
               ) : (
                 <Text style={styles.walletHint}>点击连接钱包</Text>
@@ -472,7 +478,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
                 style={styles.confirmButton}
                 onPress={() => {
                   setShowPaymentModal(false);
-                  confirmPayment(orderId, wallet.wallet.address || '');
+                  confirmPayment(orderId, wallet.address || '');
                 }}
               >
                 <Text style={styles.confirmButtonText}>我已转账</Text>

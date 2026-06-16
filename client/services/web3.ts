@@ -126,15 +126,14 @@ export async function connectCoinbase(): Promise<string> {
 export async function connectTrust(): Promise<string> {
   let address: string = '';
   
-  // TP Wallet 使用标准的 window.ethereum provider
+  // TP Wallet 浏览器使用标准的 window.ethereum
+  // 如果在 TP Wallet 内置浏览器中打开页面，window.ethereum 就是 TP Wallet
   if (typeof window !== 'undefined') {
     const ethereum = (window as any).ethereum;
     
-    // 检查是否是 TP Wallet (TokenPocket)
-    const isTokenPocket = ethereum?.isTokenPocket || ethereum?.isTPWallet;
-    
-    if (ethereum && isTokenPocket) {
-      console.log('TP Wallet provider detected via window.ethereum');
+    if (ethereum) {
+      console.log('Ethereum provider found');
+      console.log('Provider info:', ethereum.isMetaMask, ethereum.isTokenPocket, ethereum.isTrust);
       
       try {
         // 使用标准的 eth_requestAccounts
@@ -161,7 +160,7 @@ export async function connectTrust(): Promise<string> {
             });
             await storeWalletType('trust');
             
-            console.log('TP Wallet connected successfully:', address);
+            console.log('Wallet connected successfully:', address);
             return address;
           }
         }
@@ -193,13 +192,13 @@ export async function connectTrust(): Promise<string> {
           console.error('eth_accounts also failed:', e);
         }
         
-        throw new Error('无法连接到 TP Wallet，请确保在 TP Wallet 浏览器中授权');
+        throw new Error('无法连接到钱包，请确保在 TP Wallet 浏览器中授权');
       }
     }
-    
-    // 备选：检查 trustwallet
-    const trustWallet = (window as any).trustwallet;
-    if (trustWallet) {
+  }
+  
+  throw new Error('未检测到钱包 provider，请确保在 TP Wallet 浏览器中打开此页面');
+}
       console.log('Trust Wallet provider detected');
       try {
         const accounts = await trustWallet.request({

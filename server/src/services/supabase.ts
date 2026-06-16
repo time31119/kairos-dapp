@@ -49,6 +49,31 @@ export const supabase: SupabaseClient | null = supabaseClient;
 // 导出内存存储
 export const memory = memoryStorage;
 
+// 导出服务对象供其他模块使用
+export const binanceApiService = {
+  validateApi: async (apiKey: string, apiSecret: string) => {
+    if (!apiKey || !apiSecret || apiKey.length < 10) {
+      return { valid: false, error: 'Invalid API credentials' };
+    }
+    return { valid: true };
+  },
+  getAccountInfo: async (apiKey: string, apiSecret: string) => {
+    return { balances: [] };
+  },
+  getPositions: async (apiKey: string, apiSecret: string) => {
+    return [];
+  }
+};
+
+export const userService = {
+  getUser,
+  upsertUser,
+};
+
+export const positionService = {
+  getUserPositions,
+};
+
 // 便捷函数：从内存或 Supabase 获取用户
 export async function getUser(walletAddress: string): Promise<any> {
   if (supabaseClient) {

@@ -821,24 +821,40 @@ export default function HomeScreen() {
             </View>
           ) : (
             featuredData.map((cat: any) => {
-              const categoryInfo = CATEGORIES.find(c => c.id === cat.id) || { color: '#00F0FF', icon: 'pricetag' };
+              // 后端返回 scenario 和 config，需要适配前端期望的格式
+              const categoryId = cat.scenario || cat.id;
+              const categoryName = cat.config?.name || cat.name;
+              const categoryDesc = cat.config?.description || cat.desc;
+              const categoryColor = cat.config?.color || cat.color;
+              const categoryIcon = cat.tokens?.[0]?.scenario || 'defi';
+              
+              // 获取图标映射
+              const iconMap: Record<string, string> = {
+                defi: 'swap-horizontal',
+                meme: 'happy-outline',
+                ai: 'bulb-outline',
+                gaming: 'game-controller-outline',
+                infrastructure: 'construct-outline',
+                layer2: 'layers-outline',
+              };
+              
               return (
                 <Pressable 
-                  key={cat.id} 
+                  key={categoryId} 
                   style={[styles.featuredCard, featuredFlash && styles.featuredCardFlash]}
                 >
                   <CategorySection 
                     category={{ 
-                      title: cat.name,
-                      desc: cat.desc,
-                      icon: categoryInfo.icon,
-                      color: cat.color,
+                      title: categoryName,
+                      desc: categoryDesc,
+                      icon: iconMap[categoryId] || 'pricetag',
+                      color: categoryColor || '#00F0FF',
                       tokens: cat.tokens,
                       // 传递技术分析信号
                       techStats: cat.stats,
                     }} 
-                    onPress={() => router.push('/screener/' + cat.id)}
-                    onTokenPress={(token) => router.push('/screener/' + cat.id + '?token=' + encodeURIComponent(JSON.stringify(token)))}
+                    onPress={() => router.push('/screener/' + categoryId)}
+                    onTokenPress={(token) => router.push('/screener/' + categoryId + '?token=' + encodeURIComponent(JSON.stringify(token)))}
                   />
                 </Pressable>
               );

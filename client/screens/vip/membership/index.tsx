@@ -390,6 +390,9 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
               handleConnectTPWallet();
             }
           }}
+          onPressIn={() => console.log('DEBUG: Button onPressIn triggered')}
+          onPressOut={() => console.log('DEBUG: Button onPressOut triggered')}
+          activeOpacity={0.7}
           disabled={isProcessing}
         >
           {isProcessing ? (

@@ -1,26 +1,31 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Supabase 配置 - 使用环境变量
 const supabaseUrl = process.env.SUPABASE_URL || 'https://your-project.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
+const supabaseAdmin = process.env.SUPABASE_SERVICE_KEY || '';
 
-if (!supabaseServiceKey) {
-  console.warn('[Supabase] Service key not configured, using in-memory storage');
-}
+// 只有在配置了 key 时才创建客户端
+const useSupabase = supabaseUrl && supabaseAdmin;
 
 // 服务端 Supabase 客户端（带管理员权限）
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
+export const supabaseAdmin: SupabaseClient | null = useSupabase 
+  ? createClient(supabaseUrl, supabaseAdmin, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+  : null;
+
+if (!supabaseAdmin) {
+  console.warn('[Supabase] Service key not configured, using in-memory storage');
+}
 
 // 用户相关操作
 export const userService = {
   // 通过钱包地址获取或创建用户
   async findOrCreateByWallet(walletAddress: string) {
-    if (!supabaseServiceKey) {
+    if (!supabaseAdmin) {
       return null;
     }
     
@@ -57,7 +62,7 @@ export const userService = {
 
   // 获取用户信息
   async getUser(userId: string) {
-    if (!supabaseServiceKey) return null;
+    if (!supabaseAdmin) return null;
     
     try {
       const { data } = await supabaseAdmin
@@ -84,7 +89,7 @@ export const positionService = {
     pnl: number;
     pnl_percent: number;
   }>) {
-    if (!supabaseServiceKey || !userId) return false;
+    if (!supabaseAdmin || !userId) return false;
     
     try {
       // 删除旧持仓
@@ -119,7 +124,7 @@ export const positionService = {
 
   // 获取用户持仓
   async getPositions(userId: string) {
-    if (!supabaseServiceKey) return null;
+    if (!supabaseAdmin) return null;
     
     try {
       const { data } = await supabaseAdmin
@@ -139,7 +144,7 @@ export const positionService = {
 export const binanceApiService = {
   // 保存用户币安 API
   async saveApiKey(userId: string, apiKey: string, apiSecret: string) {
-    if (!supabaseServiceKey || !userId) return false;
+    if (!supabaseAdmin || !userId) return false;
     
     try {
       // 加密存储（简单加密，生产环境应使用更安全的方式）
@@ -165,7 +170,7 @@ export const binanceApiService = {
 
   // 获取用户币安 API
   async getApiKey(userId: string) {
-    if (!supabaseServiceKey) return null;
+    if (!supabaseAdmin) return null;
     
     try {
       const { data } = await supabaseAdmin
@@ -190,7 +195,7 @@ export const binanceApiService = {
 
   // 删除用户币安 API
   async deleteApiKey(userId: string) {
-    if (!supabaseServiceKey) return false;
+    if (!supabaseAdmin) return false;
     
     try {
       await supabaseAdmin

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,47 +15,53 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { Screen } from '@/components/Screen';
 import { Ionicons } from '@expo/vector-icons';
-import { useWeb3 } from '@/contexts/Web3Context';
 import { VIP_PLANS } from '@/utils/vipPlans';
 import { formatAddress } from '@/services/metamask';
 
 declare global {
   interface Window {
-    ethereum?: {
-      isMetaMask?: boolean;
-      isTrust?: boolean;
-      isTokenPocket?: boolean;
-      request: (args: { method: string; params?: any[] }) => Promise<any>;
-      on?: (event: string, callback: (...args: any[]) => void) => void;
-      removeListener?: (event: string, callback: (...args: any[]) => void) => void;
-    };
+    trustwallet?: any;
+    tokenpocket?: any;
+    ethereum?: any;
+    BinanceChain?: any;
   }
 }
 
-const WALLET_INFO_KEY = 'wallet_info';
+const WALLET_ADDRESS_KEY = 'wallet_address';
 const WALLET_TYPE_KEY = 'wallet_type';
 
 const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'https://api.example.com';
 
-interface Props {
-  initialPlanId?: string;
-}
+// 获取以太坊提供者 - 和"我的"页面完全相同的逻辑
+const getEthereumProvider = () => {
+  if (typeof window !== 'undefined') {
+    // TP Wallet (Trust Wallet) - 主要检测方式
+    if (window.trustwallet || window.trustwallet?.isTrust) {
+      return window;
+    }
+    
+    // TP Wallet 也可能注入 ethereum 对象
+    if (window.ethereum) {
+      // 检查是否是 TP Wallet
+      if (window.ethereum?.isTokenPocket || window.ethereum?.isTrust || window.tokenpocket) {
+        return window;
+      }
+      // 其他钱包 (MetaMask)
+      return window;
+    }
+  }
+  return null;
+};
 
-interface WalletInfo {
-  address: string;
-  chain: string;
-  connectedAt: number;
-}
-
-export default function MembershipPage({ initialPlanId = 'professional' }: Props) {
+export default function MembershipPage() {
   const router = useSafeRouter();
-  const wallet = useWeb3();
   const params = useSafeSearchParams<{ plan?: string }>();
   
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string>('');
+  const [walletStatus, setWalletStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
+  const [walletAddress, setWalletAddress] = useState('');
+  const [walletType, setWalletType] = useState<'trust' | 'metamask' | 'bsc' | null>(null);
   
-  const planId = params.plan || initialPlanId || 'professional';
+  const planId = params.plan || 'professional';
   const initialPlan = VIP_PLANS.find((p) => p.id === planId) || VIP_PLANS.find((p) => p.id === 'professional') || VIP_PLANS[0];
   
   const [selectedPlan, setSelectedPlan] = useState(initialPlan);
@@ -66,82 +72,76 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
 
   const currentPrice = selectedPlan.price[selectedBillingCycle];
 
+  // 恢复钱包连接状态
   useEffect(() => {
-    const initWalletState = async () => {
+    const restoreWallet = async () => {
       try {
-        const infoStr = await AsyncStorage.getItem(WALLET_INFO_KEY);
-        if (infoStr) {
-          const info: WalletInfo = JSON.parse(infoStr);
-          if (info.address && /^0x[a-fA-F0-9]{40}$/.test(info.address)) {
-            setWalletAddress(info.address);
-            setWalletConnected(true);
+        const savedAddress = await AsyncStorage.getItem(WALLET_ADDRESS_KEY);
+        const savedType = await AsyncStorage.getItem(WALLET_TYPE_KEY);
+        
+        if (savedAddress && /^0x[a-fA-F0-9]{40}$/.test(savedAddress)) {
+          setWalletAddress(savedAddress);
+          setWalletStatus('connected');
+          if (savedType) {
+            setWalletType(savedType as 'trust' | 'metamask' | 'bsc');
           }
         }
       } catch (e) {
-        console.error('Failed to init wallet state:', e);
+        console.error('Restore wallet failed:', e);
       }
     };
-    initWalletState();
+    restoreWallet();
   }, []);
 
-  // Debug: track if button was rendered
-  const [buttonPressCount, setButtonPressCount] = useState(0);
-
-  const handleConnectTPWallet = async () => {
-    setButtonPressCount(prev => prev + 1);
-    Alert.alert('Debug', 'Button clicked! Count: ' + (buttonPressCount + 1));
-    
+  // 连接钱包 - 和"我的"页面完全相同的逻辑
+  const handleConnectWallet = async () => {
     try {
-      if (typeof window !== 'undefined' && window.ethereum) {
-        const isTrust = !!window.ethereum.isTrust || 
-                        window.navigator.userAgent.toLowerCase().includes('trust');
-        
-        console.log('Detected wallet type:', isTrust ? 'Trust Wallet' : 'Other');
-        
-        const accounts = await window.ethereum.request({ 
-          method: 'eth_requestAccounts' 
+      setWalletStatus('connecting');
+
+      const provider = getEthereumProvider();
+
+      if (provider) {
+        const accounts = await provider.ethereum.request({
+          method: 'eth_requestAccounts',
         });
-        
-        if (accounts && accounts.length > 0) {
+
+        if (accounts && accounts.length > 0 && /^0x[a-fA-F0-9]{40}$/.test(accounts[0])) {
           const address = accounts[0];
-          console.log('Wallet connected with address:', address);
-          
-          if (/^0x[a-fA-F0-9]{40}$/.test(address)) {
-            const walletInfo: WalletInfo = {
-              address,
-              chain: 'bsc',
-              connectedAt: Date.now(),
-            };
-            await AsyncStorage.setItem(WALLET_INFO_KEY, JSON.stringify(walletInfo));
-            await AsyncStorage.setItem(WALLET_TYPE_KEY, 'trust');
-            
-            setWalletAddress(address);
-            setWalletConnected(true);
-            
-            if (wallet.refreshWalletState) {
-              await wallet.refreshWalletState();
-            }
-          } else {
-            throw new Error('Invalid address returned');
+          setWalletAddress(address);
+          setWalletStatus('connected');
+
+          // 检测钱包类型
+          let detectedType: 'trust' | 'metamask' | 'bsc' = 'metamask';
+          if (provider.trustwallet || window.trustwallet || provider.ethereum?.isTokenPocket || provider.ethereum?.isTrust || window.tokenpocket) {
+            detectedType = 'trust';
+          } else if (provider.BinanceChain?.bsc) {
+            detectedType = 'bsc';
           }
+          setWalletType(detectedType);
+
+          // 保存到 AsyncStorage
+          await AsyncStorage.setItem(WALLET_ADDRESS_KEY, address);
+          await AsyncStorage.setItem(WALLET_TYPE_KEY, detectedType);
         } else {
-          throw new Error('No accounts returned');
+          throw new Error('Invalid address returned');
         }
       } else {
         Alert.alert('Tips', 'Please open this page in TP Wallet browser');
+        setWalletStatus('disconnected');
       }
     } catch (error: any) {
-      console.error('Connect error:', error);
+      console.error('Connect wallet error:', error);
       if (error.code === 4001) {
         Alert.alert('Cancelled', 'Wallet connection was rejected');
       } else {
         Alert.alert('Connection Failed', error.message || 'Please try again');
       }
+      setWalletStatus('disconnected');
     }
   };
 
   const handlePayment = async () => {
-    if (!walletConnected || !walletAddress) {
+    if (walletStatus !== 'connected' || !walletAddress) {
       Alert.alert('Tips', 'Please connect wallet first');
       return;
     }
@@ -220,8 +220,9 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
     }
   };
 
-  const isConnected = walletConnected && walletAddress;
+  const isConnected = walletStatus === 'connected' && walletAddress;
   const displayAddress = walletAddress ? formatAddress(walletAddress) : '';
+  const walletTypeText = walletType === 'trust' ? 'TP Wallet' : walletType === 'bsc' ? 'BSC Wallet' : 'Wallet';
 
   return (
     <Screen safeAreaStyle={{ backgroundColor: '#0A0A0F' }}>
@@ -260,7 +261,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
             <View style={styles.connectedCard}>
               <View style={styles.connectedInfo}>
                 <View style={styles.connectedDot} />
-                <Text style={styles.connectedText}>TP Wallet Connected</Text>
+                <Text style={styles.connectedText}>{walletTypeText} Connected</Text>
               </View>
               <Text style={styles.walletAddress}>{displayAddress}</Text>
               <TouchableOpacity 
@@ -277,11 +278,21 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
             </View>
           ) : (
             <TouchableOpacity 
-              style={styles.connectButton}
-              onPress={handleConnectTPWallet}
+              style={[
+                styles.connectButton,
+                walletStatus === 'connecting' && styles.connectButtonDisabled
+              ]}
+              onPress={handleConnectWallet}
+              disabled={walletStatus === 'connecting'}
             >
-              <Ionicons name="wallet-outline" size={24} color="#0A0A0F" />
-              <Text style={styles.connectButtonText}>Connect TP Wallet</Text>
+              {walletStatus === 'connecting' ? (
+                <ActivityIndicator color="#0A0A0F" />
+              ) : (
+                <>
+                  <Ionicons name="wallet-outline" size={24} color="#0A0A0F" />
+                  <Text style={styles.connectButtonText}>Connect TP Wallet</Text>
+                </>
+              )}
             </TouchableOpacity>
           )}
         </View>
@@ -424,6 +435,7 @@ const styles = StyleSheet.create({
   featureText: { fontSize: 14, color: '#D1D5DB', flex: 1 },
   walletSection: { marginHorizontal: 20, marginBottom: 24 },
   connectButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#00F0FF', paddingVertical: 16, borderRadius: 12, gap: 10 },
+  connectButtonDisabled: { backgroundColor: '#6B7280' },
   connectButtonText: { fontSize: 16, fontWeight: '600', color: '#0A0A0F' },
   connectedCard: { backgroundColor: '#1F1F2E', borderRadius: 12, padding: 16 },
   connectedInfo: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },

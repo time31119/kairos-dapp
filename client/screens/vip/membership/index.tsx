@@ -154,7 +154,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
     }
 
     const amount = currentPrice;
-    const trc20Address = 'TSV8UGKBeXrj26PUiBUhhLunfzVSmvyqWq';
+    const bnbAddress = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d';
     const currentOrderId = orderIdToUse || orderId;
     
     // Check if in TP Wallet browser
@@ -174,7 +174,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
           // Show payment info and guide user
           Alert.alert(
             'TP 钱包支付',
-            `请在 TP 钱包中完成以下操作：\n\n发送 ${amount} USDT (TRC20) 到\n\n地址: ${trc20Address}\n\n备注/Order ID: ${currentOrderId}\n\n转账完成后，点击确认支付`,
+            `请在 TP 钱包中完成以下操作：\n\n发送 ${amount} USDT (BNB Chain BEP20) 到\n\n地址: ${bnbAddress}\n\n备注/Order ID: ${currentOrderId}\n\n转账完成后，点击确认支付`,
             [
               { text: '取消' },
               { 
@@ -189,7 +189,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
         // Fallback to manual copy
         Alert.alert(
           '收款地址',
-          `USDT TRC20\n${trc20Address}\n\n金额: ${amount} USDT\n\n备注: ${currentOrderId}\n\n请复制地址到 TP 钱包转账`,
+          `USDT BNB Chain (BEP20)\n${bnbAddress}\n\n金额: ${amount} USDT\n\n备注: ${currentOrderId}\n\n请复制地址到 TP 钱包转账`,
           [
             { text: '确定' }
           ]
@@ -199,7 +199,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
       // Fallback for other browsers - show copy address
       Alert.alert(
         '收款地址',
-        `USDT TRC20\n${trc20Address}\n\n金额: ${amount} USDT\n\n备注: ${currentOrderId}\n\n请复制地址到 TP 钱包转账`,
+        `USDT BNB Chain (BEP20)\n${bnbAddress}\n\n金额: ${amount} USDT\n\n备注: ${currentOrderId}\n\n请复制地址到 TP 钱包转账`,
         [
           { text: '确定' }
         ]

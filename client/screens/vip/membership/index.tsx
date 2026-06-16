@@ -337,15 +337,15 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>钱包</Text>
           <TouchableOpacity 
-            style={[styles.walletCard, wallet.wallet.isConnected && styles.walletCardConnected]}
-            onPress={wallet.wallet.isConnected ? undefined : handleConnectTPWallet}
+            style={[styles.walletCard, wallet.isConnected && styles.walletCardConnected]}
+            onPress={wallet.isConnected ? undefined : handleConnectTPWallet}
           >
-            <View style={[styles.walletIcon, wallet.wallet.isConnected && styles.walletIconConnected]}>
-              <Ionicons name="wallet" size={22} color={wallet.wallet.isConnected ? '#0A0A0F' : '#00E5CC'} />
+            <View style={[styles.walletIcon, wallet.isConnected && styles.walletIconConnected]}>
+              <Ionicons name="wallet" size={22} color={wallet.isConnected ? '#0A0A0F' : '#00E5CC'} />
             </View>
             <View style={styles.walletInfo}>
               <Text style={styles.walletName}>TP 钱包</Text>
-              {wallet.wallet.isConnected && wallet.address ? (
+              {wallet.isConnected && wallet.address ? (
                 <Text style={styles.walletAddress}>
                   {wallet.address.slice(0, 8)}...{wallet.address.slice(-6)}
                 </Text>
@@ -353,11 +353,11 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
                 <Text style={styles.walletHint}>点击连接钱包</Text>
               )}
             </View>
-            {wallet.wallet.isConnected ? (
+            {wallet.isConnected ? (
               <View style={[styles.connectedBadge, { backgroundColor: '#00E5CC' }]}>
                 <Ionicons name="checkmark" size={14} color="#0A0A0F" />
               </View>
-            ) : wallet.wallet.isConnecting ? (
+            ) : wallet.isConnecting ? (
               <ActivityIndicator size="small" color="#888888" />
             ) : (
               <Ionicons name="chevron-forward" size={20} color="#666666" />
@@ -374,18 +374,18 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
         <TouchableOpacity
           style={[
             styles.payButton,
-            { backgroundColor: wallet.wallet.isConnected ? '#00E5CC' : '#333333' }
+            { backgroundColor: wallet.isConnected ? '#00E5CC' : '#333333' }
           ]}
-          onPress={wallet.wallet.isConnected ? handlePayment : handleConnectTPWallet}
+          onPress={wallet.isConnected ? handlePayment : handleConnectTPWallet}
           disabled={isProcessing}
         >
           {isProcessing ? (
             <ActivityIndicator color="#0A0A0F" size="small" />
           ) : (
             <View style={styles.payButtonContent}>
-              <Ionicons name="paper-plane" size={18} color={wallet.wallet.isConnected ? '#0A0A0F' : '#FFFFFF'} />
-              <Text style={[styles.payButtonText, { color: wallet.wallet.isConnected ? '#0A0A0F' : '#FFFFFF' }]}>
-                {wallet.wallet.isConnected ? '去支付' : '连接 TP 钱包'}
+              <Ionicons name="paper-plane" size={18} color={wallet.isConnected ? '#0A0A0F' : '#FFFFFF'} />
+              <Text style={[styles.payButtonText, { color: wallet.isConnected ? '#0A0A0F' : '#FFFFFF' }]}>
+                {wallet.isConnected ? '去支付' : '连接 TP 钱包'}
               </Text>
             </View>
           )}

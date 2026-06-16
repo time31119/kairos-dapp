@@ -8,7 +8,9 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Modal,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { Screen } from '@/components/Screen';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,8 +49,8 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
     }
   };
 
-  // Combined: Create order and initiate payment
-  const handleCreateOrderAndPay = async () => {
+  // Handle payment - show copy address modal
+  const handlePayment = async () => {
     if (!wallet.wallet.isConnected || !wallet.wallet.address) {
       Alert.alert('提示', '请先连接钱包');
       return;
@@ -56,7 +58,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
 
     setIsProcessing(true);
     try {
-      // Create order first
+      // Create order
       const response = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/subscription/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -71,8 +73,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
       const data = await response.json();
       if (data.success) {
         setOrderId(data.orderId);
-        // Now trigger payment
-        await handleOpenTPWallet(data.orderId);
+        setShowPaymentModal(true);
       } else {
         Alert.alert('创建订单失败', data.message || '请稍后重试');
       }
@@ -369,7 +370,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
             styles.payButton,
             { backgroundColor: wallet.wallet.isConnected ? '#00E5CC' : '#333333' }
           ]}
-          onPress={wallet.wallet.isConnected ? handleCreateOrderAndPay : handleConnectTPWallet}
+          onPress={wallet.wallet.isConnected ? handlePayment : handleConnectTPWallet}
           disabled={isProcessing}
         >
           {isProcessing ? (
@@ -378,7 +379,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
             <View style={styles.payButtonContent}>
               <Ionicons name="paper-plane" size={18} color={wallet.wallet.isConnected ? '#0A0A0F' : '#FFFFFF'} />
               <Text style={[styles.payButtonText, { color: wallet.wallet.isConnected ? '#0A0A0F' : '#FFFFFF' }]}>
-                {wallet.wallet.isConnected ? '打开 TP 钱包支付' : '连接 TP 钱包'}
+                {wallet.wallet.isConnected ? '去支付' : '连接 TP 钱包'}
               </Text>
             </View>
           )}
@@ -387,6 +388,99 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
         {/* Bottom Spacing */}
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Payment Guide Modal */}
+      <Modal
+        visible={showPaymentModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPaymentModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>转账支付</Text>
+              <TouchableOpacity onPress={() => setShowPaymentModal(false)}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.paymentInfo}>
+              <Text style={styles.paymentLabel}>请向以下地址转账</Text>
+              
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>币种</Text>
+                <Text style={styles.infoValue}>USDT (BEP20/BSC)</Text>
+              </View>
+              
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>金额</Text>
+                <Text style={styles.amountValue}>{currentPrice} USDT</Text>
+              </View>
+              
+              <View style={styles.addressSection}>
+                <Text style={styles.infoLabel}>收款地址</Text>
+                <View style={styles.addressBox}>
+                  <Text style={styles.addressText} numberOfLines={2}>
+                    0x769ecB24694F56d75d6eaaD5F634d99eF12c407d
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.copyButton}
+                  onPress={async () => {
+                    await Clipboard.setStringAsync('0x769ecB24694F56d75d6eaaD5F634d99eF12c407d');
+                    Alert.alert('已复制', '收款地址已复制到剪贴板');
+                  }}
+                >
+                  <Ionicons name="copy-outline" size={16} color="#00E5CC" />
+                  <Text style={styles.copyButtonText}>复制地址</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.orderSection}>
+                <Text style={styles.infoLabel}>订单号</Text>
+                <View style={styles.orderBox}>
+                  <Text style={styles.orderText}>{orderId}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.copyButton}
+                  onPress={async () => {
+                    await Clipboard.setStringAsync(orderId);
+                    Alert.alert('已复制', '订单号已复制到剪贴板');
+                  }}
+                >
+                  <Ionicons name="copy-outline" size={16} color="#00E5CC" />
+                  <Text style={styles.copyButtonText}>复制订单号</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.memoSection}>
+                <Text style={styles.memoWarning}>
+                  ⚠️ 请在 TP 钱包中转账时备注订单号
+                </Text>
+              </View>
+            </View>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowPaymentModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>取消</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmButton}
+                onPress={() => {
+                  setShowPaymentModal(false);
+                  confirmPayment(orderId, wallet.wallet.address || '');
+                }}
+              >
+                <Text style={styles.confirmButtonText}>我已转账</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }
@@ -641,5 +735,149 @@ const styles = StyleSheet.create({
   payButtonText: {
     fontSize: 17,
     fontWeight: '700',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#16161F',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 380,
+    borderWidth: 1,
+    borderColor: '#252530',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  paymentInfo: {
+    gap: 16,
+  },
+  paymentLabel: {
+    fontSize: 14,
+    color: '#888888',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#252530',
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: '#888888',
+  },
+  infoValue: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '500',
+  },
+  amountValue: {
+    fontSize: 18,
+    color: '#00E5CC',
+    fontWeight: '700',
+  },
+  addressSection: {
+    gap: 8,
+  },
+  addressBox: {
+    backgroundColor: '#0A0A0F',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#252530',
+  },
+  addressText: {
+    fontSize: 12,
+    color: '#00E5CC',
+    fontFamily: 'monospace',
+    lineHeight: 20,
+  },
+  copyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    backgroundColor: '#00E5CC15',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#00E5CC30',
+  },
+  copyButtonText: {
+    fontSize: 13,
+    color: '#00E5CC',
+    fontWeight: '600',
+  },
+  orderSection: {
+    gap: 8,
+  },
+  orderBox: {
+    backgroundColor: '#0A0A0F',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#252530',
+  },
+  orderText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontFamily: 'monospace',
+  },
+  memoSection: {
+    marginTop: 8,
+  },
+  memoWarning: {
+    fontSize: 12,
+    color: '#FFB800',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#252530',
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#888888',
+  },
+  confirmButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#00E5CC',
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0A0A0F',
   },
 });

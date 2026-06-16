@@ -8,20 +8,15 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   connectWallet,
-  disconnect,
-  switchNetwork,
+  clearWalletInfo,
+  clearWalletType,
   getWalletInfo,
   getWalletType,
   getBalance,
-  createSignMessage,
-  verifySignature,
-  getSignatureNonce,
-  verifyWalletSignature,
-  performSignatureVerification,
-  type WalletInfo,
+  storeWalletInfo,
 } from '@/services/web3';
 import {
-  getChainInfo,
+  getSelectedChain,
   formatAddress,
   formatBalance,
   type ChainType,
@@ -39,6 +34,20 @@ import {
   clearWCUri,
   type WCSession,
 } from '@/services/walletconnect';
+
+// Ethereum provider type declaration
+declare global {
+  interface Window {
+    ethereum?: {
+      isMetaMask?: boolean;
+      isTrust?: boolean;
+      isTokenPocket?: boolean;
+      request: (args: { method: string; params?: any[] }) => Promise<any>;
+      on?: (event: string, callback: (...args: any[]) => void) => void;
+      removeListener?: (event: string, callback: (...args: any[]) => void) => void;
+    };
+  }
+}
 
 // 钱包状态接口
 export interface WalletState {
@@ -186,6 +195,65 @@ export function Web3Provider({ children }: Web3ProviderProps) {
     };
 
     restoreConnection();
+  }, []);
+
+  // 监听 Ethereum 提供者的事件（TP Wallet / MetaMask）
+  useEffect(() => {
+    // 仅在 Web 环境检查
+    if (typeof window === 'undefined' || !window.ethereum) {
+      return;
+    }
+
+    const handleAccountsChanged = async (accounts: string[]) => {
+      console.log('accountsChanged event:', accounts);
+      if (accounts.length === 0) {
+        // 用户断开连接
+        setWallet(prev => ({
+          ...prev,
+          address: null,
+          isConnected: false,
+        }));
+        await clearWalletInfo();
+        await clearWalletType();
+      } else {
+        // 账户变化，更新状态
+        const balance = await getBalance(accounts[0]);
+        const chain = await getSelectedChain();
+        setWallet(prev => ({
+          ...prev,
+          address: accounts[0],
+          balance,
+          chain,
+          isConnected: true,
+        }));
+        // 更新存储的钱包信息
+        await storeWalletInfo({
+          address: accounts[0],
+          chain,
+          connectedAt: Date.now(),
+        });
+      }
+    };
+
+    const handleChainChanged = (chainId: string) => {
+      console.log('chainChanged event:', chainId);
+      // 链变化时，重新加载页面以获取最新的 chain ID
+      if (typeof window !== 'undefined' && window.location) {
+        window.location.reload();
+      }
+    };
+
+    // 监听账户变化
+    window.ethereum.on('accountsChanged', handleAccountsChanged);
+    window.ethereum.on('chainChanged', handleChainChanged);
+
+    // 清理函数
+    return () => {
+      if (window.ethereum?.removeListener) {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum.removeListener('chainChanged', handleChainChanged);
+      }
+    };
   }, []);
 
   // 连接钱包

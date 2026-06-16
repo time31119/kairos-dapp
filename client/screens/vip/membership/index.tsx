@@ -17,6 +17,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { useWeb3 } from '@/contexts/Web3Context';
 import { VIP_PLANS } from '@/utils/vipPlans';
 
+// TP Wallet provider type declaration
+declare global {
+  interface Window {
+    ethereum?: {
+      isMetaMask?: boolean;
+      isTrust?: boolean;
+      isTokenPocket?: boolean;
+      request: (args: { method: string; params?: any[] }) => Promise<any>;
+      on?: (event: string, callback: (...args: any[]) => void) => void;
+      removeListener?: (event: string, callback: (...args: any[]) => void) => void;
+    };
+  }
+}
+
 const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'https://api.example.com';
 
 interface Props {
@@ -27,11 +41,6 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
   const router = useSafeRouter();
   const wallet = useWeb3();
   const params = useSafeSearchParams<{ plan?: string }>();
-  
-  // DEBUG: Simple test
-  const testPress = () => {
-    Alert.alert('调试', '测试按钮被点击了！');
-  };
   
   // Get plan from route params, fallback to initialPlanId prop or default to 'professional'
   const planId = params.plan || initialPlanId || 'professional';
@@ -45,24 +54,45 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
 
   const currentPrice = selectedPlan.price[selectedBillingCycle];
 
-  // Handle connect TP Wallet
+  // Handle connect TP Wallet - use window.ethereum directly like "我的" page
   const handleConnectTPWallet = async () => {
     console.log('handleConnectTPWallet called');
-    console.log('wallet object:', wallet);
-    console.log('wallet.isConnected:', wallet.isConnected);
     
     try {
-      await wallet.connect('trust');
-      console.log('Wallet connected successfully');
+      if (typeof window !== 'undefined' && window.ethereum) {
+        // Detect wallet type
+        const isTrust = !!window.ethereum.isTrust || 
+                        window.navigator.userAgent.toLowerCase().includes('trust');
+        
+        console.log('Detected wallet type:', isTrust ? 'Trust Wallet (TP Wallet)' : 'Other');
+        
+        // Request accounts using standard eth_requestAccounts method
+        const accounts = await window.ethereum.request({ 
+          method: 'eth_requestAccounts' 
+        });
+        
+        if (accounts && accounts.length > 0) {
+          console.log('Wallet connected with address:', accounts[0]);
+          // The Web3Context should auto-detect and update
+        } else {
+          throw new Error('No accounts returned');
+        }
+      } else {
+        Alert.alert('提示', '未检测到 TP 钱包，请使用 TP 钱包内置浏览器打开此页面');
+      }
     } catch (error: any) {
       console.error('Connect error:', error);
-      Alert.alert('连接失败', error.message || '请确保在 TP 钱包浏览器中打开此页面');
+      if (error.code === 4001) {
+        Alert.alert('连接取消', '您取消了钱包连接请求');
+      } else {
+        Alert.alert('连接失败', error.message || '请确保在 TP 钱包浏览器中打开此页面');
+      }
     }
   };
 
   // Handle payment - show copy address modal
   const handlePayment = async () => {
-    if (!wallet.isConnected || !wallet.address) {
+    if (!wallet.wallet.isConnected || !wallet.wallet.address) {
       Alert.alert('提示', '请先连接钱包');
       return;
     }
@@ -77,7 +107,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
           planId: selectedPlan.id,
           billingCycle: selectedBillingCycle,
           paymentMethod: 'tp_wallet',
-          walletAddress: wallet.address,
+          walletAddress: wallet.wallet.address,
         }),
       });
 
@@ -97,7 +127,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
 
   // Create order
   const handleCreateOrder = async () => {
-    if (!wallet.isConnected || !wallet.address) {
+    if (!wallet.wallet.isConnected || !wallet.wallet.address) {
       Alert.alert('提示', '请先连接钱包');
       return;
     }
@@ -111,7 +141,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
           planId: selectedPlan.id,
           billingCycle: selectedBillingCycle,
           paymentMethod: 'tp_wallet',
-          walletAddress: wallet.address,
+          walletAddress: wallet.wallet.address,
         }),
       });
 
@@ -160,7 +190,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
 
   // Open TP Wallet for payment using Web3
   const handleOpenTPWallet = async (orderIdToUse?: string) => {
-    if (!wallet.isConnected || !wallet.address) {
+    if (!wallet.wallet.isConnected || !wallet.wallet.address) {
       Alert.alert('提示', '请先连接钱包');
       return;
     }
@@ -191,7 +221,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
               { text: '取消' },
               { 
                 text: '已完成转账', 
-                onPress: () => confirmPayment(currentOrderId, wallet.address || '') 
+                onPress: () => confirmPayment(currentOrderId, wallet.wallet.address || '') 
               }
             ]
           );
@@ -350,28 +380,27 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>钱包</Text>
           <TouchableOpacity 
-            style={[styles.walletCard, wallet.isConnected && styles.walletCardConnected]}
+            style={[styles.walletCard, wallet.wallet.isConnected && styles.walletCardConnected]}
             onPress={() => {
-              console.log('Wallet card pressed, isConnected:', wallet.isConnected);
-              if (!wallet.isConnected) {
+              if (!wallet.wallet.isConnected) {
                 handleConnectTPWallet();
               }
             }}
           >
-            <View style={[styles.walletIcon, wallet.isConnected && styles.walletIconConnected]}>
-              <Ionicons name="wallet" size={22} color={wallet.isConnected ? '#0A0A0F' : '#00E5CC'} />
+            <View style={[styles.walletIcon, wallet.wallet.isConnected && styles.walletIconConnected]}>
+              <Ionicons name="wallet" size={22} color={wallet.wallet.isConnected ? '#0A0A0F' : '#00E5CC'} />
             </View>
             <View style={styles.walletInfo}>
               <Text style={styles.walletName}>TP 钱包</Text>
-              {wallet.isConnected && wallet.address ? (
+              {wallet.wallet.isConnected && wallet.wallet.address ? (
                 <Text style={styles.walletAddress}>
-                  {wallet.address.slice(0, 8)}...{wallet.address.slice(-6)}
+                  {wallet.wallet.address.slice(0, 8)}...{wallet.wallet.address.slice(-6)}
                 </Text>
               ) : (
                 <Text style={styles.walletHint}>点击连接钱包</Text>
               )}
             </View>
-            {wallet.isConnected ? (
+            {wallet.wallet.isConnected ? (
               <View style={[styles.connectedBadge, { backgroundColor: '#00E5CC' }]}>
                 <Ionicons name="checkmark" size={14} color="#0A0A0F" />
               </View>
@@ -392,19 +421,15 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
         <TouchableOpacity
           style={[
             styles.payButton,
-            { backgroundColor: wallet.isConnected ? '#00E5CC' : '#333333' }
+            { backgroundColor: wallet.wallet.isConnected ? '#00E5CC' : '#333333' }
           ]}
           onPress={() => {
-            console.log('DEBUG: Button clicked, isConnected:', wallet.isConnected);
-            Alert.alert('调试', `按钮已点击, isConnected: ${wallet.isConnected}`);
-            if (wallet.isConnected) {
+            if (wallet.wallet.isConnected) {
               handlePayment();
             } else {
               handleConnectTPWallet();
             }
           }}
-          onPressIn={() => console.log('DEBUG: Button onPressIn triggered')}
-          onPressOut={() => console.log('DEBUG: Button onPressOut triggered')}
           activeOpacity={0.7}
           disabled={isProcessing}
         >
@@ -412,9 +437,9 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
             <ActivityIndicator color="#0A0A0F" size="small" />
           ) : (
             <View style={styles.payButtonContent}>
-              <Ionicons name="paper-plane" size={18} color={wallet.isConnected ? '#0A0A0F' : '#FFFFFF'} />
-              <Text style={[styles.payButtonText, { color: wallet.isConnected ? '#0A0A0F' : '#FFFFFF' }]}>
-                {wallet.isConnected ? '去支付' : '连接 TP 钱包'}
+              <Ionicons name="paper-plane" size={18} color={wallet.wallet.isConnected ? '#0A0A0F' : '#FFFFFF'} />
+              <Text style={[styles.payButtonText, { color: wallet.wallet.isConnected ? '#0A0A0F' : '#FFFFFF' }]}>
+                {wallet.wallet.isConnected ? '去支付' : '连接 TP 钱包'}
               </Text>
             </View>
           )}
@@ -507,7 +532,7 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
                 style={styles.confirmButton}
                 onPress={() => {
                   setShowPaymentModal(false);
-                  confirmPayment(orderId, wallet.address || '');
+                  confirmPayment(orderId, wallet.wallet.address || '');
                 }}
               >
                 <Text style={styles.confirmButtonText}>我已转账</Text>

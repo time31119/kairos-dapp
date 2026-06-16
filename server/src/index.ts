@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 import screenerRouter from "./routes/screener";
 import copytradingRouter from "./routes/copytrading";
 import apiRouter from "./routes/api";
@@ -12,8 +14,15 @@ import subscriptionRouter from "./routes/subscription";
 import referralRouter from "./routes/referral";
 import positionsRouter from "./routes/positions";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const port = process.env.PORT || 9091;
+
+// Static files for frontend
+const staticPath = path.join(__dirname, '../../client/dist');
+app.use(express.static(staticPath));
 
 // Middleware
 app.use(cors());
@@ -37,6 +46,11 @@ app.use('/api/v1/news', newsRouter);
 app.use('/api/v1/subscription', subscriptionRouter);
 app.use('/api/v1/referral', referralRouter);
 app.use('/api/v1/positions', positionsRouter);
+
+// SPA fallback - serve index.html for all other routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(staticPath, 'index.html'));
+});
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}/`);

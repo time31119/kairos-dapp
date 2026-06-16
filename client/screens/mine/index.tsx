@@ -94,9 +94,9 @@ export default function MineScreen() {
       
       // TP Wallet 也可能注入 ethereum 对象
       if ((window as any).ethereum) {
-        // 检查是否是 Trust Wallet
+        // 检查是否是 TP Wallet
         const ethereum = (window as any).ethereum;
-        if (ethereum?.isTrust || ethereum?.isMetaMask === false) {
+        if (ethereum?.isTokenPocket || ethereum?.isTrust || (window as any).tokenpocket) {
           return window;
         }
         // 其他钱包 (MetaMask)
@@ -140,7 +140,8 @@ export default function MineScreen() {
 
               // 检测钱包类型
               let detectedType: 'trust' | 'metamask' | 'bsc' = 'metamask';
-              if ((provider as any).trustwallet || (window as any).trustwallet) {
+              const ethereum = (provider as any).ethereum || (window as any).ethereum;
+              if ((provider as any).trustwallet || (window as any).trustwallet || ethereum?.isTokenPocket || ethereum?.isTrust || (window as any).tokenpocket) {
                 detectedType = 'trust';
               } else if ((provider as any).BinanceChain?.bsc) {
                 detectedType = 'bsc';

@@ -96,7 +96,10 @@ export default function MineScreen() {
               method: 'eth_requestAccounts',
             });
 
-            if (accounts && accounts.length > 0 && isValidAddress(accounts[0])) {
+            // 验证返回的地址是否是有效的以太坊地址
+            const isValidEthAddress = (addr: string) => /^0x[a-fA-F0-9]{40}$/.test(addr);
+
+            if (accounts && accounts.length > 0 && isValidEthAddress(accounts[0])) {
               setWalletAddress(accounts[0]);
               setWalletStatus(WalletStatus.CONNECTED);
 
@@ -109,24 +112,28 @@ export default function MineScreen() {
                 setWalletType('metamask');
               }
               return;
+            } else {
+              // 返回了无效地址
+              Alert.alert('连接失败', '钱包返回了无效的地址，请重试');
+              setWalletStatus(WalletStatus.DISCONNECTED);
+              return;
             }
           } catch (err: any) {
             // 用户拒绝或连接失败
             if (err.code === 4001) {
               Alert.alert('连接失败', '您拒绝了钱包连接请求');
             } else {
-              Alert.alert('连接失败', '无法连接到钱包，请确保已安装 TP 钱包或 MetaMask');
+              Alert.alert('连接失败', '无法连接到钱包，请确保在 TP 钱包浏览器中打开此页面');
             }
           }
+        } else {
+          // 未检测到钱包
+          Alert.alert('请使用 TP 钱包', '请在 TP 钱包的内置浏览器中打开此页面');
         }
+      } else {
+        // 非 Web 环境
+        Alert.alert('请使用 TP 钱包', '请在 TP 钱包的内置浏览器中打开此页面');
       }
-
-      // 移动端或未检测到钱包时，显示提示
-      Alert.alert(
-        '请安装 TP 钱包',
-        '要连接钱包，请先在您的设备上安装 TP 钱包（Trust Wallet）浏览器扩展或移动应用。',
-        [{ text: '确定' }]
-      );
 
       setWalletStatus(WalletStatus.DISCONNECTED);
     } catch (error) {

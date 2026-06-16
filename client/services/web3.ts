@@ -124,37 +124,86 @@ export async function connectCoinbase(): Promise<string> {
 
 // Trust / TP 钱包连接
 export async function connectTrust(): Promise<string> {
-  let address: string;
+  let address: string = '';
   
   // 检查是否在 TP Wallet 浏览器中
-  if (typeof window !== 'undefined' && (window as any).trustwallet) {
-    try {
-      // 使用 TP Wallet 的 Web3 Provider
-      const provider = (window as any).trustwallet;
-      
-      // 请求 TRON 账户
-      const result = await provider.request({
-        method: 'tron_requestAccounts',
-      });
-      
-      // TP Wallet 返回地址
-      if (result && result.address) {
-        address = result.address;
-      } else if (typeof result === 'string') {
-        // 有些版本直接返回地址字符串
-        address = result;
-      } else {
-        // 尝试从 result.code === 200 获取
-        throw new Error('No address returned');
+  if (typeof window !== 'undefined') {
+    const trustWallet = (window as any).trustwallet;
+    
+    if (trustWallet) {
+      try {
+        // 优先尝试 eth_requestAccounts (Ethereum 链)
+        try {
+          const ethResult = await trustWallet.request({
+            method: 'eth_requestAccounts',
+          });
+          
+          if (ethResult && ethResult.length > 0) {
+            address = ethResult[0];
+            console.log('TP Wallet Ethereum address:', address);
+          }
+        } catch (ethError) {
+          console.log('eth_requestAccounts failed, trying tron_requestAccounts');
+        }
+        
+        // 如果 eth 方式失败，尝试 tron_requestAccounts
+        if (!address) {
+          try {
+            const tronResult = await trustWallet.request({
+              method: 'tron_requestAccounts',
+            });
+            
+            console.log('tron_requestAccounts result:', tronResult);
+            
+            // TP Wallet 返回格式可能是:
+            // 1. { address: 'Txxx...' }
+            // 2. { code: 200, address: 'Txxx...' }
+            // 3. ['Txxx...'] 直接返回数组
+            // 4. 'Txxx...' 直接返回字符串
+            
+            if (tronResult) {
+              if (typeof tronResult === 'string') {
+                address = tronResult;
+              } else if (Array.isArray(tronResult)) {
+                address = tronResult[0];
+              } else if (tronResult.address) {
+                address = tronResult.address;
+              } else if (tronResult.code === 200 && tronResult.address) {
+                address = tronResult.address;
+              }
+            }
+          } catch (tronError) {
+            console.log('tron_requestAccounts error:', tronError);
+          }
+        }
+        
+        // 最后尝试 eth_accounts (不需要用户授权)
+        if (!address) {
+          try {
+            const accounts = await trustWallet.request({
+              method: 'eth_accounts',
+            });
+            if (accounts && accounts.length > 0) {
+              address = accounts[0];
+              console.log('TP Wallet eth_accounts address:', address);
+            }
+          } catch (accError) {
+            console.log('eth_accounts error:', accError);
+          }
+        }
+      } catch (error) {
+        console.log('TP Wallet connection error:', error);
       }
-    } catch (error) {
-      console.log('TP Wallet connection error, using mock:', error);
-      // 如果 TP Wallet 连接失败，使用模拟地址作为后备
-      address = generateMockAddress();
+    } else {
+      console.log('TrustWallet provider not found in window');
     }
   } else {
-    // 非 TP Wallet 环境，使用模拟地址
-    address = generateMockAddress();
+    console.log('Window not defined (not in browser)');
+  }
+  
+  // 如果获取地址失败，抛出错误而不是使用假地址
+  if (!address) {
+    throw new Error('无法连接到 TP 钱包，请确保在 TP 钱包浏览器中打开');
   }
   
   const nonce = generateNonce();

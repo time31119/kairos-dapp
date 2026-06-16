@@ -133,6 +133,17 @@ export function Web3Provider({ children }: Web3ProviderProps) {
         const type = await getWalletType();
 
         if (info && type) {
+          // 验证地址是否是有效的以太坊地址
+          const isValidEthAddress = /^0x[a-fA-F0-9]{40}$/.test(info.address);
+          
+          // 如果是旧格式的假地址，清除并重试
+          if (!isValidEthAddress || info.address === '0x112345678' || info.address?.length !== 42) {
+            console.log('Invalid cached address, clearing:', info.address);
+            await clearWalletInfo();
+            await clearWalletType();
+            return;
+          }
+          
           const balance = await getBalance(info.address);
           
           setWallet({

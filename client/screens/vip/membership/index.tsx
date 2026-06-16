@@ -44,8 +44,8 @@ export default function MembershipPage({ initialPlanId = 'professional' }: Props
   const handleConnectTPWallet = async () => {
     try {
       await wallet.connect('trust');
-    } catch (error) {
-      Alert.alert('连接失败', '请确保已安装 TP 钱包');
+    } catch (error: any) {
+      Alert.alert('连接失败', error.message || '请确保在 TP 钱包浏览器中打开此页面');
     }
   };
 

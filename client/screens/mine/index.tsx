@@ -7,6 +7,17 @@ import { Ionicons, FontAwesome6 } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { formatAddress, isValidAddress } from '@/services/metamask';
 
+// 钱包信息格式（与 Web3Context 一致）
+interface WalletInfo {
+  address: string;
+  chain: string;
+  connectedAt: number;
+}
+
+// 存储键（与 Web3Context 一致）
+const WALLET_INFO_KEY = 'wallet_info';
+const WALLET_TYPE_KEY = 'wallet_type';
+
 // 钱包连接状态
 const WalletStatus = {
   DISCONNECTED: 'disconnected',
@@ -50,23 +61,20 @@ export default function MineScreen() {
   useEffect(() => {
     const restoreWallet = async () => {
       try {
-        // 从本地存储恢复钱包地址
-        const storedAddress = await AsyncStorage.getItem('wallet_address');
-        const storedWalletType = await AsyncStorage.getItem('wallet_type');
+        // 从本地存储恢复钱包信息（与 Web3Context 一致）
+        const storedInfo = await AsyncStorage.getItem(WALLET_INFO_KEY);
+        const storedWalletType = await AsyncStorage.getItem(WALLET_TYPE_KEY);
         
-        if (storedAddress) {
-          setWalletAddress(storedAddress);
-          setWalletStatus(WalletStatus.CONNECTED);
-          
-          // 优先使用存储的钱包类型
-          if (storedWalletType) {
-            setWalletType(storedWalletType as 'trust' | 'metamask' | 'bsc');
-          } else {
-            // 如果没有存储类型，检查是否在 TP Wallet 浏览器中
-            if (typeof window !== 'undefined') {
-              if ((window as any).trustwallet || (window as any).trustwallet?.isTrust) {
-                setWalletType('trust');
-              }
+        if (storedInfo) {
+          const info: WalletInfo = JSON.parse(storedInfo);
+          if (info.address && /^0x[a-fA-F0-9]{40}$/.test(info.address)) {
+            setWalletAddress(info.address);
+            setWalletStatus(WalletStatus.CONNECTED);
+            
+            if (storedWalletType) {
+              setWalletType(storedWalletType as 'trust' | 'metamask' | 'bsc');
+            } else if ((window as any).trustwallet || (window as any).trustwallet?.isTrust) {
+              setWalletType('trust');
             }
           }
         }
@@ -111,8 +119,8 @@ export default function MineScreen() {
     setWalletAddress('');
     setWalletStatus(WalletStatus.DISCONNECTED);
     setWalletType(null);
-    await AsyncStorage.removeItem('wallet_address');
-    await AsyncStorage.removeItem('wallet_type');
+    await AsyncStorage.removeItem(WALLET_INFO_KEY);
+    await AsyncStorage.removeItem(WALLET_TYPE_KEY);
   };
 
   // 连接 TP 钱包
@@ -148,9 +156,14 @@ export default function MineScreen() {
               }
               setWalletType(detectedType);
               
-              // 保存到本地存储
-              await AsyncStorage.setItem('wallet_address', accounts[0]);
-              await AsyncStorage.setItem('wallet_type', detectedType);
+              // 保存到本地存储（与 Web3Context 一致）
+              const walletInfo: WalletInfo = {
+                address: accounts[0],
+                chain: 'bsc',
+                connectedAt: Date.now(),
+              };
+              await AsyncStorage.setItem(WALLET_INFO_KEY, JSON.stringify(walletInfo));
+              await AsyncStorage.setItem(WALLET_TYPE_KEY, detectedType);
               return;
             } else {
               // 返回了无效地址

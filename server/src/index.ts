@@ -20,9 +20,15 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 9091;
 
-// Static files for frontend
+// Static files for frontend with no-cache headers
 const staticPath = path.join(__dirname, '../../client/dist');
-app.use(express.static(staticPath));
+app.use(express.static(staticPath, {
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
 
 // Middleware
 app.use(cors());

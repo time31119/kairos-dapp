@@ -22,20 +22,11 @@ const app = express();
 const port = process.env.PORT || 9091;
 
 // Static files for frontend with no-cache headers
-// Check both possible locations: server/dist (production) and ../../client/dist (development)
-const possiblePaths = [
-  path.join(__dirname),                     // server/dist/
-  path.join(__dirname, '../../client/dist'), // development path
-];
-const staticPath = possiblePaths.find(p => {
-  try {
-    return fs.existsSync(path.join(p, 'index.html'));
-  } catch {
-    return false;
-  }
-}) || possiblePaths[0];
+const staticPath = path.join(__dirname);
 
 console.log('[Static] Serving from:', staticPath);
+console.log('[Static] __dirname:', __dirname);
+console.log('[Static] index.html exists:', fs.existsSync(path.join(staticPath, 'index.html')));
 app.use(express.static(staticPath, {
   setHeaders: (res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');

@@ -370,9 +370,17 @@ export default function MembershipPage() {
   const displayAddress = walletAddress ? formatAddress(walletAddress) : '';
   const walletTypeText = walletType === 'trust' ? 'TP Wallet' : walletType === 'bsc' ? 'BSC Wallet' : 'Wallet';
 
+  // 调试：显示当前状态
+  const debugInfo = `Status: ${walletStatus} | Address: ${walletAddress || 'none'} | Type: ${walletType || 'none'}`;
+
   return (
     <Screen safeAreaStyle={{ backgroundColor: '#0A0A0F' }}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* 调试信息 */}
+        <View style={{ backgroundColor: '#333', padding: 10, margin: 10, borderRadius: 8 }}>
+          <Text style={{ color: '#0F0', fontSize: 10, fontFamily: 'monospace' }}>{debugInfo}</Text>
+        </View>
+        
         <View style={styles.heroHeader}>
           <Text style={styles.heroTitle}>Upgrade Membership</Text>
           <Text style={styles.heroSubtitle}>Unlock all KAIROS features</Text>

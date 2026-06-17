@@ -89,8 +89,8 @@ async function fetchFromRSS(url: string): Promise<any[]> {
       imageUrl: item.enclosure?.url || null,
       description: item.contentSnippet?.slice(0, 100) || ''
     }));
-  } catch (error) {
-    console.log(`RSS fetch error from ${url}:`, error.message);
+  } catch (error: unknown) {
+    console.log(`RSS fetch error from ${url}:`, (error as Error).message);
     return [];
   }
 }

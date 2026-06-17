@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
-import fs from "fs";
 import { fileURLToPath } from "url";
 import screenerRouter from "./routes/screener";
 import copytradingRouter from "./routes/copytrading";
@@ -20,42 +19,27 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 9091;
-
-// Custom static file handler with SPA fallback
-const staticPath = path.join(__dirname);
+const staticPath = __dirname;
 
 console.log('[Static] Serving from:', staticPath);
 console.log('[Static] __dirname:', __dirname);
-console.log('[Static] index.html exists:', fs.existsSync(path.join(staticPath, 'index.html')));
 
-// Custom static middleware with SPA fallback
-app.use((req, res, next) => {
-  // Skip API routes
+// Standard express.static with index option for SPA fallback
+app.use(express.static(staticPath, {
+  index: 'index.html',
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
+
+// SPA fallback - serve index.html for non-file routes (except API)
+app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) {
     return next();
   }
-  
-  // Try to serve static file
-  const filePath = path.join(staticPath, req.path);
-  
-  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-    return res.sendFile(filePath, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
-  }
-  
-  // Fallback to index.html for SPA
-  res.sendFile(path.join(staticPath, 'index.html'), {
-    headers: {
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0'
-    }
-  });
+  res.sendFile(path.join(staticPath, 'index.html'));
 });
 
 // Middleware
@@ -81,6 +65,6 @@ app.use('/api/v1/subscription', subscriptionRouter);
 app.use('/api/v1/referral', referralRouter);
 app.use('/api/v1/positions', positionsRouter);
 
-app.listen(port, '0.0.0.0', () => {
+app.listen(Number(port), '0.0.0.0', () => {
   console.log(`Server listening at http://0.0.0.0:${port}/`);
 });

@@ -91,12 +91,13 @@ router.post('/bind-binance', async (req, res) => {
     }
     
     // 尝试保存到 Supabase（如果配置了）
-    if (supabaseConfigured) {
-      const dbUser = await userService.findOrCreateByWallet(address);
-      if (dbUser) {
-        await binanceApiService.saveApiKey(dbUser.id, api_key, api_secret);
-      }
-    }
+    // Note: Supabase integration disabled for now
+    // if (supabaseConfigured) {
+    //   const dbUser = await userService.findOrCreateByWallet(address);
+    //   if (dbUser) {
+    //     await binanceApiService.saveApiKey(dbUser.id, api_key, api_secret);
+    //   }
+    // }
     
     res.json({
       success: true,
@@ -124,7 +125,7 @@ router.get('/binance-status', async (req, res) => {
     
     res.json({
       is_bound: isBound,
-      api_key: isBound ? user.api_key.substring(0, 8) + '...' : null,
+      api_key: isBound ? (user?.api_key?.substring(0, 8) ?? '***') + '...' : null,
     });
   } catch (error) {
     console.error('[Binance Status] Error:', error);

@@ -30,7 +30,7 @@ export async function getAccountInfo(apiKey: string, apiSecret: string) {
     );
 
     if (!response.ok) {
-      const error = await response.json();
+      const error = await response.json() as { msg?: string };
       throw new Error(error.msg || 'Failed to fetch account info');
     }
 
@@ -42,8 +42,8 @@ export async function getAccountInfo(apiKey: string, apiSecret: string) {
 }
 
 // 获取持仓
-export function extractPositions(accountInfo: any) {
-  const positions = [];
+export function extractPositions(accountInfo: any): Array<{symbol: string; free: number; locked: number; total: number}> {
+  const positions: Array<{symbol: string; free: number; locked: number; total: number}> = [];
   
   if (!accountInfo || !accountInfo.balances) {
     return positions;
@@ -77,7 +77,7 @@ export async function getPrices(symbols: string[]) {
       throw new Error('Failed to fetch prices');
     }
 
-    const allPrices = await response.json();
+    const allPrices = (await response.json()) as Array<{symbol: string; price: string}>;
     const priceMap = new Map<string, number>();
     
     for (const price of allPrices) {

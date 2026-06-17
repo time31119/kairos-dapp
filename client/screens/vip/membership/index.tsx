@@ -32,6 +32,23 @@ const WALLET_TYPE_KEY = 'wallet_type';
 
 const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'https://api.example.com';
 
+// Web环境使用 localStorage，RN环境使用 AsyncStorage
+const webStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return localStorage.getItem(key);
+    }
+    return AsyncStorage.getItem(key);
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(key, value);
+    } else {
+      await AsyncStorage.setItem(key, value);
+    }
+  },
+};
+
 // 获取以太坊提供者 - 简化逻辑，直接使用 window.ethereum
 const getEthereumProvider = () => {
   if (typeof window !== 'undefined' && window.ethereum) {
@@ -59,12 +76,41 @@ export default function MembershipPage() {
 
   const currentPrice = selectedPlan.price[selectedBillingCycle];
 
-  // 恢复钱包连接状态
+  // 恢复钱包连接状态 - 同时检查 window.ethereum 和本地存储
   useEffect(() => {
     const restoreWallet = async () => {
       try {
-        const savedAddress = await AsyncStorage.getItem(WALLET_ADDRESS_KEY);
-        const savedType = await AsyncStorage.getItem(WALLET_TYPE_KEY);
+        // 1. 先检查 window.ethereum 是否已有连接账户
+        if (typeof window !== 'undefined' && window.ethereum) {
+          try {
+            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+            if (accounts && accounts.length > 0 && /^0x[a-fA-F0-9]{40}$/.test(accounts[0])) {
+              const address = accounts[0];
+              setWalletAddress(address);
+              setWalletStatus('connected');
+              
+              // 检测钱包类型
+              let detectedType: 'trust' | 'metamask' | 'bsc' = 'metamask';
+              if (window.ethereum?.isTokenPocket || window.ethereum?.isTrust || (window as any).tokenpocket) {
+                detectedType = 'trust';
+              } else if (window.ethereum?.BinanceChain?.bsc) {
+                detectedType = 'bsc';
+              }
+              setWalletType(detectedType);
+              
+              // 保存到存储
+              await webStorage.setItem(WALLET_ADDRESS_KEY, address);
+              await webStorage.setItem(WALLET_TYPE_KEY, detectedType);
+              return;
+            }
+          } catch (e) {
+            console.log('eth_accounts check failed:', e);
+          }
+        }
+        
+        // 2. 再从本地存储恢复
+        const savedAddress = await webStorage.getItem(WALLET_ADDRESS_KEY);
+        const savedType = await webStorage.getItem(WALLET_TYPE_KEY);
         
         if (savedAddress && /^0x[a-fA-F0-9]{40}$/.test(savedAddress)) {
           setWalletAddress(savedAddress);
@@ -99,16 +145,16 @@ export default function MembershipPage() {
 
           // 检测钱包类型
           let detectedType: 'trust' | 'metamask' | 'bsc' = 'metamask';
-          if (provider.trustwallet || window.trustwallet || provider.ethereum?.isTokenPocket || provider.ethereum?.isTrust || window.tokenpocket) {
+          if (provider.trustwallet || window.trustwallet || provider.ethereum?.isTokenPocket || provider.ethereum?.isTrust || (window as any).tokenpocket) {
             detectedType = 'trust';
           } else if (provider.BinanceChain?.bsc) {
             detectedType = 'bsc';
           }
           setWalletType(detectedType);
 
-          // 保存到 AsyncStorage
-          await AsyncStorage.setItem(WALLET_ADDRESS_KEY, address);
-          await AsyncStorage.setItem(WALLET_TYPE_KEY, detectedType);
+          // 保存到本地存储 (Web用localStorage, RN用AsyncStorage)
+          await webStorage.setItem(WALLET_ADDRESS_KEY, address);
+          await webStorage.setItem(WALLET_TYPE_KEY, detectedType);
         } else {
           throw new Error('Invalid address returned');
         }

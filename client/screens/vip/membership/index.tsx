@@ -96,7 +96,6 @@ export default function MembershipPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderId, setOrderId] = useState<string>('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string>('');
 
   const currentPrice = selectedPlan.price[selectedBillingCycle];
 
@@ -263,8 +262,6 @@ export default function MembershipPage() {
         // 获取 provider
         const provider = getEthereumProvider();
         
-        setDebugInfo(`Debug: Provider=${provider ? 'Found' : 'Not found'}, ethereum=${provider?.ethereum ? 'Yes' : 'No'}`);
-        
         if (provider && provider.ethereum) {
           try {
             // USDT (BEP20) 合约地址
@@ -301,16 +298,14 @@ export default function MembershipPage() {
             setShowPaymentModal(true);
           }
         } else {
-          setDebugInfo('Wallet Not Supported: Please enable Web3 in TP Wallet settings');
           // 没有 provider，显示手动转账界面
           setShowPaymentModal(true);
         }
       } else {
-        setDebugInfo(`Order Failed: ${data.message || 'Unknown error'}`);
+        console.error('Order failed:', data.message);
       }
     } catch (error: any) {
       console.error('Create order error:', error);
-      setDebugInfo(`Network Error: ${error.message || 'Unknown error'}`);
     } finally {
       setIsProcessing(false);
     }
@@ -397,6 +392,16 @@ export default function MembershipPage() {
 
   return (
     <Screen safeAreaStyle={{ backgroundColor: '#0A0A0F' }}>
+      <View style={styles.headerBar}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#00F0FF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>VIP Membership</Text>
+        <View style={styles.headerRight} />
+      </View>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.heroHeader}>
           <Text style={styles.heroTitle}>Upgrade Membership</Text>
@@ -447,14 +452,6 @@ export default function MembershipPage() {
                 )}
               </TouchableOpacity>
               
-              {/* Debug Info */}
-              {debugInfo ? (
-                <View style={{ marginTop: 10, padding: 10, backgroundColor: '#333', borderRadius: 8 }}>
-                  <Text style={{ color: '#00F0FF', fontSize: 12, fontFamily: Platform.OS === 'web' ? 'monospace' : undefined }}>
-                    {debugInfo}
-                  </Text>
-                </View>
-              ) : null}
             </View>
           ) : (
             <TouchableOpacity 
@@ -594,6 +591,10 @@ export default function MembershipPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0A0A0F' },
+  headerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#0A0A0F' },
+  backButton: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: '600', color: '#FFFFFF' },
+  headerRight: { width: 44 },
   heroHeader: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 },
   heroTitle: { fontSize: 28, fontWeight: '700', color: '#FFFFFF', marginBottom: 8 },
   heroSubtitle: { fontSize: 15, color: '#9CA3AF' },

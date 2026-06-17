@@ -145,30 +145,39 @@ export default function MembershipPage() {
 
     // 监听钱包账户变化事件
     if (typeof window !== 'undefined' && window.ethereum) {
+    };
+    restoreWallet();
+
+    // 监听钱包账户变化事件
+    if (typeof window !== 'undefined' && window.ethereum) {
       const handleAccountsChanged = async (accounts: string[]) => {
-        console.log('accountsChanged:', accounts);
+        console.log('[VIP] accountsChanged:', accounts);
         if (accounts && accounts.length > 0 && /^0x[a-fA-F0-9]{40}$/.test(accounts[0])) {
           const address = accounts[0];
           setWalletAddress(address);
           setWalletStatus('connected');
-          await webStorage.setItem(WALLET_ADDRESS_KEY, address);
+          setWalletType('trust');
+          try {
+            if (window.localStorage) {
+              localStorage.setItem('wallet_info', JSON.stringify({ address, type: 'trust' }));
+            }
+          } catch (e) {}
         } else {
           setWalletAddress('');
           setWalletStatus('disconnected');
-          await webStorage.removeItem(WALLET_ADDRESS_KEY);
+          try {
+            if (window.localStorage) {
+              localStorage.removeItem('wallet_info');
+            }
+          } catch (e) {}
         }
       };
 
-      const handleConnect = () => {
-        console.log('Wallet connected event');
-      };
-
       window.ethereum.on?.('accountsChanged', handleAccountsChanged);
-      window.ethereum.on?.('connect', handleConnect);
+      window.ethereum.on?.('connect', () => console.log('[VIP] Wallet connected event'));
 
       return () => {
         window.ethereum.removeListener?.('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener?.('connect', handleConnect);
       };
     }
   }, []);

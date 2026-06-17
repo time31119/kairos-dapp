@@ -275,8 +275,14 @@ export default function MembershipPage() {
         // 获取 provider
         const provider = getEthereumProvider();
         
+        console.log('[VIP] Wallet Status:', walletStatus);
+        console.log('[VIP] Wallet Address:', walletAddress);
+        console.log('[VIP] Provider:', provider ? 'Found' : 'Not found');
+        console.log('[VIP] Provider keys:', provider ? Object.keys(provider).join(', ') : 'N/A');
+        
         if (provider) {
           try {
+            console.log('[VIP] Requesting transaction...');
             // 请求 TP Wallet 转账
             const txHash = await provider.request({
               method: 'eth_sendTransaction',
@@ -293,14 +299,16 @@ export default function MembershipPage() {
             console.log('Transaction hash:', txHash);
             setShowPaymentModal(true);
           } catch (txError: any) {
+            console.error('[VIP] Transaction error:', txError);
             // 如果用户取消或拒绝，显示手动转账界面
             if (txError.code === 4001 || txError.code === 'ACTION_REJECTED') {
               setShowPaymentModal(true);
             } else {
-              throw txError;
+              Alert.alert('Transaction Failed', txError.message || 'Please try again');
             }
           }
         } else {
+          Alert.alert('Wallet Not Found', 'Please open this page in TP Wallet browser with Web3 enabled');
           // 没有 provider，显示手动转账界面
           setShowPaymentModal(true);
         }

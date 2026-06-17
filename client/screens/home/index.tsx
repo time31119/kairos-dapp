@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
-import SwapModal from '@/components/payment/SwapModal';
+
 import Constants from 'expo-constants';
 
 // 获取 API 地址 - 优先使用当前域名，兼容 Web 和移动端
@@ -400,15 +400,6 @@ export default function HomeScreen() {
   const [categoryFlash, setCategoryFlash] = useState(false);
   const [newsData, setNewsData] = useState<any[]>([]);
   const [newsLoading, setNewsLoading] = useState(true);
-
-  // 兑换功能
-  const [swapModalVisible, setSwapModalVisible] = useState(false);
-  const [selectedSwapToken, setSelectedSwapToken] = useState<any>(null);
-  
-  const handleSwapToken = useCallback((token: any) => {
-    setSelectedSwapToken(token);
-    setSwapModalVisible(true);
-  }, []);
 
   const fetchData = useCallback(() => {
     setLoading(true);
@@ -1052,15 +1043,7 @@ export default function HomeScreen() {
         <View style={styles.bottomGap} />
       </ScrollView>
 
-      {/* 代币兑换弹窗 */}
-      <SwapModal
-        visible={swapModalVisible}
-        token={selectedSwapToken}
-        onClose={() => {
-          setSwapModalVisible(false);
-          setSelectedSwapToken(null);
-        }}
-      />
+
 
     </Screen>
   );

@@ -3,8 +3,8 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import { Screen } from '@/components/Screen';
 import { useSafeRouter, useSafeSearchParams } from '@/hooks/useSafeRouter';
 import { Ionicons } from '@expo/vector-icons';
-import { useWeb3 } from '@/contexts/Web3Context';
 import { apiRequest } from '@/utils/api';
+
 
 // 暗黑科技风配色
 const colors = {
@@ -45,7 +45,6 @@ const MOCK_TOKENS = [
 export default function ScreenerScenario() {
   const { scenario } = useSafeSearchParams<{ scenario: string }>();
   const router = useSafeRouter();
-  const { wallet } = useWeb3();
   
   const scenarioKey = (scenario as string || 'defi') as keyof typeof SCENARIOS;
   const scenarioInfo = SCENARIOS[scenarioKey] || SCENARIOS.defi;
@@ -189,19 +188,11 @@ export default function ScreenerScenario() {
         )}
       </ScrollView>
 
-      {/* Wallet Required Banner */}
-      {!wallet.isConnected && (
-        <View style={styles.walletBanner}>
-          <Ionicons name="wallet-outline" size={24} color={colors.neonCyan} />
-          <Text style={styles.walletBannerText}>连接钱包查看完整行情和交易功能</Text>
-          <TouchableOpacity
-            style={styles.walletBannerButton}
-            onPress={() => router.push('/auth')}
-          >
-            <Text style={styles.walletBannerButtonText}>连接钱包</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* 功能提示 */}
+      <View style={styles.walletBanner}>
+        <Ionicons name="information-circle-outline" size={24} color={colors.neonCyan} />
+        <Text style={styles.walletBannerText}>展示模式：仅查看行情数据</Text>
+      </View>
     </Screen>
   );
 }

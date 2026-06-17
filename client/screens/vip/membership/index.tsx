@@ -395,7 +395,13 @@ export default function MembershipPage() {
       <View style={styles.headerBar}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => {
+            if (typeof window !== 'undefined' && window.history.length > 1) {
+              window.history.back();
+            } else {
+              router.back();
+            }
+          }}
         >
           <Ionicons name="arrow-back" size={24} color="#00F0FF" />
         </TouchableOpacity>

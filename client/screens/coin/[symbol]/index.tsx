@@ -41,7 +41,7 @@ export default function CoinDetailScreen() {
 
   const fetchTokenDetail = async () => {
     try {
-      const res = await fetch(`/api/v1/screener/tokens/${symbol}`);
+      const res = await fetch(`/api/v1/screener/token/${symbol}`);
       if (res.ok) {
         const data = await res.json();
         const tokenData = data.data || data;

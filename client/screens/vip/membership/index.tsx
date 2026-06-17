@@ -87,75 +87,61 @@ export default function MembershipPage() {
   // 恢复钱包连接状态 - 同时检查 window.ethereum 和本地存储
   useEffect(() => {
     const restoreWallet = async () => {
+      console.log('[VIP] Starting wallet restore...');
+      
+      // 1. 检查 TP Wallet 特定标识
+      const isTPWallet = 
+        window?.ethereum?.isTokenPocket || 
+        window?.ethereum?.isTrust ||
+        (window as any)?.tokenpocket ||
+        (window as any)?.TPWallet ||
+        (window as any)?.tpWallet;
+      
+      console.log('[VIP] isTPWallet:', isTPWallet);
+      
+      if (typeof window !== 'undefined' && window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          console.log('[VIP] eth_accounts result:', accounts);
+          if (accounts && accounts.length > 0 && /^0x[a-fA-F0-9]{40}$/.test(accounts[0])) {
+            const address = accounts[0];
+            setWalletAddress(address);
+            setWalletStatus('connected');
+            setWalletType('trust');
+            console.log('[VIP] Wallet restored from eth_accounts:', address);
+            return;
+          }
+        } catch (e: any) {
+          console.log('[VIP] eth_accounts failed:', e?.message);
+        }
+      }
+        
+      // 2. 检查 localStorage
       try {
-        // 1. 先检查 window.ethereum 是否已有连接账户
-        if (typeof window !== 'undefined' && window.ethereum) {
-          try {
-            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-            if (accounts && accounts.length > 0 && /^0x[a-fA-F0-9]{40}$/.test(accounts[0])) {
-              const address = accounts[0];
-              setWalletAddress(address);
+        if (typeof window !== 'undefined' && window.localStorage) {
+          const stored = localStorage.getItem('wallet_info');
+          console.log('[VIP] localStorage wallet_info:', stored ? 'found' : 'not found');
+          if (stored) {
+            const info = JSON.parse(stored);
+            if (info?.address && /^0x[a-fA-F0-9]{40}$/.test(info.address)) {
+              setWalletAddress(info.address);
               setWalletStatus('connected');
-              
-              // 检测钱包类型
-              let detectedType: 'trust' | 'metamask' | 'bsc' = 'metamask';
-              if (window.ethereum?.isTokenPocket || window.ethereum?.isTrust || (window as any).tokenpocket) {
-                detectedType = 'trust';
-              } else if (window.ethereum?.BinanceChain?.bsc) {
-                detectedType = 'bsc';
-              }
-              setWalletType(detectedType);
-              
-              // 保存到存储
-              await webStorage.setItem(WALLET_ADDRESS_KEY, address);
-              await webStorage.setItem(WALLET_TYPE_KEY, detectedType);
+              setWalletType(info.type || 'trust');
+              console.log('[VIP] Wallet restored from localStorage:', info.address);
               return;
             }
-          } catch (e) {
-            console.log('eth_accounts check failed:', e);
-          }
-        }
-        
-        // 2. 再从本地存储恢复 - 优先检查 wallet_info (与"我的"页面一致)
-        // 检查 wallet_info JSON 格式
-        const savedInfoStr = await webStorage.getItem(WALLET_INFO_KEY);
-        if (savedInfoStr) {
-          try {
-            const savedInfo = JSON.parse(savedInfoStr);
-            if (savedInfo?.address && /^0x[a-fA-F0-9]{40}$/.test(savedInfo.address)) {
-              setWalletAddress(savedInfo.address);
-              setWalletStatus('connected');
-              if (savedInfo.type) {
-                setWalletType(savedInfo.type as 'trust' | 'metamask' | 'bsc');
-              } else {
-                const savedType = await webStorage.getItem(WALLET_TYPE_KEY);
-                if (savedType) {
-                  setWalletType(savedType as 'trust' | 'metamask' | 'bsc');
-                }
-              }
-              return;
-            }
-          } catch (e) {
-            console.log('wallet_info parse failed:', e);
-          }
-        }
-        
-        // 兼容旧格式：直接从 wallet_address 读取
-        const savedAddress = await webStorage.getItem(WALLET_ADDRESS_KEY);
-        const savedType = await webStorage.getItem(WALLET_TYPE_KEY);
-        
-        if (savedAddress && /^0x[a-fA-F0-9]{40}$/.test(savedAddress)) {
-          setWalletAddress(savedAddress);
-          setWalletStatus('connected');
-          if (savedType) {
-            setWalletType(savedType as 'trust' | 'metamask' | 'bsc');
           }
         }
       } catch (e) {
-        console.error('Restore wallet failed:', e);
+        console.log('[VIP] localStorage check failed');
       }
+      
+      console.log('[VIP] No wallet found');
     };
-    restoreWallet();
+    
+    // 延迟执行，确保组件完全挂载
+    setTimeout(restoreWallet, 100);
+  }, []);
 
     // 监听钱包账户变化事件
     if (typeof window !== 'undefined' && window.ethereum) {
@@ -370,40 +356,35 @@ export default function MembershipPage() {
   const displayAddress = walletAddress ? formatAddress(walletAddress) : '';
   const walletTypeText = walletType === 'trust' ? 'TP Wallet' : walletType === 'bsc' ? 'BSC Wallet' : 'Wallet';
 
-  // 页面加载时显示调试信息
-  useEffect(() => {
-    const checkAndShowStatus = async () => {
-      // 检查 window.ethereum 是否存在
-      const hasEthereum = typeof window !== 'undefined' && !!window.ethereum;
-      
-      // 检查 localStorage 是否可用
-      let storedInfo = null;
+  // 组件首次渲染时立即检查钱包状态
+  const checkWalletNow = async () => {
+    try {
+      // 检查 window.ethereum
+      if (typeof window !== 'undefined' && window.ethereum) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          if (accounts && accounts.length > 0 && /^0x[a-fA-F0-9]{40}$/.test(accounts[0])) {
+            setWalletAddress(accounts[0]);
+            setWalletStatus('connected');
+          }
+        } catch (e) {}
+      }
+      // 检查 localStorage
       try {
         if (typeof window !== 'undefined' && window.localStorage) {
-          storedInfo = localStorage.getItem('wallet_info');
+          const info = localStorage.getItem('wallet_info');
+          if (info) {
+            const parsed = JSON.parse(info);
+            if (parsed?.address && /^0x[a-fA-F0-9]{40}$/.test(parsed.address)) {
+              setWalletAddress(parsed.address);
+              setWalletStatus('connected');
+            }
+          }
         }
-      } catch (e) {
-        storedInfo = 'localStorage error';
-      }
-      
-      // 检查 eth_accounts
-      let ethAccounts = 'N/A';
-      if (hasEthereum) {
-        try {
-          ethAccounts = await window.ethereum.request({ method: 'eth_accounts' });
-        } catch (e) {
-          ethAccounts = 'error';
-        }
-      }
-      
-      Alert.alert(
-        'Debug Info',
-        `Status: ${walletStatus}\nAddress: ${walletAddress || 'none'}\nType: ${walletType || 'none'}\n\nhasEthereum: ${hasEthereum}\nstoredInfo: ${storedInfo || 'none'}\nethAccounts: ${JSON.stringify(ethAccounts)}`
-      );
-    };
-    
-    checkAndShowStatus();
-  }, []);
+      } catch (e) {}
+    } catch (e) {}
+  };
+  checkWalletNow();
 
   return (
     <Screen safeAreaStyle={{ backgroundColor: '#0A0A0F' }}>

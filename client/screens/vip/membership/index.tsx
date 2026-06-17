@@ -390,18 +390,29 @@ export default function MembershipPage() {
   };
   checkWalletNow();
 
+  const handleBack = () => {
+    // 尝试多种返回方式
+    if (typeof window !== 'undefined') {
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+      // 如果 history 为空，尝试导航
+      try {
+        router.back();
+      } catch (e) {
+        // 如果 router 也失败，尝试跳转到首页
+        window.location.href = '/';
+      }
+    }
+  };
+
   return (
     <Screen safeAreaStyle={{ backgroundColor: '#0A0A0F' }}>
       <View style={styles.headerBar}>
         <TouchableOpacity 
           style={styles.backButton}
-          onPress={() => {
-            if (typeof window !== 'undefined' && window.history.length > 1) {
-              window.history.back();
-            } else {
-              router.back();
-            }
-          }}
+          onPress={handleBack}
         >
           <Ionicons name="arrow-back" size={24} color="#00F0FF" />
         </TouchableOpacity>

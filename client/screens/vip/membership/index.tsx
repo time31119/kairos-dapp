@@ -149,6 +149,7 @@ export default function MembershipPage() {
     try {
       setIsProcessing(true);
       
+      // 创建订单
       const response = await fetch(EXPO_PUBLIC_BACKEND_BASE_URL + '/api/v1/subscription/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -163,7 +164,52 @@ export default function MembershipPage() {
       
       if (response.ok && data.orderId) {
         setOrderId(data.orderId);
-        setShowPaymentModal(true);
+        
+        // USDT (BEP20) 合约地址
+        const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955';
+        // 收款地址
+        const RECEIVE_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d';
+        // 金额（USDT 有 6 位小数，转换为最小单位）
+        const amount = currentPrice;
+        const amountInSmallestUnit = BigInt(Math.round(amount * 1000000));
+        
+        // 构建 USDT transfer 函数调用
+        const transferData = '0xa9059cbb' + 
+          RECEIVE_ADDRESS.slice(2).padStart(64, '0') + 
+          amountInSmallestUnit.toString(16).padStart(64, '0');
+        
+        // 获取 provider
+        const provider = getEthereumProvider();
+        
+        if (provider) {
+          try {
+            // 请求 TP Wallet 转账
+            const txHash = await provider.request({
+              method: 'eth_sendTransaction',
+              params: [{
+                from: walletAddress,
+                to: USDT_CONTRACT,
+                value: '0x0',
+                data: transferData,
+                gas: '0x50000',
+                gasPrice: '0x12A05F200', // ~5 Gwei
+              }],
+            });
+            
+            console.log('Transaction hash:', txHash);
+            setShowPaymentModal(true);
+          } catch (txError: any) {
+            // 如果用户取消或拒绝，显示手动转账界面
+            if (txError.code === 4001 || txError.code === 'ACTION_REJECTED') {
+              setShowPaymentModal(true);
+            } else {
+              throw txError;
+            }
+          }
+        } else {
+          // 没有 provider，显示手动转账界面
+          setShowPaymentModal(true);
+        }
       } else {
         Alert.alert('Order Failed', data.message || 'Please try again');
       }

@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import screenerRouter from "./routes/screener";
 import copytradingRouter from "./routes/copytrading";
@@ -21,7 +22,20 @@ const app = express();
 const port = process.env.PORT || 9091;
 
 // Static files for frontend with no-cache headers
-const staticPath = path.join(__dirname, '../../client/dist');
+// Check both possible locations: server/dist (production) and ../../client/dist (development)
+const possiblePaths = [
+  path.join(__dirname),                     // server/dist/
+  path.join(__dirname, '../../client/dist'), // development path
+];
+const staticPath = possiblePaths.find(p => {
+  try {
+    return fs.existsSync(path.join(p, 'index.html'));
+  } catch {
+    return false;
+  }
+}) || possiblePaths[0];
+
+console.log('[Static] Serving from:', staticPath);
 app.use(express.static(staticPath, {
   setHeaders: (res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');

@@ -96,6 +96,7 @@ export default function MembershipPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderId, setOrderId] = useState<string>('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   const currentPrice = selectedPlan.price[selectedBillingCycle];
 
@@ -262,7 +263,7 @@ export default function MembershipPage() {
         // 获取 provider
         const provider = getEthereumProvider();
         
-        Alert.alert('Debug', `Provider: ${provider ? 'Found' : 'Not found'}`);
+        setDebugInfo(`Debug: Provider=${provider ? 'Found' : 'Not found'}, ethereum=${provider?.ethereum ? 'Yes' : 'No'}`);
         
         if (provider && provider.ethereum) {
           try {
@@ -300,16 +301,16 @@ export default function MembershipPage() {
             setShowPaymentModal(true);
           }
         } else {
-          Alert.alert('Wallet Not Supported', 'Please enable Web3 in TP Wallet settings, or use manual transfer');
+          setDebugInfo('Wallet Not Supported: Please enable Web3 in TP Wallet settings');
           // 没有 provider，显示手动转账界面
           setShowPaymentModal(true);
         }
       } else {
-        Alert.alert('Order Failed', data.message || 'Please try again');
+        setDebugInfo(`Order Failed: ${data.message || 'Unknown error'}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create order error:', error);
-      Alert.alert('Network Error', 'Please check your connection');
+      setDebugInfo(`Network Error: ${error.message || 'Unknown error'}`);
     } finally {
       setIsProcessing(false);
     }
@@ -445,6 +446,15 @@ export default function MembershipPage() {
                   <Text style={styles.payButtonText}>Pay Now</Text>
                 )}
               </TouchableOpacity>
+              
+              {/* Debug Info */}
+              {debugInfo ? (
+                <View style={{ marginTop: 10, padding: 10, backgroundColor: '#333', borderRadius: 8 }}>
+                  <Text style={{ color: '#00F0FF', fontSize: 12, fontFamily: Platform.OS === 'web' ? 'monospace' : undefined }}>
+                    {debugInfo}
+                  </Text>
+                </View>
+              ) : null}
             </View>
           ) : (
             <TouchableOpacity 

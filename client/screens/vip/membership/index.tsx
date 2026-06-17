@@ -31,7 +31,7 @@ const WALLET_ADDRESS_KEY = 'wallet_address';
 const WALLET_TYPE_KEY = 'wallet_type';
 const WALLET_INFO_KEY = 'wallet_info'; // 与"我的"页面保持一致
 
-const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'https://api.example.com';
+const EXPO_PUBLIC_BACKEND_BASE_URL = 'http://44.207.237.253:9091';
 
 // Web环境使用 localStorage，RN环境使用 AsyncStorage
 const webStorage = {

@@ -89,16 +89,7 @@ export default function MembershipPage() {
     const restoreWallet = async () => {
       console.log('[VIP] Starting wallet restore...');
       
-      // 1. 检查 TP Wallet 特定标识
-      const isTPWallet = 
-        window?.ethereum?.isTokenPocket || 
-        window?.ethereum?.isTrust ||
-        (window as any)?.tokenpocket ||
-        (window as any)?.TPWallet ||
-        (window as any)?.tpWallet;
-      
-      console.log('[VIP] isTPWallet:', isTPWallet);
-      
+      // 1. 检查 window.ethereum
       if (typeof window !== 'undefined' && window.ethereum) {
         try {
           const accounts = await window.ethereum.request({ method: 'eth_accounts' });
@@ -139,13 +130,6 @@ export default function MembershipPage() {
       console.log('[VIP] No wallet found');
     };
     
-    // 延迟执行，确保组件完全挂载
-    setTimeout(restoreWallet, 100);
-  }, []);
-
-    // 监听钱包账户变化事件
-    if (typeof window !== 'undefined' && window.ethereum) {
-    };
     restoreWallet();
 
     // 监听钱包账户变化事件

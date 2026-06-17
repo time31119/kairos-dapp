@@ -21,19 +21,42 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 9091;
 
-// Static files for frontend with no-cache headers
+// Custom static file handler with SPA fallback
 const staticPath = path.join(__dirname);
 
 console.log('[Static] Serving from:', staticPath);
 console.log('[Static] __dirname:', __dirname);
 console.log('[Static] index.html exists:', fs.existsSync(path.join(staticPath, 'index.html')));
-app.use(express.static(staticPath, {
-  setHeaders: (res) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+
+// Custom static middleware with SPA fallback
+app.use((req, res, next) => {
+  // Skip API routes
+  if (req.path.startsWith('/api')) {
+    return next();
   }
-}));
+  
+  // Try to serve static file
+  const filePath = path.join(staticPath, req.path);
+  
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    return res.sendFile(filePath, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
+  }
+  
+  // Fallback to index.html for SPA
+  res.sendFile(path.join(staticPath, 'index.html'), {
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    }
+  });
+});
 
 // Middleware
 app.use(cors());
@@ -57,15 +80,6 @@ app.use('/api/v1/news', newsRouter);
 app.use('/api/v1/subscription', subscriptionRouter);
 app.use('/api/v1/referral', referralRouter);
 app.use('/api/v1/positions', positionsRouter);
-
-// SPA fallback - serve index.html for all other routes (must be last)
-app.use((req, res, next) => {
-  // Only handle GET requests for non-API routes
-  if (req.method !== 'GET' || req.path.startsWith('/api')) {
-    return next();
-  }
-  res.sendFile(path.join(staticPath, 'index.html'));
-});
 
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}/`);

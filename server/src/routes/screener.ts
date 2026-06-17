@@ -536,39 +536,4 @@ router.get('/hot/tokens', (req, res) => {
   res.json({ success: true, data: allTokens });
 });
 
-// 获取代币详情
-router.get('/token/:symbol', (req, res) => {
-  const { symbol } = req.params;
-  const allTokens = [
-    ...generateTokens('defi'),
-    ...generateTokens('meme'),
-    ...generateTokens('ai'),
-    ...generateTokens('gaming'),
-    ...generateTokens('infrastructure'),
-    ...generateTokens('layer2'),
-  ];
-  
-  const token = allTokens.find(t => t.symbol.toUpperCase() === symbol.toUpperCase());
-  
-  if (!token) {
-    return res.status(404).json({ success: false, error: 'Token not found' });
-  }
-  
-  // 生成更多详情
-  const details = {
-    ...token,
-    priceHistory: Array.from({ length: 24 }, (_, i) => ({
-      time: i,
-      price: token.price * (1 + (Math.random() - 0.5) * 0.1),
-    })),
-    holders: Math.floor(Math.random() * 1000000) + 10000,
-    transactions: Math.floor(Math.random() * 10000000) + 100000,
-    contractAddress: `0x${symbol.toLowerCase().repeat(10)}...`,
-    website: `https://${symbol.toLowerCase()}.xyz`,
-    twitter: `@${symbol}Protocol`,
-  };
-  
-  res.json({ success: true, data: details });
-});
-
 export default router;

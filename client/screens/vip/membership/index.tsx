@@ -32,23 +32,10 @@ const WALLET_TYPE_KEY = 'wallet_type';
 
 const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'https://api.example.com';
 
-// 获取以太坊提供者 - 和"我的"页面完全相同的逻辑
+// 获取以太坊提供者 - 简化逻辑，直接使用 window.ethereum
 const getEthereumProvider = () => {
-  if (typeof window !== 'undefined') {
-    // TP Wallet (Trust Wallet) - 主要检测方式
-    if (window.trustwallet || window.trustwallet?.isTrust) {
-      return window;
-    }
-    
-    // TP Wallet 也可能注入 ethereum 对象
-    if (window.ethereum) {
-      // 检查是否是 TP Wallet
-      if (window.ethereum?.isTokenPocket || window.ethereum?.isTrust || window.tokenpocket) {
-        return window;
-      }
-      // 其他钱包 (MetaMask)
-      return window;
-    }
+  if (typeof window !== 'undefined' && window.ethereum) {
+    return window;
   }
   return null;
 };

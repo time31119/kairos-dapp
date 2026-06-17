@@ -433,7 +433,7 @@ export default function MembershipPage() {
             </View>
           ) : (
             <TouchableOpacity 
-              style={styles.connectButton}
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#00F0FF', paddingVertical: 16, borderRadius: 12, gap: 10 }}
               onPress={handleConnectWallet}
             >
               {walletStatus === 'connecting' ? (

@@ -81,6 +81,6 @@ app.use('/api/v1/subscription', subscriptionRouter);
 app.use('/api/v1/referral', referralRouter);
 app.use('/api/v1/positions', positionsRouter);
 
-app.listen(port, () => {
-  console.log(`Server listening at http://localhost:${port}/`);
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server listening at http://0.0.0.0:${port}/`);
 });

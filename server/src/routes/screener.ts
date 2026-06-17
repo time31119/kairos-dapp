@@ -266,6 +266,86 @@ router.get('/:scenario', (req, res) => {
   });
 });
 
+// 获取单个代币详情
+router.get('/tokens/:symbol', (req, res) => {
+  const { symbol } = req.params;
+  const upperSymbol = symbol?.toUpperCase();
+  
+  // 从所有场景中找到这个代币
+  let tokenData: any = null;
+  
+  (Object.keys(SCENARIO_TOKENS) as ScenarioType[]).forEach(scenario => {
+    const tokens = generateTokens(scenario);
+    const found = tokens.find(t => t.symbol === upperSymbol);
+    if (found) {
+      tokenData = { ...found, scenario };
+    }
+  });
+  
+  // 如果没找到，尝试生成数据
+  if (!tokenData) {
+    // 常见代币的默认数据
+    const defaultTokens: Record<string, any> = {
+      'BTC': { symbol: 'BTC', name: 'Bitcoin', price: 67234.56, change: 5.23, volume: 28500000000, marketCap: 1320000000000 },
+      'ETH': { symbol: 'ETH', name: 'Ethereum', price: 3456.78, change: 2.34, volume: 12300000000, marketCap: 415000000000 },
+      'USDT': { symbol: 'USDT', name: 'Tether', price: 1.00, change: 0.01, volume: 52000000000, marketCap: 83000000000 },
+      'BNB': { symbol: 'BNB', name: 'BNB', price: 598.45, change: 1.23, volume: 1800000000, marketCap: 89000000000 },
+      'SOL': { symbol: 'SOL', name: 'Solana', price: 145.67, change: 8.45, volume: 3200000000, marketCap: 65000000000 },
+    };
+    
+    tokenData = defaultTokens[upperSymbol] || {
+      symbol: upperSymbol,
+      name: upperSymbol,
+      price: Math.random() * 100 + 0.001,
+      change: (Math.random() - 0.5) * 20,
+      volume: Math.random() * 1000000000,
+      marketCap: Math.random() * 10000000000,
+      scenario: 'defi'
+    };
+  }
+  
+  // 添加实时波动
+  const priceWith波动 = tokenData.price * (1 + (Math.random() - 0.5) * 0.002);
+  const changeWith波动 = tokenData.change + (Math.random() - 0.5) * 0.3;
+  
+  // 格式化价格
+  const formatPrice = (price: number) => {
+    if (price >= 1000) return '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (price >= 1) return '$' + price.toFixed(2);
+    if (price >= 0.01) return '$' + price.toFixed(4);
+    return '$' + price.toFixed(6);
+  };
+  
+  // 格式化大数字
+  const formatLargeNumber = (num: number) => {
+    if (num >= 1e12) return '$' + (num / 1e12).toFixed(2) + 'T';
+    if (num >= 1e9) return '$' + (num / 1e9).toFixed(2) + 'B';
+    if (num >= 1e6) return '$' + (num / 1e6).toFixed(2) + 'M';
+    return '$' + num.toLocaleString();
+  };
+  
+  res.json({
+    success: true,
+    data: {
+      symbol: tokenData.symbol,
+      name: tokenData.name,
+      price: formatPrice(priceWith波动),
+      priceRaw: priceWith波动,
+      change24h: (changeWith波动 >= 0 ? '+' : '') + changeWith波动.toFixed(2) + '%',
+      marketCap: formatLargeNumber(tokenData.marketCap),
+      volume24h: formatLargeNumber(tokenData.volume),
+      high24h: formatPrice(priceWith波动 * 1.02),
+      low24h: formatPrice(priceWith波动 * 0.98),
+      holders: (Math.floor(Math.random() * 100) / 10 + 0.5).toFixed(1) + 'M',
+      contracts: [
+        { name: 'ERC20', address: '0x' + Math.random().toString(16).slice(2, 10) + '...' + Math.random().toString(16).slice(2, 6) }
+      ],
+      scenario: tokenData.scenario,
+      updatedAt: new Date().toISOString(),
+    }
+  });
+});
+
 // 技术分析实时数据
 router.get('/analysis/realtime', (req, res) => {
   // 技术分析指标数据（带实时变化）

@@ -58,8 +58,12 @@ app.use('/api/v1/subscription', subscriptionRouter);
 app.use('/api/v1/referral', referralRouter);
 app.use('/api/v1/positions', positionsRouter);
 
-// SPA fallback - serve index.html for all other routes
-app.get('*', (req, res) => {
+// SPA fallback - serve index.html for all other routes (must be last)
+app.use((req, res, next) => {
+  // Only handle GET requests for non-API routes
+  if (req.method !== 'GET' || req.path.startsWith('/api')) {
+    return next();
+  }
   res.sendFile(path.join(staticPath, 'index.html'));
 });
 

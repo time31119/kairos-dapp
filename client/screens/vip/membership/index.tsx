@@ -391,17 +391,17 @@ export default function MembershipPage() {
   checkWalletNow();
 
   const handleBack = () => {
-    // 尝试多种返回方式
-    if (typeof window !== 'undefined') {
-      if (window.history.length > 1) {
+    // 在 TP Wallet 等内置浏览器中，优先使用 router.back()
+    try {
+      // 先尝试 router.back()，如果失败或没有历史记录会跳转到首页
+      if (typeof window !== 'undefined' && window.history.length > 1) {
         window.history.back();
-        return;
-      }
-      // 如果 history 为空，尝试导航
-      try {
+      } else {
         router.back();
-      } catch (e) {
-        // 如果 router 也失败，尝试跳转到首页
+      }
+    } catch (e) {
+      // 最后兜底：跳转到首页
+      if (typeof window !== 'undefined') {
         window.location.href = '/';
       }
     }

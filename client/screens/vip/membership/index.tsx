@@ -29,6 +29,7 @@ declare global {
 
 const WALLET_ADDRESS_KEY = 'wallet_address';
 const WALLET_TYPE_KEY = 'wallet_type';
+const WALLET_INFO_KEY = 'wallet_info'; // 与"我的"页面保持一致
 
 const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'https://api.example.com';
 
@@ -45,6 +46,13 @@ const webStorage = {
       localStorage.setItem(key, value);
     } else {
       await AsyncStorage.setItem(key, value);
+    }
+  },
+  removeItem: async (key: string): Promise<void> => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem(key);
+    } else {
+      await AsyncStorage.removeItem(key);
     }
   },
 };
@@ -108,7 +116,31 @@ export default function MembershipPage() {
           }
         }
         
-        // 2. 再从本地存储恢复
+        // 2. 再从本地存储恢复 - 优先检查 wallet_info (与"我的"页面一致)
+        // 检查 wallet_info JSON 格式
+        const savedInfoStr = await webStorage.getItem(WALLET_INFO_KEY);
+        if (savedInfoStr) {
+          try {
+            const savedInfo = JSON.parse(savedInfoStr);
+            if (savedInfo?.address && /^0x[a-fA-F0-9]{40}$/.test(savedInfo.address)) {
+              setWalletAddress(savedInfo.address);
+              setWalletStatus('connected');
+              if (savedInfo.type) {
+                setWalletType(savedInfo.type as 'trust' | 'metamask' | 'bsc');
+              } else {
+                const savedType = await webStorage.getItem(WALLET_TYPE_KEY);
+                if (savedType) {
+                  setWalletType(savedType as 'trust' | 'metamask' | 'bsc');
+                }
+              }
+              return;
+            }
+          } catch (e) {
+            console.log('wallet_info parse failed:', e);
+          }
+        }
+        
+        // 兼容旧格式：直接从 wallet_address 读取
         const savedAddress = await webStorage.getItem(WALLET_ADDRESS_KEY);
         const savedType = await webStorage.getItem(WALLET_TYPE_KEY);
         
@@ -124,6 +156,35 @@ export default function MembershipPage() {
       }
     };
     restoreWallet();
+
+    // 监听钱包账户变化事件
+    if (typeof window !== 'undefined' && window.ethereum) {
+      const handleAccountsChanged = async (accounts: string[]) => {
+        console.log('accountsChanged:', accounts);
+        if (accounts && accounts.length > 0 && /^0x[a-fA-F0-9]{40}$/.test(accounts[0])) {
+          const address = accounts[0];
+          setWalletAddress(address);
+          setWalletStatus('connected');
+          await webStorage.setItem(WALLET_ADDRESS_KEY, address);
+        } else {
+          setWalletAddress('');
+          setWalletStatus('disconnected');
+          await webStorage.removeItem(WALLET_ADDRESS_KEY);
+        }
+      };
+
+      const handleConnect = () => {
+        console.log('Wallet connected event');
+      };
+
+      window.ethereum.on?.('accountsChanged', handleAccountsChanged);
+      window.ethereum.on?.('connect', handleConnect);
+
+      return () => {
+        window.ethereum.removeListener?.('accountsChanged', handleAccountsChanged);
+        window.ethereum.removeListener?.('connect', handleConnect);
+      };
+    }
   }, []);
 
   // 连接钱包 - 和"我的"页面完全相同的逻辑
@@ -152,7 +213,13 @@ export default function MembershipPage() {
           }
           setWalletType(detectedType);
 
-          // 保存到本地存储 (Web用localStorage, RN用AsyncStorage)
+          // 保存到本地存储 - 同时保存 wallet_info 和旧格式 (Web用localStorage, RN用AsyncStorage)
+          const walletInfo = {
+            address,
+            chain: 'bsc',
+            connectedAt: Date.now(),
+          };
+          await webStorage.setItem(WALLET_INFO_KEY, JSON.stringify(walletInfo));
           await webStorage.setItem(WALLET_ADDRESS_KEY, address);
           await webStorage.setItem(WALLET_TYPE_KEY, detectedType);
         } else {

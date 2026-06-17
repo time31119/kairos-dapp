@@ -254,7 +254,7 @@ const MAIN_TOKENS: Record<string, any> = {
 };
 
 // 获取单个代币详情 - 必须放在 /:scenario 之前
-router.get('/tokens/:symbol', (req, res) => {
+router.get('/token/:symbol', (req, res) => {
   const { symbol } = req.params;
   const upperSymbol = symbol?.toUpperCase();
   

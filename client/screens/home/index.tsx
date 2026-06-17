@@ -15,8 +15,11 @@ import * as Clipboard from 'expo-clipboard';
 import SwapModal from '@/components/payment/SwapModal';
 import Constants from 'expo-constants';
 
-// 获取 API 地址 - 兼容 Web 和移动端
-const API_URL = Constants.expoConfig?.extra?.backendBaseUrl || process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
+// 获取 API 地址 - 优先使用当前域名，兼容 Web 和移动端
+const API_URL = (typeof window !== 'undefined' && window.location.origin) 
+  || Constants.expoConfig?.extra?.backendBaseUrl 
+  || process.env.EXPO_PUBLIC_BACKEND_BASE_URL 
+  || '';
 
 // 赛道分类 - 完整信息
 const CATEGORIES = [

@@ -34,35 +34,43 @@ export default function CoinDetailScreen() {
       const res = await fetch(`${API_BASE}/api/v1/screener/tokens/${symbol}`);
       if (res.ok) {
         const data = await res.json();
-        setToken(data.data || {
-          symbol: symbol || 'BTC',
-          name: 'Bitcoin',
-          price: '$67,234.56',
-          change24h: '+5.23%',
-          marketCap: '$1.32T',
-          volume24h: '$28.5B',
-          high24h: '$68,000',
-          low24h: '$65,000',
-          holders: '1.2M',
-          contracts: [{ name: 'ERC20', address: '0x1234...abcd' }]
+        const tokenData = data.data || data;
+        setToken({
+          symbol: tokenData.symbol || symbol?.toUpperCase() || 'BTC',
+          name: tokenData.name || 'Bitcoin',
+          price: tokenData.price || '$67,234.56',
+          change24h: tokenData.change24h || '+5.23%',
+          marketCap: tokenData.marketCap || '$1.32T',
+          volume24h: tokenData.volume24h || '$28.5B',
+          high24h: tokenData.high24h || '$68,000',
+          low24h: tokenData.low24h || '$65,000',
+          holders: tokenData.holders || '1.2M',
+          contracts: tokenData.contracts || [{ name: 'ERC20', address: '0x1234...abcd' }]
         });
+      } else {
+        // HTTP error, use fallback
+        setToken(getFallbackData());
       }
     } catch (e) {
-      setToken({
-        symbol: symbol || 'BTC',
-        name: 'Bitcoin',
-        price: '$67,234.56',
-        change24h: '+5.23%',
-        marketCap: '$1.32T',
-        volume24h: '$28.5B',
-        high24h: '$68,000',
-        low24h: '$65,000',
-        holders: '1.2M',
-        contracts: [{ name: 'ERC20', address: '0x1234...abcd' }]
-      });
+      // Network error, use fallback
+      setToken(getFallbackData());
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+
+  const getFallbackData = () => ({
+    symbol: symbol?.toUpperCase() || 'BTC',
+    name: 'Bitcoin',
+    price: '$67,234.56',
+    change24h: '+5.23%',
+    marketCap: '$1.32T',
+    volume24h: '$28.5B',
+    high24h: '$68,000',
+    low24h: '$65,000',
+    holders: '1.2M',
+    contracts: [{ name: 'ERC20', address: '0x1234...abcd' }]
+  });
 
   if (loading) {
     return (

@@ -259,32 +259,28 @@ export default function MembershipPage() {
       if (response.ok && data.orderId) {
         setOrderId(data.orderId);
         
-        // USDT (BEP20) 合约地址
-        const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955';
-        // 收款地址
-        const RECEIVE_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d';
-        // 金额（USDT 有 6 位小数，转换为最小单位）
-        const amount = currentPrice;
-        const amountInSmallestUnit = BigInt(Math.round(amount * 1000000));
-        
-        // 构建 USDT transfer 函数调用
-        const transferData = '0xa9059cbb' + 
-          RECEIVE_ADDRESS.slice(2).padStart(64, '0') + 
-          amountInSmallestUnit.toString(16).padStart(64, '0');
-        
         // 获取 provider
         const provider = getEthereumProvider();
         
-        console.log('[VIP] Wallet Status:', walletStatus);
-        console.log('[VIP] Wallet Address:', walletAddress);
-        console.log('[VIP] Provider:', provider ? 'Found' : 'Not found');
-        console.log('[VIP] Provider keys:', provider ? Object.keys(provider).join(', ') : 'N/A');
+        Alert.alert('Debug', `Provider: ${provider ? 'Found' : 'Not found'}`);
         
-        if (provider) {
+        if (provider && provider.ethereum) {
           try {
-            console.log('[VIP] Requesting transaction...');
+            // USDT (BEP20) 合约地址
+            const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955';
+            // 收款地址
+            const RECEIVE_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d';
+            // 金额（USDT 有 6 位小数）
+            const amount = currentPrice;
+            const amountInSmallestUnit = BigInt(Math.round(amount * 1000000));
+            
+            // 构建 USDT transfer 函数调用
+            const transferData = '0xa9059cbb' + 
+              RECEIVE_ADDRESS.slice(2).padStart(64, '0') + 
+              amountInSmallestUnit.toString(16).padStart(64, '0');
+            
             // 请求 TP Wallet 转账
-            const txHash = await provider.request({
+            const txHash = await provider.ethereum.request({
               method: 'eth_sendTransaction',
               params: [{
                 from: walletAddress,
@@ -292,7 +288,6 @@ export default function MembershipPage() {
                 value: '0x0',
                 data: transferData,
                 gas: '0x50000',
-                gasPrice: '0x12A05F200', // ~5 Gwei
               }],
             });
             
@@ -300,15 +295,12 @@ export default function MembershipPage() {
             setShowPaymentModal(true);
           } catch (txError: any) {
             console.error('[VIP] Transaction error:', txError);
-            // 如果用户取消或拒绝，显示手动转账界面
-            if (txError.code === 4001 || txError.code === 'ACTION_REJECTED') {
-              setShowPaymentModal(true);
-            } else {
-              Alert.alert('Transaction Failed', txError.message || 'Please try again');
-            }
+            Alert.alert('Transaction Error', txError.message || 'Transaction failed');
+            // 显示手动转账界面
+            setShowPaymentModal(true);
           }
         } else {
-          Alert.alert('Wallet Not Found', 'Please open this page in TP Wallet browser with Web3 enabled');
+          Alert.alert('Wallet Not Supported', 'Please enable Web3 in TP Wallet settings, or use manual transfer');
           // 没有 provider，显示手动转账界面
           setShowPaymentModal(true);
         }

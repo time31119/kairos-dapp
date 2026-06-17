@@ -61,20 +61,23 @@ const webStorage = {
 const getEthereumProvider = () => {
   if (typeof window === 'undefined') return null;
   
-  // TP Wallet 内置浏览器
-  // TP Wallet 可能通过 trustwallet 或 ethereum 对象暴露
-  const provider = (window as any);
-  
-  // 检查 TP Wallet (trustwallet)
-  if (provider.trustwallet) {
-    console.log('[VIP] Using Trust Wallet provider');
-    return provider;
-  }
-  
-  // 检查 standard ethereum provider
-  if (provider.ethereum) {
-    console.log('[VIP] Using Ethereum provider:', provider.ethereum.isMetaMask ? 'MetaMask' : provider.ethereum.isTrust ? 'Trust Wallet' : 'Unknown');
-    return provider;
+  try {
+    const provider = (window as any);
+    
+    // 检查 TP Wallet (trustwallet)
+    if (provider.trustwallet) {
+      console.log('[VIP] Using Trust Wallet provider');
+      return provider;
+    }
+    
+    // 检查 standard ethereum provider - 添加安全检查
+    if (provider.ethereum && typeof provider.ethereum.request === 'function') {
+      console.log('[VIP] Using Ethereum provider:', provider.ethereum.isMetaMask ? 'MetaMask' : provider.ethereum.isTrust ? 'Trust Wallet' : 'Unknown');
+      return provider;
+    }
+  } catch (e) {
+    // 忽略 TP Wallet 内部错误
+    console.log('[VIP] Wallet detection error (ignored):', e);
   }
   
   return null;

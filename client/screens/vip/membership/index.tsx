@@ -433,19 +433,17 @@ export default function MembershipPage() {
             </View>
           ) : (
             <TouchableOpacity 
-              style={[
-                styles.connectButton,
-                walletStatus === 'connecting' && styles.connectButtonDisabled
-              ]}
+              style={styles.connectButton}
               onPress={handleConnectWallet}
-              disabled={walletStatus === 'connecting'}
             >
               {walletStatus === 'connecting' ? (
                 <ActivityIndicator color="#0A0A0F" />
               ) : (
                 <>
                   <Ionicons name="wallet-outline" size={24} color="#0A0A0F" />
-                  <Text style={styles.connectButtonText}>Connect TP Wallet</Text>
+                  <Text style={styles.connectButtonText}>
+                    {walletStatus === 'connected' ? 'Proceed to Pay' : 'Connect TP Wallet'}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>

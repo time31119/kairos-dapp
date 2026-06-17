@@ -30,6 +30,52 @@ router.get('/status', async (req, res) => {
   }
 });
 
+// 创建订阅订单 - 别名路由（兼容前端调用）
+router.post('/create', async (req, res) => {
+  try {
+    const { planId, billingCycle, walletAddress } = req.body;
+    
+    if (!planId || !billingCycle) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required parameters: planId, billingCycle' 
+      });
+    }
+
+    const plans = getSubscriptionPlans();
+    const plan = plans.find(p => p.id === planId);
+    
+    if (!plan) {
+      return res.status(400).json({ success: false, message: 'Invalid plan' });
+    }
+
+    const price = plan.price[billingCycle as keyof typeof plan.price];
+    const orderId = `ORD${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    
+    // 收款地址配置（TP钱包使用BEP20）
+    const PAYMENT_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d';
+    
+    res.json({ 
+      success: true, 
+      orderId,
+      data: {
+        orderId,
+        planId,
+        planName: plan.name,
+        billingCycle,
+        price,
+        paymentAddress: PAYMENT_ADDRESS,
+        walletAddress,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Create order error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create order' });
+  }
+});
+
 // 创建订阅订单
 router.post('/create-order', async (req, res) => {
   try {

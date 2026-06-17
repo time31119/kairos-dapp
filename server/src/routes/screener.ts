@@ -239,26 +239,27 @@ router.get('/featured', (req: any, res: any) => {
   });
 });
 
+// 主流代币默认数据
+const MAIN_TOKENS: Record<string, any> = {
+  'BTC': { symbol: 'BTC', name: 'Bitcoin', price: 67234.56, change: 5.23, volume: 28500000000, marketCap: 1320000000000 },
+  'ETH': { symbol: 'ETH', name: 'Ethereum', price: 3456.78, change: 2.34, volume: 12300000000, marketCap: 415000000000 },
+  'SOL': { symbol: 'SOL', name: 'Solana', price: 145.67, change: 8.45, volume: 3200000000, marketCap: 65000000000 },
+  'BNB': { symbol: 'BNB', name: 'BNB', price: 598.45, change: 1.23, volume: 1800000000, marketCap: 89000000000 },
+  'XRP': { symbol: 'XRP', name: 'Ripple', price: 0.52, change: 3.12, volume: 1200000000, marketCap: 28000000000 },
+  'ADA': { symbol: 'ADA', name: 'Cardano', price: 0.45, change: -1.23, volume: 450000000, marketCap: 16000000000 },
+  'DOGE': { symbol: 'DOGE', name: 'Dogecoin', price: 0.12, change: 5.67, volume: 890000000, marketCap: 17000000000 },
+  'AVAX': { symbol: 'AVAX', name: 'Avalanche', price: 35.67, change: 4.23, volume: 560000000, marketCap: 14000000000 },
+  'DOT': { symbol: 'DOT', name: 'Polkadot', price: 7.23, change: 2.45, volume: 320000000, marketCap: 9800000000 },
+  'LINK': { symbol: 'LINK', name: 'Chainlink', price: 14.56, change: 3.78, volume: 480000000, marketCap: 8500000000 },
+};
+
 // 获取单个代币详情 - 必须放在 /:scenario 之前
 router.get('/tokens/:symbol', (req, res) => {
   const { symbol } = req.params;
   const upperSymbol = symbol?.toUpperCase();
   
-  // 从所有场景中找到这个代币
-  let tokenData: any = null;
-  
-  (Object.keys(SCENARIO_TOKENS) as ScenarioType[]).forEach(scenario => {
-    const tokens = generateTokens(scenario);
-    const found = tokens.find(t => t.symbol === upperSymbol);
-    if (found) {
-      tokenData = { ...found, scenario };
-    }
-  });
-  
-  // 如果找不到，尝试使用默认代币数据
-  if (!tokenData && defaultTokens[upperSymbol]) {
-    tokenData = defaultTokens[upperSymbol];
-  }
+  // 先从主流代币中查找
+  let tokenData: any = MAIN_TOKENS[upperSymbol];
   
   if (!tokenData) {
     // 生成合理的模拟数据

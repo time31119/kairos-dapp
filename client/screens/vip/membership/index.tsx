@@ -273,12 +273,14 @@ export default function MembershipPage() {
             const RECEIVE_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d';
             // 金额（USDT BEP20 有 18 位小数）
             const amount = currentPrice;
-            const amountInSmallestUnit = BigInt(Math.round(amount * 1e18));
+            // 使用字符串方式避免浮点数精度问题
+            const amountStr = amount.toString().split('.')[0] + '.' + amount.toString().split('.')[1]?.padEnd(18, '0') || '';
+            const amountInSmallestUnit = amountStr.replace('.', '').padEnd(19, '0');
             
             // 构建 USDT transfer 函数调用
             const transferData = '0xa9059cbb' + 
               RECEIVE_ADDRESS.slice(2).padStart(64, '0') + 
-              amountInSmallestUnit.toString(16).padStart(64, '0');
+              BigInt(amountInSmallestUnit).toString(16).padStart(64, '0');
             
             // 请求 TP Wallet 转账
             const txHash = await provider.ethereum.request({

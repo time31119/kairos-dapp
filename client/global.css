@@ -2,6 +2,12 @@
 @import 'uniwind';
 @import './heroui/styles';
 
+/* Web 默认背景色 */
+html, body {
+  background-color: #0A0A0F;
+  color: #FFFFFF;
+}
+
 @theme {
   /* Primitive Colors (Do not change between light and dark) */
   --white: oklch(100% 0 0);

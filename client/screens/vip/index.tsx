@@ -33,22 +33,27 @@ export default function VipScreen() {
 
   return (
     <Screen>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.headerTitle}>会员中心</Text>
-            <Text style={styles.headerSubtitle}>解锁高级会员权益</Text>
-          </View>
-          <View style={styles.headerBadge}>
-            <Ionicons name="diamond" size={16} color="#00F0FF" />
-            <Text style={styles.headerBadgeText}>KAIROS VIP</Text>
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.headerTitle}>会员中心</Text>
+              <Text style={styles.headerSubtitle}>解锁高级会员权益</Text>
+            </View>
+            <View style={styles.headerBadge}>
+              <Ionicons name="diamond" size={16} color="#00F0FF" />
+              <Text style={styles.headerBadgeText}>KAIROS VIP</Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* Tab Bar */}
-      <View style={styles.tabBarContainer}>
+        {/* Tab Bar */}
+        <View style={styles.tabBarContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'subscribe' && styles.tabActive]}
           onPress={() => setActiveTab('subscribe')}
@@ -78,16 +83,11 @@ export default function VipScreen() {
       </View>
 
       {/* Content */}
-      <ScrollView
-        style={styles.container}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {activeTab === 'subscribe' ? (
-          <SubscribeTab />
-        ) : (
-          <ReferralTab />
-        )}
+      {activeTab === 'subscribe' ? (
+        <SubscribeTab />
+      ) : (
+        <ReferralTab />
+      )}
       </ScrollView>
     </Screen>
   );

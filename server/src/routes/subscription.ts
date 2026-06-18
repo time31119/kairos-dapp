@@ -3,6 +3,9 @@ import { getUserSubscription, createSubscription, updateSubscription, getSubscri
 
 const router = express.Router();
 
+// 订单存储（内存中，用于 Confirm Payment 流程）
+const orders = new Map();
+
 // 获取订阅套餐列表
 router.get('/plans', (req, res) => {
   const plans = getSubscriptionPlans();
@@ -55,20 +58,24 @@ router.post('/create', async (req, res) => {
     // 收款地址配置（TP钱包使用BEP20）
     const PAYMENT_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d';
     
+    // 保存订单到内存
+    const orderData = {
+      orderId,
+      planId,
+      planName: plan.name,
+      billingCycle,
+      price,
+      paymentAddress: PAYMENT_ADDRESS,
+      walletAddress,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+    orders.set(orderId, orderData);
+    
     res.json({ 
       success: true, 
       orderId,
-      data: {
-        orderId,
-        planId,
-        planName: plan.name,
-        billingCycle,
-        price,
-        paymentAddress: PAYMENT_ADDRESS,
-        walletAddress,
-        status: 'pending',
-        createdAt: new Date().toISOString()
-      }
+      data: orderData
     });
   } catch (error) {
     console.error('Create order error:', error);
@@ -172,6 +179,123 @@ router.post('/callback', async (req, res) => {
   } catch (error) {
     console.error('支付回调处理失败:', error);
     res.status(500).json({ success: false, message: '处理回调失败' });
+  }
+});
+
+// Confirm Payment - 用户完成链上转账后确认
+router.post('/confirm', async (req, res) => {
+  try {
+    const { orderId, walletAddress } = req.body;
+    
+    if (!orderId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Missing required parameter: orderId' 
+      });
+    }
+
+    // 查找订单
+    const order = orders.get(orderId);
+    
+    if (!order) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Order not found' 
+      });
+    }
+
+    if (order.status === 'completed') {
+      return res.json({ 
+        success: true, 
+        message: 'Payment already confirmed',
+        data: { status: 'completed' }
+      });
+    }
+
+    // 验证钱包地址（如果提供）
+    if (walletAddress && order.walletAddress && walletAddress.toLowerCase() !== order.walletAddress.toLowerCase()) {
+      console.log(`[Confirm] Wallet address mismatch: expected ${order.walletAddress}, got ${walletAddress}`);
+    }
+
+    // 更新订单状态
+    order.status = 'completed';
+    order.confirmedAt = new Date().toISOString();
+    orders.set(orderId, order);
+
+    // 获取套餐信息，计算过期时间
+    const plans = getSubscriptionPlans();
+    const plan = plans.find(p => p.id === order.planId);
+    
+    if (!plan) {
+      return res.status(400).json({ success: false, message: 'Invalid plan' });
+    }
+
+    // 根据计费周期计算过期时间
+    let days = 30;
+    if (order.billingCycle === 'quarterly') days = 90;
+    else if (order.billingCycle === 'yearly') days = 365;
+
+    // 订阅时长映射
+    const durationMap: Record<string, string> = {
+      monthly: '月',
+      quarterly: '季',
+      yearly: '年'
+    };
+
+    // 创建/更新订阅（使用钱包地址作为用户标识）
+    const userId = walletAddress || order.walletAddress || 'anonymous';
+    createSubscription(userId, {
+      plan: order.planId,
+      status: 'active',
+      expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+    });
+
+    console.log(`[Confirm] Payment confirmed for order ${orderId}, user ${userId} subscribed to ${plan.name}`);
+
+    res.json({ 
+      success: true, 
+      message: 'Payment confirmed successfully',
+      data: {
+        orderId,
+        plan: plan.name,
+        planId: order.planId,
+        billingCycle: order.billingCycle,
+        duration: durationMap[order.billingCycle] || '月',
+        expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'active'
+      }
+    });
+  } catch (error) {
+    console.error('Confirm payment error:', error);
+    res.status(500).json({ success: false, message: 'Failed to confirm payment' });
+  }
+});
+
+// 查询订单状态
+router.get('/order/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = orders.get(orderId);
+    
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+    
+    res.json({ 
+      success: true, 
+      data: {
+        orderId: order.orderId,
+        planId: order.planId,
+        planName: order.planName,
+        billingCycle: order.billingCycle,
+        price: order.price,
+        status: order.status,
+        createdAt: order.createdAt,
+        confirmedAt: order.confirmedAt
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to get order status' });
   }
 });
 

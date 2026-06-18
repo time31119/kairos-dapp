@@ -1,11 +1,12 @@
 {
-  "name": "Kairos DApp",
+  "name": "Kairos - 币势预测",
   "short_name": "Kairos",
-  "description": "Kairos Decentralized Application",
+  "description": "区块链加密货币行情分析平台，提供实时行情、技术分析、VIP会员服务",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
+  "categories": ["finance", "utilities"],
   "icons": [
     {
       "src": "/icon-192.png",

@@ -11,29 +11,72 @@ import '../global.css';
 
 // TP Wallet / Web DApp Metadata
 const DAPP_NAME = 'Kairos DApp';
-const DAPP_TITLE = 'Kairos DApp';
+const DAPP_TITLE = 'Kairos - 币势预测';
+const DAPP_DESCRIPTION = '区块链加密货币行情分析平台，提供实时行情、技术分析、VIP会员服务';
+const DAPP_URL = 'https://kairosdapp.com';
+const DAPP_ICON = '/icon-192.png';
 
 function HeadContent() {
   if (Platform.OS === 'web') {
     if (typeof document !== 'undefined') {
+      // Title
       document.title = DAPP_TITLE;
-      // Update or create meta description
-      let metaDesc = document.querySelector('meta[name="description"]');
-      if (!metaDesc) {
-        metaDesc = document.createElement('meta');
-        metaDesc.name = 'description';
-        document.head.appendChild(metaDesc);
-      }
-      metaDesc.content = 'Kairos Decentralized Application';
       
-      // Update or create theme-color
-      let themeColor = document.querySelector('meta[name="theme-color"]');
-      if (!themeColor) {
-        themeColor = document.createElement('meta');
-        themeColor.name = 'theme-color';
-        document.head.appendChild(themeColor);
-      }
-      themeColor.content = '#000000';
+      // Meta tags
+      const metaTags = [
+        { name: 'description', content: DAPP_DESCRIPTION },
+        { name: 'theme-color', content: '#000000' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+      ];
+      
+      metaTags.forEach(({ name, content }) => {
+        let meta = document.querySelector(`meta[name="${name}"]`);
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.setAttribute('name', name);
+          document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', content);
+      });
+      
+      // Open Graph tags (for social sharing)
+      const ogTags = [
+        { property: 'og:title', content: DAPP_TITLE },
+        { property: 'og:description', content: DAPP_DESCRIPTION },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:url', content: DAPP_URL },
+        { property: 'og:image', content: `${DAPP_URL}${DAPP_ICON}` },
+        { property: 'og:site_name', content: DAPP_NAME },
+      ];
+      
+      ogTags.forEach(({ property, content }) => {
+        let meta = document.querySelector(`meta[property="${property}"]`);
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.setAttribute('property', property);
+          document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', content);
+      });
+      
+      // Twitter Card tags
+      const twitterTags = [
+        { name: 'twitter:card', content: 'summary' },
+        { name: 'twitter:title', content: DAPP_TITLE },
+        { name: 'twitter:description', content: DAPP_DESCRIPTION },
+        { name: 'twitter:image', content: `${DAPP_URL}${DAPP_ICON}` },
+      ];
+      
+      twitterTags.forEach(({ name, content }) => {
+        let meta = document.querySelector(`meta[name="${name}"]`);
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.setAttribute('name', name);
+          document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', content);
+      });
     }
   }
   return null;

@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import screenerRouter from "./routes/screener";
 import copytradingRouter from "./routes/copytrading";
@@ -17,15 +18,27 @@ import positionsRouter from "./routes/positions";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 静态文件路径：开发模式从 ../client/dist，生产模式从当前目录
-const isProduction = process.env.NODE_ENV === 'production';
-const staticPath = isProduction 
-  ? __dirname 
-  : path.join(__dirname, '..', 'client', 'dist');
+// 静态文件路径：统一从 dist 目录读取
+// 向上查找 dist 目录
+function findDistDir(dir: string): string {
+  const distPath = path.join(dir, 'dist');
+  if (fs.existsSync(distPath)) {
+    return distPath;
+  }
+  // 如果当前是 dist 目录，直接返回
+  if (dir.endsWith('dist')) {
+    return dir;
+  }
+  // 向上查找
+  const parentDir = path.join(dir, '..');
+  if (parentDir !== dir) {
+    return findDistDir(parentDir);
+  }
+  return dir;
+}
 
+const staticPath = findDistDir(__dirname);
 console.log('[Static] Serving from:', staticPath);
-console.log('[Static] __dirname:', __dirname);
-console.log('[Static] Mode:', isProduction ? 'production' : 'development');
 
 const app = express();
 const port = process.env.PORT || 9091;

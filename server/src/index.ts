@@ -18,23 +18,21 @@ import positionsRouter from "./routes/positions";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 静态文件路径：统一从 dist 目录读取
-// 向上查找 dist 目录
+// 静态文件路径：开发模式从 dist 目录（向上两级），生产模式从 dist 目录
+// __dirname: /workspace/projects/server/src -> dist: /workspace/projects/server/dist
+// __dirname: /workspace/projects/server/dist -> dist: /workspace/projects/server/dist
 function findDistDir(dir: string): string {
-  const distPath = path.join(dir, 'dist');
-  if (fs.existsSync(distPath)) {
-    return distPath;
-  }
   // 如果当前是 dist 目录，直接返回
   if (dir.endsWith('dist')) {
     return dir;
   }
-  // 向上查找
+  // 向上两级到 server 目录，然后进入 dist
   const parentDir = path.join(dir, '..');
-  if (parentDir !== dir) {
-    return findDistDir(parentDir);
+  const distPath = path.join(parentDir, 'dist');
+  if (fs.existsSync(distPath)) {
+    return distPath;
   }
-  return dir;
+  return distPath; // 返回预期路径
 }
 
 const staticPath = findDistDir(__dirname);

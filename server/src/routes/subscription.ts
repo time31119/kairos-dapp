@@ -191,8 +191,8 @@ router.post('/callback', async (req, res) => {
 // BSCScan API 验证交易
 async function verifyBSCTransaction(walletAddress: string, expectedAmount: number): Promise<{ valid: boolean; txHash?: string; message: string }> {
   try {
-    // 将金额转换为最小单位 (USDT 6位小数)
-    const amountInWei = BigInt(Math.round(expectedAmount * 1000000));
+    // 将金额转换为最小单位 (USDT BEP20 有 18 位小数)
+    const amountInWei = BigInt(Math.round(expectedAmount * 1e18));
     
     // 从 BSCScan API 获取钱包的交易列表
     const url = `${BSCSCAN_BASE_URL}?module=account&action=tokentx&contractaddress=${USDT_CONTRACT}&address=${walletAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${BSCSCAN_API_KEY}`;

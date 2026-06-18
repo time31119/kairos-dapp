@@ -267,13 +267,13 @@ export default function MembershipPage() {
         
         if (provider && provider.ethereum) {
           try {
-            // USDT (BEP20) 合约地址
+            // USDT (BEP20) 合约地址 - BSC链上USDT精度是18位
             const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955';
             // 收款地址
             const RECEIVE_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d';
-            // 金额（USDT 有 6 位小数）
+            // 金额（USDT BEP20 有 18 位小数）
             const amount = currentPrice;
-            const amountInSmallestUnit = BigInt(Math.round(amount * 1000000));
+            const amountInSmallestUnit = BigInt(Math.round(amount * 1e18));
             
             // 构建 USDT transfer 函数调用
             const transferData = '0xa9059cbb' + 

@@ -3,6 +3,12 @@ import { getUserSubscription, createSubscription, updateSubscription, getSubscri
 
 const router = express.Router();
 
+// BSCScan API 配置
+const BSCSCAN_API_KEY = 'SZF45F5REQV292FA7FXZ9BSVPJGF397XJW';
+const BSCSCAN_BASE_URL = 'https://api.bscscan.com/api';
+const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955'; // USDT BEP20
+const RECEIVE_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d';
+
 // 订单存储（内存中，用于 Confirm Payment 流程）
 const orders = new Map();
 
@@ -182,7 +188,65 @@ router.post('/callback', async (req, res) => {
   }
 });
 
-// Confirm Payment - 用户完成链上转账后确认
+// BSCScan API 验证交易
+async function verifyBSCTransaction(walletAddress: string, expectedAmount: number): Promise<{ valid: boolean; txHash?: string; message: string }> {
+  try {
+    // 将金额转换为最小单位 (USDT 6位小数)
+    const amountInWei = BigInt(Math.round(expectedAmount * 1000000));
+    
+    // 从 BSCScan API 获取钱包的交易列表
+    const url = `${BSCSCAN_BASE_URL}?module=account&action=tokentx&contractaddress=${USDT_CONTRACT}&address=${walletAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${BSCSCAN_API_KEY}`;
+    
+    const response = await fetch(url);
+    const data = await response.json() as any;
+    
+    if (data.status !== '1' || !data.result || !Array.isArray(data.result)) {
+      console.log('[Verify] BSCScan API error:', data.message || 'No transactions found');
+      return { valid: false, message: 'Unable to verify transaction. Please try again or contact support.' };
+    }
+    
+    // 查找符合条件的交易
+    for (const tx of data.result) {
+      // 检查是否转入收款地址
+      if (tx.to && tx.to.toLowerCase() !== RECEIVE_ADDRESS.toLowerCase()) {
+        continue;
+      }
+      
+      // 检查是否从用户钱包转出
+      if (tx.from && tx.from.toLowerCase() !== walletAddress.toLowerCase()) {
+        continue;
+      }
+      
+      // 检查金额 (value 是 hex string，需要转换)
+      const txValue = BigInt(tx.value);
+      if (txValue < amountInWei) {
+        continue;
+      }
+      
+      // 检查交易状态 (1 = success)
+      if (tx.status !== '1') {
+        continue;
+      }
+      
+      // 找到有效交易
+      console.log('[Verify] Valid transaction found:', tx.hash, 'Amount:', tx.value);
+      return { 
+        valid: true, 
+        txHash: tx.hash, 
+        message: 'Transaction verified successfully' 
+      };
+    }
+    
+    console.log('[Verify] No valid transaction found for wallet:', walletAddress, 'expected amount:', expectedAmount);
+    return { valid: false, message: 'No valid USDT transaction found. Please make sure you have transferred the correct amount.' };
+    
+  } catch (error) {
+    console.error('[Verify] Error verifying transaction:', error);
+    return { valid: false, message: 'Network error during verification. Please try again.' };
+  }
+}
+
+// Confirm Payment - 用户完成链上转账后确认（真实交易验证）
 router.post('/confirm', async (req, res) => {
   try {
     const { orderId, walletAddress } = req.body;
@@ -214,12 +278,29 @@ router.post('/confirm', async (req, res) => {
 
     // 验证钱包地址（如果提供）
     if (walletAddress && order.walletAddress && walletAddress.toLowerCase() !== order.walletAddress.toLowerCase()) {
-      console.log(`[Confirm] Wallet address mismatch: expected ${order.walletAddress}, got ${walletAddress}`);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Wallet address mismatch' 
+      });
     }
 
-    // 更新订单状态
+    // 验证区块链上的真实交易
+    const verification = await verifyBSCTransaction(
+      walletAddress || order.walletAddress, 
+      order.price
+    );
+    
+    if (!verification.valid) {
+      return res.status(400).json({ 
+        success: false, 
+        message: verification.message 
+      });
+    }
+
+    // 交易验证通过，更新订单状态
     order.status = 'completed';
     order.confirmedAt = new Date().toISOString();
+    order.txHash = verification.txHash;
     orders.set(orderId, order);
 
     // 获取套餐信息，计算过期时间
@@ -250,11 +331,11 @@ router.post('/confirm', async (req, res) => {
       expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
     });
 
-    console.log(`[Confirm] Payment confirmed for order ${orderId}, user ${userId} subscribed to ${plan.name}`);
+    console.log(`[Confirm] Payment verified for order ${orderId}, txHash: ${verification.txHash}, user ${userId} subscribed to ${plan.name}`);
 
     res.json({ 
       success: true, 
-      message: 'Payment confirmed successfully',
+      message: 'Payment verified successfully',
       data: {
         orderId,
         plan: plan.name,
@@ -262,12 +343,13 @@ router.post('/confirm', async (req, res) => {
         billingCycle: order.billingCycle,
         duration: durationMap[order.billingCycle] || '月',
         expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'active'
+        status: 'active',
+        txHash: verification.txHash
       }
     });
   } catch (error) {
     console.error('Confirm payment error:', error);
-    res.status(500).json({ success: false, message: 'Failed to confirm payment' });
+    res.status(500).json({ success: false, message: 'Failed to verify payment' });
   }
 });
 

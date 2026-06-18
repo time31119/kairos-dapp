@@ -17,12 +17,18 @@ import positionsRouter from "./routes/positions";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
-const port = process.env.PORT || 9091;
-const staticPath = __dirname;
+// 静态文件路径：开发模式从 ../client/dist，生产模式从当前目录
+const isProduction = process.env.NODE_ENV === 'production';
+const staticPath = isProduction 
+  ? __dirname 
+  : path.join(__dirname, '..', 'client', 'dist');
 
 console.log('[Static] Serving from:', staticPath);
 console.log('[Static] __dirname:', __dirname);
+console.log('[Static] Mode:', isProduction ? 'production' : 'development');
+
+const app = express();
+const port = process.env.PORT || 9091;
 
 // Standard express.static with index option for SPA fallback
 app.use(express.static(staticPath, {

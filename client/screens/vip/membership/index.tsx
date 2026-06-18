@@ -282,7 +282,7 @@ export default function MembershipPage() {
               RECEIVE_ADDRESS.slice(2).padStart(64, '0') + 
               BigInt(amountInSmallestUnit).toString(16).padStart(64, '0');
             
-            // 请求 TP Wallet 转账
+            // 请求 TP Wallet 转账 (BSC chain: 0x38)
             const txHash = await provider.ethereum.request({
               method: 'eth_sendTransaction',
               params: [{
@@ -290,7 +290,7 @@ export default function MembershipPage() {
                 to: USDT_CONTRACT,
                 value: '0x0',
                 data: transferData,
-                gas: '0x50000',
+                chainId: '0x38',
               }],
             });
             

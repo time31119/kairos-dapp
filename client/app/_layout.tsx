@@ -5,8 +5,39 @@ import Toast from 'react-native-toast-message';
 import { Provider } from '@/components/Provider';
 import { Web3Provider } from '@/contexts/Web3Context';
 import { SubscriptionProvider } from '@/contexts/SubscriptionContext';
+import { TouchableOpacity, View, Text, Platform } from 'react-native';
 
 import '../global.css';
+
+// TP Wallet / Web DApp Metadata
+const DAPP_NAME = 'Kairos DApp';
+const DAPP_TITLE = 'Kairos DApp';
+
+function HeadContent() {
+  if (Platform.OS === 'web') {
+    if (typeof document !== 'undefined') {
+      document.title = DAPP_TITLE;
+      // Update or create meta description
+      let metaDesc = document.querySelector('meta[name="description"]');
+      if (!metaDesc) {
+        metaDesc = document.createElement('meta');
+        metaDesc.name = 'description';
+        document.head.appendChild(metaDesc);
+      }
+      metaDesc.content = 'Kairos Decentralized Application';
+      
+      // Update or create theme-color
+      let themeColor = document.querySelector('meta[name="theme-color"]');
+      if (!themeColor) {
+        themeColor = document.createElement('meta');
+        themeColor.name = 'theme-color';
+        document.head.appendChild(themeColor);
+      }
+      themeColor.content = '#000000';
+    }
+  }
+  return null;
+}
 
 LogBox.ignoreLogs([
   "TurboModuleRegistry.getEnforcing(...): 'RNMapsAirModule' could not be found",
@@ -15,7 +46,9 @@ LogBox.ignoreLogs([
 
 export default function RootLayout() {
   return (
-    <Provider>
+    <>
+      <HeadContent />
+      <Provider>
       <Web3Provider>
         <SubscriptionProvider>
           <Stack
@@ -53,6 +86,6 @@ export default function RootLayout() {
           <Toast />
         </SubscriptionProvider>
       </Web3Provider>
-    </Provider>
+    </>
   );
 }

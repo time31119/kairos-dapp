@@ -48,7 +48,6 @@ export default function RootLayout() {
   return (
     <>
       <HeadContent />
-      <Provider>
       <Web3Provider>
         <SubscriptionProvider>
           <Stack

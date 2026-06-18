@@ -13,10 +13,13 @@ export default function TabLayout() {
     '--color-border',
   ]) as string[];
 
+  // Web 端使用固定深色背景
+  const tabBarBackground = Platform.OS === 'web' ? '#0A0A0F' : background;
+  
   let tabBarStyle = {
-    backgroundColor: background,
+    backgroundColor: tabBarBackground,
     borderTopWidth: 1,
-    borderTopColor: border,
+    borderTopColor: '#1a1a1a',
     paddingBottom: Platform.OS === 'ios' ? insets.bottom / 2 : 8,
     paddingTop: 8,
     height: 60 + (Platform.OS === 'ios' ? insets.bottom / 2 : 0),

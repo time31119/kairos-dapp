@@ -3,8 +3,7 @@ import { View, Text, ScrollView, ActivityIndicator, StyleSheet, TouchableOpacity
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
-
-const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || ''
+import { getApiBase } from '@/utils/apiConfig';
 
 export default function CategoriesScreen() {
   const router = useSafeRouter();
@@ -16,7 +15,7 @@ export default function CategoriesScreen() {
 
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/screener/scenarios/realtime`);
+      const res = await fetch(`${getApiBase()}/api/v1/screener/scenarios/realtime`);
       const data = await res.json();
       if (data.success) {
         setScenarios(data.data);

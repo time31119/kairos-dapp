@@ -4,8 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { Link } from 'expo-router';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
-
-const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || ''
+import { getApiBase } from '@/utils/apiConfig';
 
 export default function AnalysisScreen() {
   const router = useSafeRouter();
@@ -16,7 +15,7 @@ export default function AnalysisScreen() {
 
   const fetchAnalysis = useCallback(async () => {
     try {
-      const res = await fetch(`${EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/screener/analysis/realtime`);
+      const res = await fetch(`${getApiBase()}/api/v1/screener/analysis/realtime`);
       const data = await res.json();
       if (data.success && data.data) {
         setAnalysisData(data.data);

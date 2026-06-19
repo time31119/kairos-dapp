@@ -10,6 +10,7 @@ import { Screen } from '@/components/Screen';
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
+import { getApiBase } from '@/utils/apiConfig';
 
 export default function BinanceApiScreen() {
   const router = useSafeRouter();
@@ -27,7 +28,7 @@ export default function BinanceApiScreen() {
   const checkBindStatus = async () => {
     try {
       const sessionToken = await AsyncStorage.getItem('session');
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/copytrading/binance-status`, {
+      const response = await fetch(`${getApiBase()}/api/v1/copytrading/binance-status`, {
         headers: {
           'x-session': sessionToken || '',
         },
@@ -79,7 +80,7 @@ export default function BinanceApiScreen() {
 
     try {
       const sessionToken = await AsyncStorage.getItem('session');
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/copytrading/bind-binance`, {
+      const response = await fetch(`${getApiBase()}/api/v1/copytrading/bind-binance`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -126,7 +127,7 @@ export default function BinanceApiScreen() {
           onPress: async () => {
             try {
               const sessionToken = await AsyncStorage.getItem('session');
-              await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/copytrading/unbind-binance`, {
+              await fetch(`${getApiBase()}/api/v1/copytrading/unbind-binance`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',

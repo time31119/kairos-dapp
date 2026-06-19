@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { VIP_PLANS } from '@/utils/vipPlans';
+import { getApiBase } from '@/utils/apiConfig';
 
 // 邀请奖励规则
 const REFERRAL_RULES = [
@@ -299,7 +300,7 @@ function ReferralTab() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
+      const API_BASE = getApiBase();
       
       // 获取用户唯一标识
       let userId = 'default_user';

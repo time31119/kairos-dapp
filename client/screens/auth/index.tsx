@@ -16,8 +16,7 @@ import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { useWeb3 } from '@/contexts/Web3Context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || ''
+import { getApiBase } from '@/utils/apiConfig';
 
 // DAPP 暗黑科技风配色
 const colors = {
@@ -36,7 +35,7 @@ const colors = {
 
 // API 请求函数
 async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, {
+  const response = await fetch(`${getApiBase()}/api/v1${endpoint}`, {
     headers: {
       'Content-Type': 'application/json',
       ...options?.headers,

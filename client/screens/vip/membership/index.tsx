@@ -14,8 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
-
-const EXPO_PUBLIC_BACKEND_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || ''
+import { getApiBase } from '@/utils/apiConfig';
 
 // BSC USDT 收款地址
 const RECEIVE_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d'

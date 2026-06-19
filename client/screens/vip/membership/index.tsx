@@ -67,15 +67,11 @@ function getTPWalletProvider() {
   return null;
 }
 
-// 计算USDT金额 (USDT BEP20 = 18 decimals on BSC)
+// 计算USDT金额 (USDT BEP20 = 6 decimals)
 function calculateAmount(amount: number): string {
-  // 直接乘以10的18次方，然后取整
-  // 使用这个技巧避免浮点数问题：先把小数部分分离
-  const [intPart, decPart = ''] = amount.toString().split('.');
-  // 把小数部分转成整数（补齐18位）
-  const decInt = parseInt(decPart.padEnd(18, '0').slice(0, 18), 10);
-  // 整数部分乘以10的18次方，加上小数部分
-  return (BigInt(intPart) * BigInt(1e18) + BigInt(decInt)).toString();
+  // USDT 有 6 位小数
+  // 99 USDT = 99 * 10^6 = 99000000
+  return Math.round(amount * 1000000).toString();
 }
 
 // 构建USDT transfer数据

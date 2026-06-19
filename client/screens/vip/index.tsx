@@ -6,7 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
+  Platform,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
@@ -260,31 +262,86 @@ function ReferralTab() {
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
     referralLink: 'https://kairos.app/inv/',
-    referralCode: 'kai_9x7m2k',
+    referralCode: '',
     thisMonthReward: 0,
     pendingReward: 0,
     totalReferrals: 0,
   });
   const [records] = useState<any[]>([]);
 
+  // 生成唯一的邀请码
+  const generateInviteCode = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let code = 'kai_';
+    for (let i = 0; i < 5; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
+
+  // 获取或生成用户邀请码
+  const getUserInviteCode = async (): Promise<string> => {
+    try {
+      // 优先从 AsyncStorage 获取已保存的邀请码
+      const saved = await AsyncStorage.getItem('kairos_invite_code');
+      if (saved) return saved;
+      
+      // 生成新的邀请码并保存
+      const newCode = generateInviteCode();
+      await AsyncStorage.setItem('kairos_invite_code', newCode);
+      return newCode;
+    } catch (error) {
+      // 降级方案：生成临时邀请码
+      return generateInviteCode();
+    }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
       const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || '';
       
-      const statsRes = await fetch(`${API_BASE}/api/v1/referral/info?userId=default_user`);
+      // 获取用户唯一标识
+      let userId = 'default_user';
+      try {
+        const storedUserId = await AsyncStorage.getItem('kairos_user_id');
+        if (storedUserId) userId = storedUserId;
+      } catch (e) {}
+      
+      // 从后端获取邀请信息
+      const statsRes = await fetch(`${API_BASE}/api/v1/referral/info?userId=${userId}`);
       if (statsRes.ok) {
         const statsData = await statsRes.json();
-        if (statsData.data) {
+        if (statsData.data && statsData.data.inviteCode) {
           setStats(prev => ({ 
             ...prev, 
+            referralCode: statsData.data.inviteCode,
             thisMonthReward: statsData.data.directReward + statsData.data.monthlySupportReward,
             totalReferrals: statsData.data.totalReferrals 
           }));
+        } else {
+          // 后端没有邀请码，使用本地生成的
+          const localCode = await getUserInviteCode();
+          setStats(prev => ({ 
+            ...prev, 
+            referralCode: localCode
+          }));
         }
+      } else {
+        const localCode = await getUserInviteCode();
+        setStats(prev => ({ 
+          ...prev, 
+          referralCode: localCode
+        }));
       }
     } catch (error) {
       console.error('Failed to fetch referral data:', error);
+      // 使用本地生成的邀请码
+      const localCode = await getUserInviteCode();
+      setStats(prev => ({ 
+        ...prev, 
+        referralCode: localCode
+      }));
     } finally {
       setLoading(false);
     }

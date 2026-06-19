@@ -67,11 +67,12 @@ function getTPWalletProvider() {
   return null;
 }
 
-// 计算USDT金额 (USDT BEP20 = 6 decimals)
+// 计算USDT金额 (USDT BEP20 = 18 decimals)
 function calculateAmount(amount: number): string {
-  // USDT 有 6 位小数
-  // 99 USDT = 99 * 10^6 = 99000000
-  return Math.round(amount * 1000000).toString();
+  // USDT BEP20 有 18 位小数精度
+  // 99 USDT = 99 * 10^18 = 99000000000000000000
+  const weiAmount = BigInt(Math.round(amount * 1e18));
+  return weiAmount.toString();
 }
 
 // 构建USDT transfer数据
@@ -129,21 +130,24 @@ export default function MembershipScreen() {
       return;
     }
 
-    // TP Wallet DeepLink 格式 - 使用 JSON 编码参数
+    // 计算正确的金额 (18位精度)
+    const amountWei = calculateAmount(selectedPlan.price);
+    
+    // TP Wallet DeepLink 格式 - 使用正确的参数格式
     const params = {
       action: 'transfer',
       symbol: 'USDT',
       contract: USDT_CONTRACT,
       to: RECEIVE_ADDRESS,
-      amount: selectedPlan.price.toString(),
+      amount: amountWei,
       decimal: '18',
-      precision: '0',
     };
 
     // TP Wallet 深度链接格式
     const deepLinkUrl = `tp://wallet/transfer?param=${encodeURIComponent(JSON.stringify(params))}`;
     
     console.log('[PAY] DeepLink URL:', deepLinkUrl);
+    console.log('[PAY] Amount (wei):', amountWei);
 
     // 尝试唤起 TP Wallet
     try {

@@ -122,6 +122,38 @@ export default function MembershipScreen() {
     }
   };
 
+  // DeepLink 支付 - 直接唤起 TP Wallet App
+  const handleDeepLinkPay = async () => {
+    if (!selectedPlan) {
+      Alert.alert('错误', '请先选择套餐');
+      return;
+    }
+
+    // TP Wallet DeepLink 格式 - 使用 JSON 编码参数
+    const params = {
+      action: 'transfer',
+      symbol: 'USDT',
+      contract: USDT_CONTRACT,
+      to: RECEIVE_ADDRESS,
+      amount: selectedPlan.price.toString(),
+      decimal: '18',
+      precision: '0',
+    };
+
+    // TP Wallet 深度链接格式
+    const deepLinkUrl = `tp://wallet/transfer?param=${encodeURIComponent(JSON.stringify(params))}`;
+    
+    console.log('[PAY] DeepLink URL:', deepLinkUrl);
+
+    // 尝试唤起 TP Wallet
+    try {
+      window.location.href = deepLinkUrl;
+    } catch (error) {
+      console.error('[PAY] DeepLink error:', error);
+      Alert.alert('错误', '无法唤起TP Wallet');
+    }
+  };
+
   // 一键支付
   const handlePay = async () => {
     if (!walletAddress) {
@@ -265,7 +297,7 @@ export default function MembershipScreen() {
           )}
         </View>
 
-        {/* 一键购买按钮 */}
+        {/* 一键购买按钮 - DApp浏览器方式 */}
         <TouchableOpacity
           style={[styles.buyButton, isProcessing && styles.buyButtonDisabled]}
           onPress={handlePay}
@@ -281,6 +313,22 @@ export default function MembershipScreen() {
               {walletAddress ? '一键支付 USDT' : '连接钱包并支付'}
             </Text>
           )}
+        </TouchableOpacity>
+
+        {/* DeepLink 方式 - 备选 */}
+        <TouchableOpacity
+          style={styles.deeplinkButton}
+          onPress={() => {
+            // TP Wallet DeepLink 格式
+            const amount = selectedPlan.price;
+            const deeplink = `token-pocket://swap?amount=${amount}&symbol=USDT&contract=0x55d398326f99059fF775485246999027B3197955&decimal=18&to=0x769ecB24694F56d75d6eaaD5F634d99eF12c407d&chain=bsc`;
+            // 尝试拉起 TP Wallet
+            window.location.href = deeplink;
+            Alert.alert('提示', '如果TP Wallet没有自动打开，请在手机浏览器中打开此页面，然后点击上面的按钮。');
+          }}
+        >
+          <Ionicons name="open-outline" size={18} color="#00F0FF" />
+          <Text style={styles.deeplinkButtonText}>  备选：浏览器方式支付</Text>
         </TouchableOpacity>
 
         {/* 支付说明 */}
@@ -460,6 +508,19 @@ const styles = StyleSheet.create({
   },
   buyButtonDisabled: {
     opacity: 0.6,
+  },
+  deeplinkButton: {
+    backgroundColor: '#1E88E5',
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  deeplinkButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   loadingRow: {
     flexDirection: 'row',

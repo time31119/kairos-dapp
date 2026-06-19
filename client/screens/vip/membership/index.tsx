@@ -52,17 +52,16 @@ declare global {
 function getTPWalletProvider() {
   if (typeof window === 'undefined') return null;
   
-  // 优先使用 BinanceChain (TP Wallet的BSC接口)
-  if (window.BinanceChain?.bsc) {
-    console.log('[PAY] Using BinanceChain provider');
-    return { bsc: window.BinanceChain };
+  // 优先使用 ethereum provider (TP Wallet通用接口)
+  if (window.ethereum) {
+    console.log('[PAY] Using window.ethereum provider');
+    return window.ethereum;
   }
   
-  // 使用 ethereum provider
-  if (window.ethereum) {
-    const isTrust = window.ethereum.isTrust || window.ethereum.isMetaMask;
-    console.log('[PAY] Using Ethereum provider, isTrust:', isTrust);
-    return { ethereum: window.ethereum };
+  // 备用 BinanceChain
+  if (window.BinanceChain) {
+    console.log('[PAY] Using BinanceChain provider');
+    return window.BinanceChain;
   }
   
   return null;
@@ -151,28 +150,15 @@ export default function MembershipScreen() {
       const transferData = buildTransferData(RECEIVE_ADDRESS, amountSmallest);
       console.log('[PAY] Transfer data:', transferData);
 
-      // 发送交易
-      let result: string;
-      
-      if (provider.bsc) {
-        result = await provider.bsc.request({
-          method: 'eth_sendTransaction',
-          params: [{
-            from: walletAddress,
-            to: USDT_CONTRACT,
-            data: transferData,
-          }],
-        });
-      } else {
-        result = await provider.ethereum!.request({
-          method: 'eth_sendTransaction',
-          params: [{
-            from: walletAddress,
-            to: USDT_CONTRACT,
-            data: transferData,
-          }],
-        });
-      }
+      // 发送交易 - 直接使用provider.request
+      const result = await provider.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: walletAddress,
+          to: USDT_CONTRACT,
+          data: transferData,
+        }],
+      });
 
       console.log('[PAY] Transaction hash:', result);
       setTxHash(result);

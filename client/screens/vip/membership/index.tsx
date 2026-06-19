@@ -68,24 +68,23 @@ function getTPWalletProvider() {
   return null;
 }
 
-// 计算USDT金额 (USDT是6位小数)
+// 计算USDT金额 (USDT是6位小数) - 使用字符串精确计算
 function calculateAmount(amount: number): string {
-  // 金额转字符串
-  const amountStr = amount.toString();
-  const parts = amountStr.split('.');
-  const integerPart = parts[0];
-  // USDT有6位小数
-  const decimalPart = (parts[1] || '').padEnd(6, '0').slice(0, 6);
-  // 组合后直接返回（不再去掉前导0，因为BigInt会处理）
-  return integerPart + decimalPart;
+  // 先把金额转为整数（避免浮点数精度问题）
+  // 99.9 -> 99900000
+  // 99 -> 99000000
+  const multiplier = 1000000; // 6位小数
+  const amountInt = Math.round(amount * multiplier);
+  return amountInt.toString();
 }
 
 // 构建USDT transfer数据
-function buildTransferData(toAddress: string, amount: string): string {
+function buildTransferData(toAddress: string, amountInWei: string): string {
   const method = '0xa9059cbb';
   const paddedTo = toAddress.slice(2).padStart(64, '0');
-  const paddedAmount = BigInt(amount).toString(16).padStart(64, '0');
-  return method + paddedTo + paddedAmount;
+  // 直接将字符串转为十六进制并填充64位
+  const amountHex = BigInt(amountInWei).toString(16).padStart(64, '0');
+  return method + paddedTo + amountHex;
 }
 
 export default function MembershipScreen() {

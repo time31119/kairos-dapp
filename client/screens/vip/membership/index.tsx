@@ -164,34 +164,27 @@ export default function MembershipScreen() {
       const transferData = buildTransferData(RECEIVE_ADDRESS, amountSmallest);
       console.log('[PAY] Transfer data:', transferData);
 
-      // 发送交易 (BSC chainId: 0x38 = 56)
+      // 发送交易 - 简化参数让TP Wallet自动处理
+      const txParams = {
+        from: walletAddress,
+        to: USDT_CONTRACT,
+        value: '0x0',
+        data: transferData,
+      };
+      
       let result: string;
       
       if (provider.bsc) {
         // 使用BinanceChain (TP Wallet BSC)
         result = await provider.bsc.request({
           method: 'eth_sendTransaction',
-          params: [{
-            from: walletAddress,
-            to: USDT_CONTRACT,
-            value: '0x0',
-            data: transferData,
-            gas: '0x50000',
-            chainId: 56,
-          }],
+          params: [txParams],
         });
       } else {
         // 使用Ethereum provider
         result = await provider.ethereum!.request({
           method: 'eth_sendTransaction',
-          params: [{
-            from: walletAddress,
-            to: USDT_CONTRACT,
-            value: '0x0',
-            data: transferData,
-            gas: '0x50000',
-            chainId: '0x38', // BSC
-          }],
+          params: [txParams],
         });
       }
 

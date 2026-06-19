@@ -352,8 +352,24 @@ function ReferralTab() {
   }, []);
 
   const handleCopy = async () => {
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      // Web 环境使用 navigator.clipboard
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(referralLink);
+      } else {
+        // 降级方案：使用 selection API
+        const textArea = document.createElement('textarea');
+        textArea.value = referralLink;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('复制失败:', err);
+    }
   };
 
   const referralLink = `${stats.referralLink}${stats.referralCode}`;

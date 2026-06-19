@@ -13,8 +13,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import TraderDetailModal from '@/components/payment/TraderDetailModal';
+import { getApiBase } from '@/utils/apiConfig';
 
-const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || ''
+const API_BASE = getApiBase();
 
 interface Trader {
   id: string;

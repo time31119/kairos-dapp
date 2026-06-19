@@ -68,13 +68,18 @@ function getTPWalletProvider() {
   return null;
 }
 
-// 计算USDT金额 (USDT是18位小数，即使在BEP20也是18位)
+// 计算USDT金额 (使用字符串方式避免浮点数精度问题)
 function calculateAmount(amount: number): string {
-  // USDT合约使用18位小数
-  const decimals = 18;
-  const multiplier = Math.pow(10, decimals);
-  const amountInt = Math.round(amount * multiplier);
-  return amountInt.toString();
+  // 将金额转为字符串
+  const str = amount.toString();
+  // 分割整数和小数部分
+  const parts = str.split('.');
+  const intPart = parts[0];
+  const decPart = parts[1] || '';
+  // 补齐到18位小数
+  const paddedDec = (decPart + '000000000000000000').slice(0, 18);
+  // 组合并转BigInt（去除前导零）
+  return (BigInt(intPart) * BigInt(1e18) + (paddedDec ? BigInt(paddedDec) : BigInt(0))).toString();
 }
 
 // 构建USDT transfer数据

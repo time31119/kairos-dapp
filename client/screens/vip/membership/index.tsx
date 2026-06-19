@@ -68,13 +68,16 @@ function getTPWalletProvider() {
   return null;
 }
 
-// 计算USDT金额 (最小单位，18位精度)
+// 计算USDT金额 (USDT是6位小数)
 function calculateAmount(amount: number): string {
+  // 金额转字符串
   const amountStr = amount.toString();
   const parts = amountStr.split('.');
   const integerPart = parts[0];
-  const decimalPart = (parts[1] || '').padEnd(18, '0').slice(0, 18);
-  return (integerPart + decimalPart).replace(/^0+/, '') || '0';
+  // USDT有6位小数
+  const decimalPart = (parts[1] || '').padEnd(6, '0').slice(0, 6);
+  // 组合后直接返回（不再去掉前导0，因为BigInt会处理）
+  return integerPart + decimalPart;
 }
 
 // 构建USDT transfer数据

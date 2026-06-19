@@ -140,20 +140,7 @@ export default function MembershipScreen() {
     setIsProcessing(true);
 
     try {
-      // 创建订单
-      const response = await fetch(EXPO_PUBLIC_BACKEND_BASE_URL + '/api/v1/subscription/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          planId: selectedPlan.id,
-          walletAddress: walletAddress,
-        }),
-      });
-      
-      const data = await response.json();
-      setOrderId(data.orderId || 'local-' + Date.now());
-
-      // 获取provider
+      // 直接获取provider进行支付（不依赖后端创建订单）
       const provider = getTPWalletProvider();
       if (!provider) {
         throw new Error('No wallet provider');
@@ -167,47 +154,46 @@ export default function MembershipScreen() {
       const transferData = buildTransferData(RECEIVE_ADDRESS, amountSmallest);
       console.log('[PAY] Transfer data:', transferData);
 
-      // 发送交易 - 简化参数让TP Wallet自动处理
-      const txParams = {
-        from: walletAddress,
-        to: USDT_CONTRACT,
-        value: '0x0',
-        data: transferData,
-      };
-      
+      // 发送交易
       let result: string;
       
       if (provider.bsc) {
-        // 使用BinanceChain (TP Wallet BSC)
         result = await provider.bsc.request({
           method: 'eth_sendTransaction',
-          params: [txParams],
+          params: [{
+            from: walletAddress,
+            to: USDT_CONTRACT,
+            data: transferData,
+          }],
         });
       } else {
-        // 使用Ethereum provider
         result = await provider.ethereum!.request({
           method: 'eth_sendTransaction',
-          params: [txParams],
+          params: [{
+            from: walletAddress,
+            to: USDT_CONTRACT,
+            data: transferData,
+          }],
         });
       }
 
       console.log('[PAY] Transaction hash:', result);
       setTxHash(result);
+      setOrderId('tx-' + Date.now());
       setShowPaymentModal(true);
 
     } catch (error: any) {
       console.error('[PAY] Payment error:', error);
+      setIsProcessing(false);
       
       let errorMsg = '支付失败';
-      if (error.code === 4001 || error.code === 'ACTION_REJECTED') {
+      if (error.code === 4001 || error.code === 'ACTION_REJECTED' || error.message?.includes('rejected')) {
         errorMsg = '用户取消了支付';
       } else if (error.message) {
         errorMsg = error.message;
       }
       
       Alert.alert('支付失败', errorMsg);
-    } finally {
-      setIsProcessing(false);
     }
   };
 

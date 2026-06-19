@@ -150,18 +150,30 @@ export default function MembershipScreen() {
       const transferData = buildTransferData(RECEIVE_ADDRESS, amountSmallest);
       console.log('[PAY] Transfer data:', transferData);
 
-      // 发送交易 - 直接使用provider.request
-      const result = await provider.request({
-        method: 'eth_sendTransaction',
-        params: [{
-          from: walletAddress,
-          to: USDT_CONTRACT,
-          data: transferData,
-        }],
-      });
+      // 发送交易
+      let txHash: string;
+      if (provider.bsc) {
+        txHash = await provider.bsc.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: walletAddress,
+            to: USDT_CONTRACT,
+            data: transferData,
+          }],
+        });
+      } else {
+        txHash = await provider.ethereum!.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: walletAddress,
+            to: USDT_CONTRACT,
+            data: transferData,
+          }],
+        });
+      }
 
-      console.log('[PAY] Transaction hash:', result);
-      setTxHash(result);
+      console.log('[PAY] Transaction hash:', txHash);
+      setTxHash(txHash as string);
       setOrderId('tx-' + Date.now());
       setShowPaymentModal(true);
 

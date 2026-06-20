@@ -888,6 +888,25 @@ export default function SignalScreen() {
         <View style={styles.modalContent}>
           {selectedToken && (
             <>
+              {/* 自动复制合约地址提示 */}
+              {selectedToken.contractAddress && (
+                <TouchableOpacity 
+                  style={styles.autoCopyBanner}
+                  onPress={() => handleCopyAddress(selectedToken.contractAddress)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.autoCopyContent}>
+                    <Ionicons name="copy-outline" size={22} color="#0A0A0F" />
+                    <View style={styles.autoCopyText}>
+                      <Text style={styles.autoCopyTitle}>点击复制合约地址</Text>
+                      <Text style={styles.autoCopyAddress} numberOfLines={1}>
+                        {selectedToken.contractAddress}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )}
+
               <View style={styles.modalHeader}>
                 <TouchableOpacity onPress={() => setBuyModalVisible(false)}>
                   <Ionicons name="close" size={24} color="#EAEAEA" />
@@ -2342,6 +2361,32 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#555570',
     marginLeft: 6,
+  },
+  // 自动复制横幅样式
+  autoCopyBanner: {
+    backgroundColor: '#00F0FF',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+  },
+  autoCopyContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  autoCopyText: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  autoCopyTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0A0A0F',
+  },
+  autoCopyAddress: {
+    fontSize: 12,
+    color: '#0A0A0F',
+    opacity: 0.7,
+    marginTop: 2,
   },
   // 合约地址弹窗样式
   contractModalOverlay: {

@@ -140,16 +140,29 @@ const generateBuyLinks = (token: Token) => {
   const explorer = CHAIN_CONFIG[token.chain]?.explorer || '';
   const contractUrl = `${explorer}/token/${token.contractAddress}`;
   
-  // TP钱包
+  // 获取链ID
+  const chainIdMap: Record<string, string> = {
+    'Solana': 'solana',
+    'Ethereum': '1',
+    'BSC': '56',
+    'Base': '8453',
+    'Arbitrum': '42161',
+    'Polygon': '137',
+  };
+  const chainId = chainIdMap[token.chain] || '1';
+  
+  // TP钱包 - 跳转买入页面
   const tpLink = token.chain === 'Solana'
-    ? `tokenpocket://wallet/transfer?symbol=${token.symbol}&address=${token.contractAddress}&chain=solana`
-    : `tokenpocket://wallet/transfer?symbol=${token.symbol}&address=${token.contractAddress}&chainId=${token.chain === 'Ethereum' ? '1' : token.chain === 'BSC' ? '56' : token.chain === 'Base' ? '8453' : '42161'}&network=${token.chain === 'Solana' ? 'solana' : 'ethereum'}`;
+    ? `tokenpocket://wallet/buy?symbol=${token.symbol}&address=${token.contractAddress}&chain=solana`
+    : `tokenpocket://wallet/buy?symbol=${token.symbol}&address=${token.contractAddress}&chainId=${chainId}`;
   
-  // OKX钱包
-  const okxLink = `okx://wallet/tokenTransfer?tokenSymbol=${token.symbol}&toAddress=${token.contractAddress}&chain=${token.chain}`;
+  // OKX钱包 - 跳转买入页面
+  const okxLink = `okx://wallet/inscribe?address=${token.contractAddress}&chain=${token.chain}`;
   
-  // Binance Web3钱包
-  const binanceLink = `bnbwallet://swap?inputCurrency=${token.contractAddress}`;
+  // Binance Web3钱包 - 跳转Swap页面
+  const binanceLink = token.chain === 'BSC' || token.chain === 'Ethereum'
+    ? `bnbwallet://swap?inputCurrency=BNB&outputCurrency=${token.contractAddress}`
+    : `https://web3.binance.com/en/trade/profile?inputCurrency=${token.contractAddress}`;
   
   return { tpLink, okxLink, binanceLink, contractUrl };
 };

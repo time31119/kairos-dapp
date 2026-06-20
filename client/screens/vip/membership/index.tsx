@@ -20,12 +20,21 @@ const RECEIVE_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d';
 // BSC USDT 合约地址 (BEP20)
 const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955';
 
-// VIP 套餐
+// VIP 套餐 - 三版本：白银、黄金、钻石
+// 价格：99/199/299，周期：月付/季付/年付
 const PLANS = [
-  { id: 'basic', name: 'Basic', price: 9.9, period: '月', features: ['基础K线分析', '5个交易对监控', '邮件通知'] },
-  { id: 'standard', name: 'Standard', price: 29.9, period: '月', features: ['完整K线分析', '20个交易对监控', '实时推送', '优先客服'] },
-  { id: 'premium', name: 'Premium', price: 99, period: '月', features: ['专业K线分析', '无限交易对', 'API接口', '专属客服', '优先体验'] },
-  { id: 'yearly', name: '年度VIP', price: 999, period: '年', features: ['全部Premium功能', '2个月免费', '专属客服'] },
+  // 白银版
+  { id: 'silver_monthly', name: '白银版', price: 99, period: '月', tier: 'silver', badge: '基础', features: ['机构跟投', '实时行情', '基础分析'] },
+  { id: 'silver_quarterly', name: '白银版', price: 279, period: '季', tier: 'silver', badge: '基础', features: ['机构跟投', '实时行情', '基础分析', '9折优惠'] },
+  { id: 'silver_yearly', name: '白银版', price: 990, period: '年', tier: 'silver', badge: '基础', features: ['机构跟投', '实时行情', '基础分析', '8折优惠'] },
+  // 黄金版
+  { id: 'gold_monthly', name: '黄金版', price: 199, period: '月', tier: 'gold', badge: '热门', features: ['全部白银功能', '高级分析', '交易信号', '优先通知'] },
+  { id: 'gold_quarterly', name: '黄金版', price: 559, period: '季', tier: 'gold', badge: '热门', features: ['全部白银功能', '高级分析', '交易信号', '优先通知', '9折优惠'] },
+  { id: 'gold_yearly', name: '黄金版', price: 1990, period: '年', tier: 'gold', badge: '热门', features: ['全部白银功能', '高级分析', '交易信号', '优先通知', '8折优惠'] },
+  // 钻石版
+  { id: 'diamond_monthly', name: '钻石版', price: 299, period: '月', tier: 'diamond', badge: '尊享', features: ['全部黄金功能', '机构布局', 'VIP客服', '优先体验'] },
+  { id: 'diamond_quarterly', name: '钻石版', price: 839, period: '季', tier: 'diamond', badge: '尊享', features: ['全部黄金功能', '机构布局', 'VIP客服', '优先体验', '9折优惠'] },
+  { id: 'diamond_yearly', name: '钻石版', price: 2990, period: '年', tier: 'diamond', badge: '尊享', features: ['全部黄金功能', '机构布局', 'VIP客服', '优先体验', '8折优惠'] },
 ];
 
 // 钱包类型
@@ -303,15 +312,21 @@ export default function MembershipScreen() {
               style={[
                 styles.planCard,
                 selectedPlan.id === plan.id && styles.planCardSelected,
+                plan.tier === 'pro' && styles.planCardPro,
+                plan.tier === 'enterprise' && styles.planCardEnterprise,
               ]}
               onPress={() => setSelectedPlan(plan)}
             >
               <View style={styles.planHeader}>
                 <View style={styles.planNameRow}>
                   <Text style={styles.planName}>{plan.name}</Text>
-                  {plan.id === 'yearly' && (
-                    <View style={styles.recommendBadge}>
-                      <Text style={styles.recommendText}>推荐</Text>
+                  {plan.badge && (
+                    <View style={[
+                      styles.recommendBadge,
+                      plan.tier === 'pro' && styles.badgePro,
+                      plan.tier === 'enterprise' && styles.badgeEnterprise,
+                    ]}>
+                      <Text style={styles.recommendText}>{plan.badge}</Text>
                     </View>
                   )}
                 </View>
@@ -320,6 +335,9 @@ export default function MembershipScreen() {
                 )}
               </View>
               <View style={styles.planPrice}>
+                {plan.originalPrice && (
+                  <Text style={styles.originalPrice}>${plan.originalPrice}</Text>
+                )}
                 <Text style={styles.priceSymbol}>$</Text>
                 <Text style={styles.priceValue}>{plan.price}</Text>
                 <Text style={styles.pricePeriod}>/{plan.period}</Text>
@@ -620,6 +638,14 @@ const styles = StyleSheet.create({
     borderColor: '#00F0FF',
     backgroundColor: 'rgba(0, 240, 255, 0.05)',
   },
+  planCardPro: {
+    borderColor: '#8B5CF6',
+    backgroundColor: 'rgba(139, 92, 246, 0.05)',
+  },
+  planCardEnterprise: {
+    borderColor: '#FFD700',
+    backgroundColor: 'rgba(255, 215, 0, 0.05)',
+  },
   planHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -645,6 +671,25 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: 'bold',
     color: '#0A0A0F',
+  },
+  badgePro: {
+    marginLeft: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: '#8B5CF6',
+    borderRadius: 4,
+  },
+  badgeProText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  badgeEnterprise: {
+    marginLeft: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: '#FFD700',
+    borderRadius: 4,
   },
   planPrice: {
     flexDirection: 'row',

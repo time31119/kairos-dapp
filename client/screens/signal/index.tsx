@@ -12,6 +12,7 @@ import {
   RefreshControl,
   TextInput,
   Modal,
+  Clipboard,
 } from 'react-native';
 import { Ionicons, FontAwesome6, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
@@ -165,6 +166,7 @@ export default function SignalScreen() {
   const [loading, setLoading] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [buyModalVisible, setBuyModalVisible] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [slippage, setSlippage] = useState('1%');
 
@@ -226,6 +228,23 @@ export default function SignalScreen() {
       setRefreshing(false);
     }, 1500);
   }, []);
+
+  // 打开详情页
+  const handleOpenDetail = (token: Token) => {
+    setSelectedToken(token);
+    setDetailModalVisible(true);
+  };
+
+  // 复制合约链接
+  const handlePasteLink = async (token: Token) => {
+    const link = `https://dexscreener.com/${token.chain}/${token.contractAddress}`;
+    try {
+      await Clipboard.setStringAsync(link);
+      Alert.alert('已复制', '合约链接已复制到剪贴板');
+    } catch (e) {
+      Alert.alert('提示', '复制失败，请手动复制');
+    }
+  };
 
   // 打开买入页面
   const handleOpenBuyPage = (token: Token) => {
@@ -372,12 +391,16 @@ export default function SignalScreen() {
         
         {/* 操作按钮 */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.detailBtn} onPress={() => handleOpenBuyPage(token)}>
+          <TouchableOpacity style={styles.detailBtn} onPress={() => handleOpenDetail(token)}>
             <Text style={styles.detailBtnText}>详情</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.buyBtn} onPress={() => handleOpenBuyPage(token)}>
             <Ionicons name="cart" size={13} color="#0A0A0F" />
             <Text style={styles.buyBtnText}>买入</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.pasteLinkBtn} onPress={() => handlePasteLink(token)}>
+            <Ionicons name="link" size={13} color="#00F0FF" />
+            <Text style={styles.pasteLinkBtnText}>复制链接</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -603,6 +626,130 @@ export default function SignalScreen() {
       </View>
       <View style={styles.bottomPadding} />
     </ScrollView>
+  );
+
+  // 渲染详情Modal
+  const renderDetailModal = () => (
+    <Modal
+      visible={detailModalVisible}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setDetailModalVisible(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          {selectedToken && (
+            <>
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={() => setDetailModalVisible(false)}>
+                  <Ionicons name="close" size={24} color="#EAEAEA" />
+                </TouchableOpacity>
+                <Text style={styles.modalTitle}>代币详情</Text>
+                <View style={{ width: 24 }} />
+              </View>
+
+              <ScrollView style={styles.modalBody}>
+                {/* 代币信息卡片 */}
+                <View style={styles.detailTokenCard}>
+                  <View style={styles.detailTokenRow}>
+                    <View style={[styles.detailChainIcon, { backgroundColor: CHAIN_CONFIG[selectedToken.chain]?.color + '20' }]}>
+                      <Text style={styles.detailChainIconText}>{CHAIN_CONFIG[selectedToken.chain]?.icon}</Text>
+                    </View>
+                    <View style={styles.detailTokenInfo}>
+                      <Text style={styles.detailTokenSymbol}>{selectedToken.symbol}</Text>
+                      <Text style={styles.detailTokenName}>{selectedToken.name}</Text>
+                    </View>
+                    <View style={styles.detailPriceInfo}>
+                      <Text style={styles.detailPrice}>{formatPrice(selectedToken.price)}</Text>
+                      <Text style={[styles.detailChange, selectedToken.change24h > 0 ? styles.changeUp : styles.changeDown]}>
+                        {selectedToken.change24h > 0 ? '↑' : '↓'} {Math.abs(selectedToken.change24h).toFixed(1)}%
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* 核心指标 */}
+                <View style={styles.detailMetrics}>
+                  <View style={styles.detailMetricItem}>
+                    <Text style={styles.detailMetricLabel}>市值</Text>
+                    <Text style={styles.detailMetricValue}>${formatNumber(selectedToken.marketCap)}</Text>
+                  </View>
+                  <View style={styles.detailMetricItem}>
+                    <Text style={styles.detailMetricLabel}>24h交易</Text>
+                    <Text style={styles.detailMetricValue}>${formatNumber(selectedToken.volume24h)}</Text>
+                  </View>
+                  <View style={styles.detailMetricItem}>
+                    <Text style={styles.detailMetricLabel}>流动性</Text>
+                    <Text style={styles.detailMetricValue}>${formatNumber(selectedToken.liquidity || 0)}</Text>
+                  </View>
+                </View>
+
+                {/* 安全评分 */}
+                <View style={styles.detailSafetyCard}>
+                  <Text style={styles.detailSectionTitle}>安全评分</Text>
+                  <View style={styles.detailSafetyRow}>
+                    <View style={styles.detailSafetyScore}>
+                      <Text style={styles.detailSafetyNum}>{selectedToken.smartMoneyScore || 0}</Text>
+                      <Text style={styles.detailSafetyLabel}>/6</Text>
+                    </View>
+                    <View style={styles.detailSafetyBar}>
+                      <View style={[styles.detailSafetyFill, { width: `${((selectedToken.smartMoneyScore || 0) / 6) * 100}%` }]} />
+                    </View>
+                  </View>
+                  <Text style={styles.detailSafetyDesc}>
+                    {selectedToken.smartMoneyScore >= 5 ? '优秀' : selectedToken.smartMoneyScore >= 3 ? '良好' : '一般'}
+                  </Text>
+                </View>
+
+                {/* 合约地址 */}
+                <TouchableOpacity 
+                  style={styles.detailContract}
+                  onPress={() => {
+                    Clipboard.setStringAsync(selectedToken.contractAddress);
+                    Alert.alert('已复制', '合约地址已复制');
+                  }}
+                >
+                  <Text style={styles.detailContractLabel}>合约地址</Text>
+                  <View style={styles.detailContractRow}>
+                    <Text style={styles.detailContractAddr} numberOfLines={1}>
+                      {selectedToken.contractAddress}
+                    </Text>
+                    <Ionicons name="copy" size={18} color="#00F0FF" />
+                  </View>
+                </TouchableOpacity>
+
+                {/* 操作按钮 */}
+                <View style={styles.detailActions}>
+                  <TouchableOpacity style={styles.detailBuyBtn} onPress={() => {
+                    setDetailModalVisible(false);
+                    handleOpenBuyPage(selectedToken);
+                  }}>
+                    <Ionicons name="cart" size={18} color="#0A0A0F" />
+                    <Text style={styles.detailBuyBtnText}>去买入</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.detailCopyBtn} onPress={async () => {
+                    const link = `https://dexscreener.com/${selectedToken.chain}/${selectedToken.contractAddress}`;
+                    await Clipboard.setStringAsync(link);
+                    Alert.alert('已复制', '链接已复制到剪贴板');
+                  }}>
+                    <Ionicons name="link" size={18} color="#00F0FF" />
+                    <Text style={styles.detailCopyBtnText}>复制链接</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* 免责声明 */}
+                <View style={styles.disclaimer}>
+                  <Ionicons name="information-circle" size={16} color="#555570" />
+                  <Text style={styles.disclaimerText}>
+                    投资有风险，跟单需谨慎。以上信息仅供参考，不构成投资建议。
+                  </Text>
+                </View>
+              </ScrollView>
+            </>
+          )}
+        </View>
+      </View>
+    </Modal>
   );
 
   // 渲染买入Modal
@@ -865,6 +1012,9 @@ export default function SignalScreen() {
 
         {/* 买入Modal */}
         {renderBuyModal()}
+
+        {/* 详情Modal */}
+        {renderDetailModal()}
 
         {/* 设置面板 */}
         {settingsVisible && renderSettings()}
@@ -1208,6 +1358,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  pasteLinkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#00F0FF',
+    backgroundColor: 'rgba(0, 240, 255, 0.1)',
+    gap: 4,
+  },
+  pasteLinkBtnText: {
+    color: '#00F0FF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
   contractRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1511,6 +1678,187 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: 16,
+  },
+  // 详情Modal样式
+  detailTokenCard: {
+    backgroundColor: '#1A1A2E',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#252545',
+  },
+  detailTokenRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  detailChainIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  detailChainIconText: {
+    fontSize: 22,
+  },
+  detailTokenInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  detailTokenSymbol: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  detailTokenName: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 2,
+  },
+  detailPriceInfo: {
+    alignItems: 'flex-end',
+  },
+  detailPrice: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  detailChange: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  detailMetrics: {
+    flexDirection: 'row',
+    backgroundColor: '#1A1A2E',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#252545',
+  },
+  detailMetricItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  detailMetricLabel: {
+    fontSize: 11,
+    color: '#666',
+    marginBottom: 4,
+  },
+  detailMetricValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  detailSafetyCard: {
+    backgroundColor: '#1A1A2E',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#252545',
+  },
+  detailSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  detailSafetyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  detailSafetyScore: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginRight: 12,
+  },
+  detailSafetyNum: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#00F0FF',
+  },
+  detailSafetyLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  detailSafetyBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#252545',
+    borderRadius: 4,
+  },
+  detailSafetyFill: {
+    height: 8,
+    backgroundColor: '#00F0FF',
+    borderRadius: 4,
+  },
+  detailSafetyDesc: {
+    fontSize: 12,
+    color: '#888',
+  },
+  detailContract: {
+    backgroundColor: '#1A1A2E',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#252545',
+  },
+  detailContractLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 8,
+  },
+  detailContractRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  detailContractAddr: {
+    flex: 1,
+    fontSize: 12,
+    color: '#00F0FF',
+    fontFamily: 'monospace',
+  },
+  detailActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  detailBuyBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#00F0FF',
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  detailBuyBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0A0A0F',
+  },
+  detailCopyBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 240, 255, 0.1)',
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#00F0FF',
+    gap: 8,
+  },
+  detailCopyBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#00F0FF',
   },
   buyTokenInfo: {
     flexDirection: 'row',

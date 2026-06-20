@@ -444,7 +444,7 @@ export default function MineScreen() {
             <TouchableOpacity
               className="items-center mb-4"
               style={{ width: '48%' }}
-              onPress={() => router.push('/vip')}
+              onPress={() => router.push('/membership')}
             >
               <View 
                 className="w-full rounded-2xl p-4 items-center"

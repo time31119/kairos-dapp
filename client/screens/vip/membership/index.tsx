@@ -386,23 +386,23 @@ export default function MembershipScreen() {
               { name: '机构跟投-实时信号', basic: true, pro: true, enterprise: true },
               { name: '热门代币行情', basic: true, pro: true, enterprise: true },
               { name: '智能分析', basic: false, pro: true, enterprise: true },
-              { name: '跟单功能', false, pro: true, enterprise: true },
-              { name: '聪明钱追踪', false, pro: true, enterprise: true },
-              { name: '风险预警', false, pro: true, enterprise: true },
-              { name: '机构布局追踪', false, false, enterprise: true },
-              { name: 'VIP专属客服', false, false, enterprise: true },
-              { name: '专属策略定制', false, false, enterprise: true },
+              { name: '跟单功能', basic: false, pro: true, enterprise: true },
+              { name: '聪明钱追踪', basic: false, pro: true, enterprise: true },
+              { name: '风险预警', basic: false, pro: true, enterprise: true },
+              { name: '机构布局追踪', basic: false, basic2: false, enterprise: true },
+              { name: 'VIP专属客服', basic: false, basic2: false, enterprise: true },
+              { name: '专属策略定制', basic: false, basic2: false, enterprise: true },
             ].map((row, index) => (
               <View key={index} style={styles.comparisonRow}>
                 <Text style={[styles.comparisonCell, styles.comparisonLabel]}>{row.name}</Text>
                 <Text style={[styles.comparisonCell, styles.comparisonValue]}>
-                  {row.basic === true ? '✓' : row.basic || '-'}
+                  {row.basic === true ? '✓' : '-'}
                 </Text>
                 <Text style={[styles.comparisonCell, styles.comparisonValue]}>
-                  {row.pro === true ? '✓' : row.pro || '-'}
+                  {row.pro === true ? '✓' : '-'}
                 </Text>
                 <Text style={[styles.comparisonCell, styles.comparisonValue]}>
-                  {row.enterprise === true ? '✓' : row.enterprise || '-'}
+                  {row.enterprise === true ? '✓' : '-'}
                 </Text>
               </View>
             ))}

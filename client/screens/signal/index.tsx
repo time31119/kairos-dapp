@@ -342,7 +342,7 @@ export default function SignalScreen() {
           <Text style={[styles.metricValue, { color: '#00F0FF' }]}>{token.smartMoneyCount}</Text>
         </View>
         <View style={styles.metricDivider} />
-        <View style={styles.metric}>
+        <View style={[styles.metric, styles.metricLast]}>
           <Text style={styles.metricLabel}>安全</Text>
           <View style={styles.safetyBadge}>
             <Ionicons name="shield-checkmark" size={11} color="#00FF88" />
@@ -1115,6 +1115,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   metric: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  metricLast: {
     flex: 1,
     alignItems: 'center',
   },

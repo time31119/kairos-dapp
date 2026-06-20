@@ -994,12 +994,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   chainChip: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 14,
     backgroundColor: '#1a1a2e',
     borderWidth: 1,
@@ -1231,7 +1230,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: 40,
   },
   emptyText: {
     fontSize: 14,

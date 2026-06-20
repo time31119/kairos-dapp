@@ -97,6 +97,7 @@ const DEFAULT_TOKENS: Token[] = [
   { id: '8', symbol: 'PENDLE', name: 'Pendle', chain: 'Ethereum', price: 3.45, change1h: 2.1, change24h: 15.2, change7d: 45.6, contractAddress: '0x8080a8891c2e3e7c3d2f4a0c8e0e2d2c3b4a5c6', safetyScore: 5, totalScore: 6, smartMoneyCount: 123, marketCap: 680000000, volume24h: 78000000, isHot: true, riskLevel: 'medium', tag: 'DeFi', liquidity: 89000000, holders: 45000 },
   { id: '9', symbol: 'JUP', name: 'Jupiter', chain: 'Solana', price: 0.85, change1h: 3.2, change24h: 18.5, change7d: 62.3, contractAddress: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN', safetyScore: 5, totalScore: 6, smartMoneyCount: 234, marketCap: 1200000000, volume24h: 234000000, isHot: true, riskLevel: 'medium', tag: 'DEX', liquidity: 123000000, holders: 78000 },
   { id: '10', symbol: 'ENA', name: 'Ethena', chain: 'Ethereum', price: 0.92, change1h: -0.5, change24h: 2.3, change7d: -8.5, contractAddress: '0x57d114c7ede2e28ad7d60f8cb619e67e4bf5396c', safetyScore: 5, totalScore: 6, smartMoneyCount: 89, marketCap: 890000000, volume24h: 67000000, isHot: false, riskLevel: 'low', tag: '稳定币', liquidity: 234000000, holders: 34000 },
+  { id: '11', symbol: 'CAKE', name: 'PancakeSwap', chain: 'BSC', price: 2.35, change1h: 1.8, change24h: 6.5, change7d: 28.3, contractAddress: '0x0E09FaBB73Bd3ade0a17EC321f8BA47f3791f646', safetyScore: 5, totalScore: 6, smartMoneyCount: 145, marketCap: 720000000, volume24h: 89000000, isHot: true, riskLevel: 'low', tag: 'DEX', liquidity: 156000000, holders: 234000 },
 ];
 
 // 默认机构数据

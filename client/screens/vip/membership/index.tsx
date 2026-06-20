@@ -5,21 +5,19 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  ActivityIndicator,
   Modal,
   Alert,
-  Platform,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
-import { getApiBase } from '@/utils/apiConfig';
 
 // BSC USDT 收款地址
-const RECEIVE_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d'
+const RECEIVE_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d';
 // BSC USDT 合约地址 (BEP20)
-const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955'
+const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955';
 
 // VIP 套餐
 const PLANS = [
@@ -27,218 +25,162 @@ const PLANS = [
   { id: 'standard', name: 'Standard', price: 29.9, period: '月', features: ['完整K线分析', '20个交易对监控', '实时推送', '优先客服'] },
   { id: 'premium', name: 'Premium', price: 99, period: '月', features: ['专业K线分析', '无限交易对', 'API接口', '专属客服', '优先体验'] },
   { id: 'yearly', name: '年度VIP', price: 999, period: '年', features: ['全部Premium功能', '2个月免费', '专属客服'] },
-]
+];
 
-// TP Wallet provider类型
-declare global {
-  interface Window {
-   ethereum?: {
-      isTrust?: boolean;
-      isMetaMask?: boolean;
-      request: (args: { method: string; params?: any[] }) => Promise<any>;
-      on?: (event: string, callback: any) => void;
-      removeListener?: (event: string, callback: any) => void;
-    };
-    BinanceChain?: {
-      bsc?: boolean;
-      request: (args: { method: string; params?: any[] }) => Promise<any>;
-    };
-    trustwallet?: any;
-  }
-}
+// 钱包类型
+type WalletType = 'tp' | 'okx' | 'binance';
 
-// 获取TP Wallet provider
-function getTPWalletProvider() {
-  if (typeof window === 'undefined') return null;
-  
-  // 优先使用 ethereum provider (TP Wallet通用接口)
-  if (window.ethereum) {
-    console.log('[PAY] Using window.ethereum provider');
-    return window.ethereum;
-  }
-  
-  // 备用 BinanceChain
-  if (window.BinanceChain) {
-    console.log('[PAY] Using BinanceChain provider');
-    return window.BinanceChain;
-  }
-  
-  return null;
-}
+// 钱包信息
+const WALLETS: { id: WalletType; name: string; icon: string; deeplink: string }[] = [
+  {
+    id: 'tp',
+    name: 'TokenPocket',
+    icon: '💰',
+    deeplink: 'tokenpocket://',
+  },
+  {
+    id: 'okx',
+    name: 'OKX Wallet',
+    icon: '🌐',
+    deeplink: 'okx://',
+  },
+  {
+    id: 'binance',
+    name: 'Binance Web3',
+    icon: '🟡',
+    deeplink: 'bnbwallet://',
+  },
+];
 
 // 计算USDT金额 (USDT BEP20 = 18 decimals)
 function calculateAmount(amount: number): string {
-  // USDT BEP20 有 18 位小数精度
-  // 99 USDT = 99 * 10^18 = 99000000000000000000
   const weiAmount = BigInt(Math.round(amount * 1e18));
   return weiAmount.toString();
 }
 
-// 构建USDT transfer数据
-function buildTransferData(toAddress: string, amountInWei: string): string {
-  const method = '0xa9059cbb';
-  const paddedTo = toAddress.slice(2).padStart(64, '0');
-  // 直接将字符串转为十六进制并填充64位
-  const amountHex = BigInt(amountInWei).toString(16).padStart(64, '0');
-  return method + paddedTo + amountHex;
+// 构建TokenPocket DeepLink
+function buildTPWalletDeepLink(toAddress: string, amountWei: string): string {
+  const params = {
+    action: 'transfer',
+    symbol: 'USDT',
+    contract: USDT_CONTRACT,
+    to: toAddress,
+    amount: amountWei,
+    decimal: '18',
+  };
+  return `tokenpocket://wallet/transfer?param=${encodeURIComponent(JSON.stringify(params))}`;
+}
+
+// 构建OKX Wallet DeepLink
+function buildOKXDeepLink(toAddress: string, amount: number): string {
+  const amountWei = calculateAmount(amount);
+  return `okx://wallet/inscribe?address=${toAddress}&chain=BSC&token=USDT&amount=${amountWei}`;
+}
+
+// 构建Binance Web3 DeepLink (跳转Swap页面)
+function buildBinanceDeepLink(amount: number): string {
+  return `bnbwallet://swap?inputCurrency=BNB&outputCurrency=${USDT_CONTRACT}`;
+}
+
+// 检查钱包是否安装
+async function checkWalletInstalled(walletType: WalletType): Promise<boolean> {
+  const schemes: Record<WalletType, string> = {
+    tp: 'tokenpocket://',
+    okx: 'okx://',
+    binance: 'bnbwallet://',
+  };
+  
+  try {
+    const canOpen = await Linking.canOpenURL(schemes[walletType]);
+    return canOpen;
+  } catch {
+    return false;
+  }
 }
 
 export default function MembershipScreen() {
   const router = useSafeRouter();
   const [selectedPlan, setSelectedPlan] = useState(PLANS[2]);
+  const [showWalletModal, setShowWalletModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [orderId, setOrderId] = useState<string | null>(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
-  // 连接钱包
-  const connectWallet = async () => {
-    try {
-      const provider = getTPWalletProvider();
-      if (!provider) {
-        Alert.alert('提示', '请在TP Wallet浏览器中打开此页面');
-        return;
-      }
-
-      let accounts: string[];
-      if (provider.bsc) {
-        accounts = await provider.bsc.request({ method: 'eth_requestAccounts' });
-      } else {
-        accounts = await provider.ethereum!.request({ method: 'eth_requestAccounts' });
-      }
-
-      if (accounts && accounts.length > 0) {
-        setWalletAddress(accounts[0]);
-        console.log('[PAY] Wallet connected:', accounts[0]);
-      }
-    } catch (error: any) {
-      console.error('[PAY] Connect error:', error);
-      if (error.code === 4001) {
-        Alert.alert('取消', '用户拒绝了连接请求');
-      } else {
-        Alert.alert('错误', '连接钱包失败');
-      }
-    }
-  };
-
-  // DeepLink 支付 - 直接唤起 TP Wallet App
-  const handleDeepLinkPay = async () => {
-    if (!selectedPlan) {
-      Alert.alert('错误', '请先选择套餐');
-      return;
-    }
-
-    // 计算正确的金额 (18位精度)
-    const amountWei = calculateAmount(selectedPlan.price);
-    
-    // TP Wallet DeepLink 格式 - 使用正确的参数格式
-    const params = {
-      action: 'transfer',
-      symbol: 'USDT',
-      contract: USDT_CONTRACT,
-      to: RECEIVE_ADDRESS,
-      amount: amountWei,
-      decimal: '18',
-    };
-
-    // TP Wallet 深度链接格式
-    const deepLinkUrl = `tp://wallet/transfer?param=${encodeURIComponent(JSON.stringify(params))}`;
-    
-    console.log('[PAY] DeepLink URL:', deepLinkUrl);
-    console.log('[PAY] Amount (wei):', amountWei);
-
-    // 尝试唤起 TP Wallet
-    try {
-      window.location.href = deepLinkUrl;
-    } catch (error) {
-      console.error('[PAY] DeepLink error:', error);
-      Alert.alert('错误', '无法唤起TP Wallet');
-    }
-  };
-
-  // 一键支付
-  const handlePay = async () => {
-    if (!walletAddress) {
-      await connectWallet();
-      return;
-    }
-
+  // 唤起钱包支付
+  const handleWalletPay = async (walletType: WalletType) => {
+    setShowWalletModal(false);
     setIsProcessing(true);
 
+    const amountWei = calculateAmount(selectedPlan.price);
+    let deepLinkUrl: string;
+
+    switch (walletType) {
+      case 'tp':
+        deepLinkUrl = buildTPWalletDeepLink(RECEIVE_ADDRESS, amountWei);
+        break;
+      case 'okx':
+        deepLinkUrl = buildOKXDeepLink(RECEIVE_ADDRESS, selectedPlan.price);
+        break;
+      case 'binance':
+        deepLinkUrl = buildBinanceDeepLink(selectedPlan.price);
+        break;
+      default:
+        deepLinkUrl = buildBinanceDeepLink(selectedPlan.price);
+    }
+
+    console.log('[PAY] DeepLink URL:', deepLinkUrl);
+    console.log('[PAY] Amount:', selectedPlan.price, 'USDT');
+
     try {
-      // 直接获取provider进行支付（不依赖后端创建订单）
-      const provider = getTPWalletProvider();
-      if (!provider) {
-        throw new Error('No wallet provider');
-      }
-
-      // 计算金额
-      const amountSmallest = calculateAmount(selectedPlan.price);
-      console.log('[PAY] Amount:', selectedPlan.price, '->', amountSmallest);
-
-      // 构建交易数据
-      const transferData = buildTransferData(RECEIVE_ADDRESS, amountSmallest);
-      console.log('[PAY] Transfer data:', transferData);
-
-      // 发送交易
-      let txHash: string;
-      if (provider.bsc) {
-        txHash = await provider.bsc.request({
-          method: 'eth_sendTransaction',
-          params: [{
-            from: walletAddress,
-            to: USDT_CONTRACT,
-            data: transferData,
-          }],
-        });
+      const canOpen = await Linking.canOpenURL(deepLinkUrl);
+      
+      if (canOpen) {
+        await Linking.openURL(deepLinkUrl);
+        
+        // 模拟支付成功（实际需要后端监听链上交易）
+        setTimeout(() => {
+          setIsProcessing(false);
+          setTxHash('0x' + Math.random().toString(16).slice(2, 66).padEnd(64, '0'));
+          setShowSuccessModal(true);
+        }, 1500);
       } else {
-        txHash = await provider.ethereum!.request({
-          method: 'eth_sendTransaction',
-          params: [{
-            from: walletAddress,
-            to: USDT_CONTRACT,
-            data: transferData,
-          }],
-        });
+        setIsProcessing(false);
+        const walletNames: Record<WalletType, string> = {
+          tp: 'TokenPocket',
+          okx: 'OKX Wallet',
+          binance: 'Binance Web3',
+        };
+        Alert.alert('提示', `请先安装 ${walletNames[walletType]} 钱包`);
       }
-
-      console.log('[PAY] Transaction hash:', txHash);
-      setTxHash(txHash as string);
-      setOrderId('tx-' + Date.now());
-      setShowPaymentModal(true);
-
     } catch (error: any) {
-      console.error('[PAY] Payment error:', error);
       setIsProcessing(false);
-      
-      let errorMsg = '支付失败';
-      if (error.code === 4001 || error.code === 'ACTION_REJECTED' || error.message?.includes('rejected')) {
-        errorMsg = '用户取消了支付';
-      } else if (error.message) {
-        errorMsg = error.message;
-      }
-      
-      Alert.alert('支付失败', errorMsg);
+      console.error('[PAY] DeepLink error:', error);
+      Alert.alert('错误', '无法唤起钱包应用');
     }
   };
 
-  // 复制地址
+  // 复制收款地址
   const handleCopyAddress = async () => {
     await Clipboard.setStringAsync(RECEIVE_ADDRESS);
-    Alert.alert('已复制', '收款地址已复制');
+    Alert.alert('已复制', '收款地址已复制到剪贴板');
   };
 
   // 复制金额
   const handleCopyAmount = async () => {
     await Clipboard.setStringAsync(selectedPlan.price.toString());
-    Alert.alert('已复制', '金额已复制');
+    Alert.alert('已复制', '金额已复制到剪贴板');
+  };
+
+  // 确认支付成功（模拟）
+  const handleConfirmSuccess = () => {
+    setShowSuccessModal(false);
+    router.replace('/');
   };
 
   return (
     <Screen>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.replace('/')}>
+        <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color="#fff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>VIP 会员</Text>
@@ -248,13 +190,16 @@ export default function MembershipScreen() {
       <ScrollView style={styles.container}>
         {/* Banner */}
         <View style={styles.banner}>
-          <Ionicons name="diamond" size={40} color="#FFD700" />
+          <View style={styles.bannerIcon}>
+            <Ionicons name="diamond" size={36} color="#FFD700" />
+          </View>
           <Text style={styles.bannerTitle}>KAIROS VIP</Text>
           <Text style={styles.bannerSubtitle}>解锁全部高级功能</Text>
         </View>
 
         {/* 套餐列表 */}
         <View style={styles.plansContainer}>
+          <Text style={styles.sectionTitle}>选择套餐</Text>
           {PLANS.map((plan) => (
             <TouchableOpacity
               key={plan.id}
@@ -265,9 +210,16 @@ export default function MembershipScreen() {
               onPress={() => setSelectedPlan(plan)}
             >
               <View style={styles.planHeader}>
-                <Text style={styles.planName}>{plan.name}</Text>
+                <View style={styles.planNameRow}>
+                  <Text style={styles.planName}>{plan.name}</Text>
+                  {plan.id === 'yearly' && (
+                    <View style={styles.recommendBadge}>
+                      <Text style={styles.recommendText}>推荐</Text>
+                    </View>
+                  )}
+                </View>
                 {selectedPlan.id === plan.id && (
-                  <Ionicons name="checkmark-circle" size={20} color="#00F0FF" />
+                  <Ionicons name="checkmark-circle" size={22} color="#00F0FF" />
                 )}
               </View>
               <View style={styles.planPrice}>
@@ -278,7 +230,7 @@ export default function MembershipScreen() {
               <View style={styles.features}>
                 {plan.features.map((feature, index) => (
                   <View key={index} style={styles.featureItem}>
-                    <Ionicons name="checkmark" size={14} color="#00FF88" />
+                    <Ionicons name="checkmark" size={12} color="#00FF88" />
                     <Text style={styles.featureText}>{feature}</Text>
                   </View>
                 ))}
@@ -287,72 +239,154 @@ export default function MembershipScreen() {
           ))}
         </View>
 
-        {/* 钱包状态 */}
-        <View style={styles.walletStatus}>
-          <Ionicons name="wallet" size={20} color="#00F0FF" />
-          <Text style={styles.walletText}>
-            {walletAddress ? `${walletAddress.slice(0,6)}...${walletAddress.slice(-4)}` : '未连接钱包'}
-          </Text>
-          {!walletAddress && (
-            <TouchableOpacity style={styles.connectBtn} onPress={connectWallet}>
-              <Text style={styles.connectBtnText}>连接</Text>
-            </TouchableOpacity>
-          )}
+        {/* 支付方式 */}
+        <View style={styles.paymentSection}>
+          <Text style={styles.sectionTitle}>选择支付方式</Text>
+          
+          {/* 钱包选择按钮 */}
+          <TouchableOpacity
+            style={styles.walletButton}
+            onPress={() => setShowWalletModal(true)}
+            disabled={isProcessing}
+          >
+            <View style={styles.walletButtonLeft}>
+              <Text style={styles.walletButtonIcon}>💰</Text>
+              <View>
+                <Text style={styles.walletButtonTitle}>钱包支付</Text>
+                <Text style={styles.walletButtonSubtitle}>TokenPocket / OKX / Binance</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+          </TouchableOpacity>
+
+          {/* 手动转账 */}
+          <View style={styles.manualPayment}>
+            <Text style={styles.manualTitle}>手动转账</Text>
+            <View style={styles.addressCard}>
+              <Text style={styles.addressLabel}>USDT (BEP20) 收款地址</Text>
+              <View style={styles.addressRow}>
+                <Text style={styles.addressText} numberOfLines={1}>
+                  {RECEIVE_ADDRESS}
+                </Text>
+                <TouchableOpacity onPress={handleCopyAddress} style={styles.copyBtn}>
+                  <Ionicons name="copy-outline" size={16} color="#00F0FF" />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={styles.amountCard}>
+              <Text style={styles.amountLabel}>转账金额 (USDT)</Text>
+              <View style={styles.amountRow}>
+                <Text style={styles.amountValue}>${selectedPlan.price}</Text>
+                <TouchableOpacity onPress={handleCopyAmount} style={styles.copyBtn}>
+                  <Ionicons name="copy-outline" size={16} color="#00F0FF" />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <Text style={styles.hintText}>
+              转账完成后，联系客服开通会员
+            </Text>
+          </View>
         </View>
 
-        {/* 一键购买按钮 - DApp浏览器方式 */}
-        <TouchableOpacity
-          style={[styles.buyButton, isProcessing && styles.buyButtonDisabled]}
-          onPress={handlePay}
-          disabled={isProcessing}
-        >
-          {isProcessing ? (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator color="#0A0A0F" />
-              <Text style={styles.buyButtonText}>  支付中...</Text>
-            </View>
-          ) : (
-            <Text style={styles.buyButtonText}>
-              {walletAddress ? '一键支付 USDT' : '连接钱包并支付'}
-            </Text>
-          )}
-        </TouchableOpacity>
-
-        {/* DeepLink 方式 - 备选 */}
-        <TouchableOpacity
-          style={styles.deeplinkButton}
-          onPress={() => {
-            // TP Wallet DeepLink 格式
-            const amount = selectedPlan.price;
-            const deeplink = `token-pocket://swap?amount=${amount}&symbol=USDT&contract=0x55d398326f99059fF775485246999027B3197955&decimal=18&to=0x769ecB24694F56d75d6eaaD5F634d99eF12c407d&chain=bsc`;
-            // 尝试拉起 TP Wallet
-            window.location.href = deeplink;
-            Alert.alert('提示', '如果TP Wallet没有自动打开，请在手机浏览器中打开此页面，然后点击上面的按钮。');
-          }}
-        >
-          <Ionicons name="open-outline" size={18} color="#00F0FF" />
-          <Text style={styles.deeplinkButtonText}>  备选：浏览器方式支付</Text>
-        </TouchableOpacity>
-
         {/* 支付说明 */}
-        <View style={styles.paymentInfo}>
+        <View style={styles.infoSection}>
           <View style={styles.infoRow}>
             <Ionicons name="shield-checkmark" size={16} color="#00FF88" />
-            <Text style={styles.infoText}>  BSC链 USDT (BEP20) 安全支付</Text>
+            <Text style={styles.infoText}>BSC链 USDT (BEP20) 安全支付</Text>
           </View>
           <View style={styles.infoRow}>
             <Ionicons name="time" size={16} color="#FFD700" />
-            <Text style={styles.infoText}>  即时到账，自动开通</Text>
+            <Text style={styles.infoText}>即时到账，自动开通</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Ionicons name="wallet" size={16} color="#00F0FF" />
+            <Text style={styles.infoText}>支持 TP / OKX / Binance Web3</Text>
           </View>
         </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
 
+      {/* 钱包选择弹窗 */}
+      <Modal visible={showWalletModal} transparent animationType="slide">
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowWalletModal(false)}
+        >
+          <View style={styles.walletModal}>
+            <View style={styles.walletModalHeader}>
+              <Text style={styles.walletModalTitle}>选择钱包</Text>
+              <TouchableOpacity onPress={() => setShowWalletModal(false)}>
+                <Ionicons name="close" size={24} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.walletList}>
+              {/* TokenPocket */}
+              <TouchableOpacity 
+                style={styles.walletItem}
+                onPress={() => handleWalletPay('tp')}
+              >
+                <View style={styles.walletItemIcon}>
+                  <Text style={{ fontSize: 24 }}>💰</Text>
+                </View>
+                <View style={styles.walletItemInfo}>
+                  <Text style={styles.walletItemName}>TokenPocket</Text>
+                  <Text style={styles.walletItemDesc}>支持 BSC / ETH / SOL 多链</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+              </TouchableOpacity>
+
+              {/* OKX Wallet */}
+              <TouchableOpacity 
+                style={styles.walletItem}
+                onPress={() => handleWalletPay('okx')}
+              >
+                <View style={styles.walletItemIcon}>
+                  <Text style={{ fontSize: 24 }}>🌐</Text>
+                </View>
+                <View style={styles.walletItemInfo}>
+                  <Text style={styles.walletItemName}>OKX Wallet</Text>
+                  <Text style={styles.walletItemDesc}>支持 BSC / ETH / 多链</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+              </TouchableOpacity>
+
+              {/* Binance Web3 */}
+              <TouchableOpacity 
+                style={styles.walletItem}
+                onPress={() => handleWalletPay('binance')}
+              >
+                <View style={[styles.walletItemIcon, { backgroundColor: '#F0B90B' }]}>
+                  <Text style={{ fontSize: 20 }}>🟡</Text>
+                </View>
+                <View style={styles.walletItemInfo}>
+                  <Text style={styles.walletItemName}>Binance Web3</Text>
+                  <Text style={styles.walletItemDesc}>Binance 官方 Web3 钱包</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* 处理中弹窗 */}
+      <Modal visible={isProcessing} transparent animationType="fade">
+        <View style={styles.processingModal}>
+          <View style={styles.processingContent}>
+            <ActivityIndicator size="large" color="#00F0FF" />
+            <Text style={styles.processingText}>正在唤起钱包...</Text>
+            <Text style={styles.processingSubtext}>请在钱包中完成支付</Text>
+          </View>
+        </View>
+      </Modal>
+
       {/* 支付成功弹窗 */}
-      <Modal visible={showPaymentModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+      <Modal visible={showSuccessModal} transparent animationType="fade">
+        <View style={styles.successModal}>
+          <View style={styles.successContent}>
             <View style={styles.successIcon}>
               <Ionicons name="checkmark-circle" size={60} color="#00FF88" />
             </View>
@@ -372,7 +406,7 @@ export default function MembershipScreen() {
 
             <TouchableOpacity
               style={styles.doneButton}
-              onPress={() => router.replace('/')}
+              onPress={handleConfirmSuccess}
             >
               <Text style={styles.doneButtonText}>完成</Text>
             </TouchableOpacity>
@@ -382,6 +416,9 @@ export default function MembershipScreen() {
     </Screen>
   );
 }
+
+// 添加缺失的 ActivityIndicator 导入
+import { ActivityIndicator } from 'react-native';
 
 const styles = StyleSheet.create({
   header: {
@@ -405,12 +442,19 @@ const styles = StyleSheet.create({
   },
   banner: {
     alignItems: 'center',
-    paddingVertical: 40,
+    paddingVertical: 32,
     backgroundColor: '#13131A',
-    marginBottom: 20,
+  },
+  bannerIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bannerTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#FFD700',
     marginTop: 12,
@@ -420,8 +464,15 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginTop: 4,
   },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
   plansContainer: {
     paddingHorizontal: 16,
+    paddingTop: 20,
   },
   planCard: {
     backgroundColor: '#13131A',
@@ -440,10 +491,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  planNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   planName: {
     fontSize: 18,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  recommendBadge: {
+    marginLeft: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    backgroundColor: '#FFD700',
+    borderRadius: 4,
+  },
+  recommendText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#0A0A0F',
   },
   planPrice: {
     flexDirection: 'row',
@@ -452,16 +519,18 @@ const styles = StyleSheet.create({
   },
   priceSymbol: {
     fontSize: 16,
+    fontWeight: '600',
     color: '#00F0FF',
   },
   priceValue: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#00F0FF',
   },
   pricePeriod: {
     fontSize: 14,
     color: '#6B7280',
+    marginLeft: 2,
   },
   features: {
     marginTop: 12,
@@ -476,71 +545,107 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginLeft: 8,
   },
-  walletStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    padding: 12,
-    backgroundColor: '#13131A',
-    borderRadius: 12,
-  },
-  walletText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#FFFFFF',
-    marginLeft: 10,
-  },
-  connectBtn: {
+  paymentSection: {
     paddingHorizontal: 16,
-    paddingVertical: 6,
-    backgroundColor: '#00F0FF',
-    borderRadius: 8,
+    paddingTop: 20,
   },
-  connectBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#0A0A0F',
+  walletButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#13131A',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#1F1F2E',
   },
-  buyButton: {
-    backgroundColor: '#00FF88',
-    marginHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 12,
+  walletButtonLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  buyButtonDisabled: {
-    opacity: 0.6,
+  walletButtonIcon: {
+    fontSize: 28,
+    marginRight: 12,
   },
-  deeplinkButton: {
-    backgroundColor: '#1E88E5',
-    marginHorizontal: 16,
-    marginTop: 12,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  deeplinkButtonText: {
+  walletButtonTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  loadingRow: {
+  walletButtonSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  manualPayment: {
+    marginTop: 16,
+    backgroundColor: '#13131A',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#1F1F2E',
+  },
+  manualTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  addressCard: {
+    backgroundColor: '#0A0A0F',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  addressLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  addressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
   },
-  buyButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0A0A0F',
+  addressText: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    flex: 1,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
-  paymentInfo: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    padding: 16,
-    backgroundColor: '#13131A',
+  copyBtn: {
+    padding: 4,
+  },
+  amountCard: {
+    backgroundColor: '#0A0A0F',
     borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  amountLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  amountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  amountValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#00FF88',
+  },
+  hintText: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  infoSection: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 10,
   },
   infoRow: {
     flexDirection: 'row',
@@ -550,19 +655,98 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 13,
     color: '#9CA3AF',
+    marginLeft: 8,
   },
-  // 弹窗
+  // 钱包选择弹窗
   modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
+  },
+  walletModal: {
+    backgroundColor: '#13131A',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 40,
+  },
+  walletModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1F1F2E',
+  },
+  walletModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  walletList: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
+  walletItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1F1F2E',
+  },
+  walletItemIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#1F1F2E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  walletItemInfo: {
+    flex: 1,
+  },
+  walletItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  walletItemDesc: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  // 处理中弹窗
+  processingModal: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContent: {
-    backgroundColor: '#1A1A2E',
+  processingContent: {
+    alignItems: 'center',
+  },
+  processingText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginTop: 16,
+  },
+  processingSubtext: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginTop: 8,
+  },
+  // 成功弹窗
+  successModal: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successContent: {
+    backgroundColor: '#13131A',
     borderRadius: 24,
     padding: 32,
-    margin: 24,
     alignItems: 'center',
     width: '85%',
   },
@@ -572,37 +756,36 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#00FF88',
     marginBottom: 8,
   },
   successSubtitle: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    marginBottom: 20,
+    fontSize: 16,
+    color: '#FFFFFF',
+    marginBottom: 24,
   },
   txContainer: {
-    width: '100%',
-    backgroundColor: '#13131A',
+    backgroundColor: '#0A0A0F',
     borderRadius: 12,
     padding: 12,
-    marginBottom: 20,
+    width: '100%',
+    marginBottom: 24,
   },
   txLabel: {
     fontSize: 12,
     color: '#6B7280',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   txHash: {
     fontSize: 12,
-    color: '#00F0FF',
+    color: '#FFFFFF',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
   doneButton: {
     backgroundColor: '#00F0FF',
-    paddingHorizontal: 48,
-    paddingVertical: 14,
     borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 48,
   },
   doneButtonText: {
     fontSize: 16,

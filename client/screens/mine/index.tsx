@@ -380,120 +380,40 @@ export default function MineScreen() {
             {/* 一键跟单 */}
             <TouchableOpacity
               className="items-center mb-4"
-              style={{ width: '31%' }}
+              style={{ width: '48%' }}
               onPress={() => router.push('/copytrading')}
             >
               <View 
-                className="w-full rounded-xl p-3 items-center"
+                className="w-full rounded-xl p-4 items-center"
                 style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#1F1F2E' }}
               >
                 <View 
-                  className="w-10 h-10 rounded-full items-center justify-center mb-2"
+                  className="w-12 h-12 rounded-full items-center justify-center mb-2"
                   style={{ backgroundColor: 'rgba(255, 215, 0, 0.1)' }}
                 >
-                  <FontAwesome6 name="users" size={18} color="#FFD700" />
+                  <FontAwesome6 name="users" size={22} color="#FFD700" />
                 </View>
-                <Text className="text-xs" style={{ color: '#FFFFFF' }}>一键跟单</Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* K线分析 */}
-            <TouchableOpacity
-              className="items-center mb-4"
-              style={{ width: '31%' }}
-              onPress={() => router.push('/analysis')}
-            >
-              <View 
-                className="w-full rounded-xl p-3 items-center"
-                style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#1F1F2E' }}
-              >
-                <View 
-                  className="w-10 h-10 rounded-full items-center justify-center mb-2"
-                  style={{ backgroundColor: 'rgba(0, 240, 255, 0.1)' }}
-                >
-                  <Ionicons name="analytics" size={18} color="#00F0FF" />
-                </View>
-                <Text className="text-xs" style={{ color: '#FFFFFF' }}>K线分析</Text>
+                <Text className="text-sm font-medium" style={{ color: '#FFFFFF' }}>一键跟单</Text>
               </View>
             </TouchableOpacity>
 
             {/* 机构跟投 */}
             <TouchableOpacity
               className="items-center mb-4"
-              style={{ width: '31%' }}
+              style={{ width: '48%' }}
               onPress={() => router.push('/signal')}
             >
               <View 
-                className="w-full rounded-xl p-3 items-center"
+                className="w-full rounded-xl p-4 items-center"
                 style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#1F1F2E' }}
               >
                 <View 
-                  className="w-10 h-10 rounded-full items-center justify-center mb-2"
-                  style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)' }}
+                  className="w-12 h-12 rounded-full items-center justify-center mb-2"
+                  style={{ backgroundColor: 'rgba(0, 255, 136, 0.1)' }}
                 >
-                  <FontAwesome6 name="building-columns" size={18} color="#8B5CF6" />
+                  <FontAwesome6 name="building-columns" size={22} color="#00FF88" />
                 </View>
-                <Text className="text-xs" style={{ color: '#FFFFFF' }}>机构跟投</Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* 热门赛道 */}
-            <TouchableOpacity
-              className="items-center mb-4"
-              style={{ width: '31%' }}
-              onPress={() => router.push('/categories')}
-            >
-              <View 
-                className="w-full rounded-xl p-3 items-center"
-                style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#1F1F2E' }}
-              >
-                <View 
-                  className="w-10 h-10 rounded-full items-center justify-center mb-2"
-                  style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)' }}
-                >
-                  <Ionicons name="trending-up" size={18} color="#10B981" />
-                </View>
-                <Text className="text-xs" style={{ color: '#FFFFFF' }}>热门赛道</Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* 币币兑换 */}
-            <TouchableOpacity
-              className="items-center mb-4"
-              style={{ width: '31%' }}
-              onPress={() => router.push('/swap')}
-            >
-              <View 
-                className="w-full rounded-xl p-3 items-center"
-                style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#1F1F2E' }}
-              >
-                <View 
-                  className="w-10 h-10 rounded-full items-center justify-center mb-2"
-                  style={{ backgroundColor: 'rgba(191, 0, 255, 0.1)' }}
-                >
-                  <Ionicons name="swap-horizontal" size={18} color="#BF00FF" />
-                </View>
-                <Text className="text-xs" style={{ color: '#FFFFFF' }}>币币兑换</Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* 我的持仓 */}
-            <TouchableOpacity
-              className="items-center mb-4"
-              style={{ width: '31%' }}
-              onPress={() => router.push('/trading')}
-            >
-              <View 
-                className="w-full rounded-xl p-3 items-center"
-                style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#1F1F2E' }}
-              >
-                <View 
-                  className="w-10 h-10 rounded-full items-center justify-center mb-2"
-                  style={{ backgroundColor: 'rgba(0, 240, 255, 0.1)' }}
-                >
-                  <Ionicons name="document-text" size={18} color="#00F0FF" />
-                </View>
-                <Text className="text-xs" style={{ color: '#FFFFFF' }}>我的持仓</Text>
+                <Text className="text-sm font-medium" style={{ color: '#FFFFFF' }}>机构跟投</Text>
               </View>
             </TouchableOpacity>
 

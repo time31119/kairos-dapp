@@ -180,8 +180,8 @@ export default function SignalScreen() {
 
   const copyToClipboard = async (text: string) => {
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
+      if (navigator.clipboard && Clipboard.setString) {
+        await Clipboard.setString(text);
         alert('已复制到剪贴板');
       }
     } catch (err) {
@@ -257,7 +257,7 @@ export default function SignalScreen() {
   // 复制地址
   const handleCopyAddress = (address: string) => {
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(address);
+      Clipboard.setString(address);
       Alert.alert('已复制', '合约地址已复制到剪贴板');
     }
   };

@@ -74,7 +74,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="signal"
         options={{
-          title: '跟投',
+          title: '机构跟投',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 
               name={focused ? 'pulse' : 'pulse-outline'} 

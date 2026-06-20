@@ -298,9 +298,32 @@ export default function SignalScreen() {
 
     const url = walletType === 'tp' ? links.tpLink : walletType === 'okx' ? links.okxLink : links.binanceLink;
     
-    // Web 环境使用 window.location.href 直接跳转
+    // Web 环境使用多种方式尝试跳转 Deep Link
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.location.href = url;
+      try {
+        // 方式1: 直接设置 location (某些浏览器可能阻止)
+        window.location.href = url;
+        
+        // 方式2: 延迟 100ms 后使用 iframe (作为备选方案)
+        setTimeout(() => {
+          try {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = url;
+            iframe.id = 'wallet-iframe';
+            document.body.appendChild(iframe);
+            // 1秒后移除 iframe
+            setTimeout(() => {
+              const el = document.getElementById('wallet-iframe');
+              if (el) document.body.removeChild(el);
+            }, 1000);
+          } catch (e) {
+            console.log('iframe approach failed');
+          }
+        }, 100);
+      } catch (e) {
+        console.log('location.href failed');
+      }
       return;
     }
     

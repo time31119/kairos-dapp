@@ -1167,13 +1167,24 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#252540',
   },
+  contractBadge: {
+    backgroundColor: '#1a1a2e',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
   contractLabel: {
     fontSize: 11,
-    color: '#666',
+    color: '#888',
+  },
+  contractBadgeText: {
+    fontSize: 11,
+    color: '#aaa',
+    fontFamily: 'monospace',
   },
   contractText: {
     fontSize: 11,
-    color: '#888',
+    color: '#aaa',
     marginLeft: 4,
     fontFamily: 'monospace',
   },

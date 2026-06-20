@@ -19,6 +19,7 @@ const referralRecords: Array<{
 }> = [];
 
 const userReferrals: Record<string, {
+  inviteCode?: string;
   totalReward: number;
   directReward: number;
   monthlySupportReward: number;
@@ -43,10 +44,26 @@ router.get('/info', (req, res) => {
   const currentMonth = new Date().toISOString().slice(0, 7);
   const monthlyStat = userData.monthlyStats[currentMonth] || { totalSubscription: 0, extraReward: 0 };
   
+  // 生成唯一的邀请码：kai_ + 5位随机字符
+  const generateInviteCode = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let code = 'kai_';
+    for (let i = 0; i < 5; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
+  
+  // 检查是否已有邀请码，没有则生成新的
+  const storedCode = userData.inviteCode || generateInviteCode();
+  if (!userData.inviteCode) {
+    userData.inviteCode = storedCode;
+  }
+  
   res.json({
     success: true,
     data: {
-      inviteCode: `KAIROS_${userId}`.substring(0, 15),
+      inviteCode: storedCode,
       totalReward: userData.totalReward,
       directReward: userData.directReward,
       monthlySupportReward: monthlyStat.extraReward,

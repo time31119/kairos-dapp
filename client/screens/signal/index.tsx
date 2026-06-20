@@ -1407,7 +1407,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   bottomPadding: {
-    height: Math.max(insets.bottom, 20),
+    height: 20,
   },
   sectionHeader: {
     paddingHorizontal: 16,

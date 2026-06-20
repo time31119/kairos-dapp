@@ -377,7 +377,11 @@ export default function SignalScreen() {
 
   // 渲染实时Tab
   const renderRealtimeTab = () => (
-    <View style={styles.tabContent}>
+    <ScrollView 
+      style={styles.tabContent} 
+      showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00F0FF" />}
+    >
       {/* 搜索框 */}
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={16} color="#555570" />
@@ -431,9 +435,7 @@ export default function SignalScreen() {
       </ScrollView>
 
       {/* 代币列表 */}
-      <ScrollView style={styles.tokenList} refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00F0FF" />
-      }>
+      <View>
         {filteredTokens.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="search-outline" size={48} color="#555570" />
@@ -442,9 +444,9 @@ export default function SignalScreen() {
         ) : (
           filteredTokens.map((token, index) => renderTokenCard(token, index))
         )}
-        <View style={styles.bottomPadding} />
-      </ScrollView>
-    </View>
+      </View>
+      <View style={styles.bottomPadding} />
+    </ScrollView>
   );
 
   // 渲染机构Tab

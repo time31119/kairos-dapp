@@ -377,7 +377,8 @@ function ReferralTab() {
     }
   };
 
-  const referralLink = `${stats.referralLink}${stats.referralCode}`;
+  // 直接使用 stats.referralLink，它已经包含完整的邀请链接
+  const referralLink = stats.referralLink || `${getApiBase()}/inv/${stats.referralCode}`;
 
   return (
     <View style={styles.tabContent}>

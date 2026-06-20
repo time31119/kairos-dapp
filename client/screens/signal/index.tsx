@@ -185,6 +185,7 @@ export default function SignalScreen() {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [slippage, setSlippage] = useState('1%');
+  const [webPrompt, setWebPrompt] = useState<string | null>(null);
 
   // 辅助函数
   const shortenAddress = (address: string) => {
@@ -298,11 +299,7 @@ export default function SignalScreen() {
     // Web 端提示
     const isWeb = Platform.OS === 'web';
     if (isWeb) {
-      Alert.alert(
-        '提示', 
-        '钱包买入功能需要在手机 App 中使用。\n\n请使用手机浏览器打开 Kairos DApp，或复制合约地址到钱包中进行购买。',
-        [{ text: '确定' }]
-      );
+      setWebPrompt('钱包买入功能需要在手机 App 中使用。\n\n请使用手机访问 Kairos DApp，或复制合约地址手动购买。');
       return;
     }
 
@@ -908,6 +905,14 @@ export default function SignalScreen() {
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#555570" />
                 </TouchableOpacity>
+
+                {/* Web端提示 */}
+                {webPrompt && (
+                  <View style={styles.webPromptBox}>
+                    <Ionicons name="information-circle" size={20} color="#FF9500" />
+                    <Text style={styles.webPromptText}>{webPrompt}</Text>
+                  </View>
+                )}
 
                 {/* 滑点设置 */}
                 <View style={styles.slippageSection}>
@@ -2027,6 +2032,18 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#666',
     marginTop: 2,
+  },
+  webPromptBox: {
+    backgroundColor: '#1E3A5F',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+  },
+  webPromptText: {
+    fontSize: 13,
+    color: '#FFD700',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   slippageSection: {
     marginTop: 16,

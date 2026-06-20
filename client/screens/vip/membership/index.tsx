@@ -368,8 +368,8 @@ export default function MembershipScreen() {
             {/* 功能对比行 */}
             {[
               { name: '机构跟投-实时信号', basic: true, pro: true, enterprise: true },
-              { name: '热门代币行情', true, pro: true, enterprise: true },
-              { name: '智能分析', true, pro: true, enterprise: true },
+              { name: '热门代币行情', basic: true, pro: true, enterprise: true },
+              { name: '智能分析', basic: false, pro: true, enterprise: true },
               { name: '跟单功能', false, pro: true, enterprise: true },
               { name: '聪明钱追踪', false, pro: true, enterprise: true },
               { name: '风险预警', false, pro: true, enterprise: true },

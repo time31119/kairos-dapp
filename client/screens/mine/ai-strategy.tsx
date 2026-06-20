@@ -27,6 +27,11 @@ export default function AIStrategy() {
   return (
     <Screen>
       <ScrollView style={styles.container}>
+        {/* 返回按钮 */}
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+        </TouchableOpacity>
+
         {/* Hero Section */}
         <View style={styles.hero}>
           <View style={styles.heroIcon}>
@@ -150,6 +155,23 @@ export default function AIStrategy() {
 }
 
 const styles = StyleSheet.create({
+  backButton: {
+    position: 'absolute',
+    top: 15,
+    left: 15,
+    zIndex: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   container: {
     flex: 1,
     backgroundColor: '#0F0F14',

@@ -348,7 +348,7 @@ export default function MineScreen() {
               borderWidth: 1,
               borderColor: '#FFD700',
             }}
-            onPress={() => router.push('/vip')}
+            onPress={() => router.push('/membership')}
           >
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-3">

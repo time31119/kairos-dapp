@@ -216,6 +216,74 @@ export default function TradingScreen() {
     }
   };
 
+  // 交易操作弹窗状态
+  const [tradeModalVisible, setTradeModalVisible] = useState(false);
+  const [tradeAction, setTradeAction] = useState<'open' | 'close' | null>(null);
+  const [selectedSymbol, setSelectedSymbol] = useState('BTCUSDT');
+  const [amount, setAmount] = useState('');
+  const [leverage, setLeverage] = useState(10);
+  const [orderType, setOrderType] = useState<'market' | 'limit'>('market');
+  const [positionType, setPositionType] = useState<'long' | 'short'>('long');
+  const [limitPrice, setLimitPrice] = useState('');
+
+  // 交易操作处理函数
+  const handleOpenPosition = (symbol: string) => {
+    setSelectedSymbol(symbol);
+    setTradeAction('open');
+    setTradeModalVisible(true);
+  };
+
+  const handleClosePosition = (symbol: string) => {
+    setSelectedSymbol(symbol);
+    setTradeAction('close');
+    setTradeModalVisible(true);
+  };
+
+  const handleAnalyze = () => {
+    router.push('/analysis');
+  };
+
+  const confirmTrade = async () => {
+    const walletAddress = (globalThis as any).walletAddress;
+    if (!walletAddress) {
+      Alert.alert('提示', '请先连接钱包');
+      return;
+    }
+    
+    try {
+      const payload: any = {
+        symbol: selectedSymbol,
+        type: tradeAction === 'open' ? (positionType === 'long' ? 'open_long' : 'open_short') : (positionType === 'long' ? 'close_long' : 'close_short'),
+        amount: parseFloat(amount),
+        leverage,
+        wallet_address: walletAddress,
+      };
+      
+      if (orderType === 'limit' && limitPrice) {
+        payload.price = parseFloat(limitPrice);
+      }
+      
+      const result = await apiRequest<{ success: boolean; message?: string }>(
+        '/trading/order',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      );
+      
+      if (result.success) {
+        Alert.alert('成功', tradeAction === 'open' ? '开仓成功' : '平仓成功');
+        setTradeModalVisible(false);
+        loadData();
+      } else {
+        Alert.alert('失败', result.message || '交易失败');
+      }
+    } catch (error) {
+      Alert.alert('错误', '交易请求失败');
+    }
+  };
+
   // 加载所有数据
   const loadData = async () => {
     setLoading(true);
@@ -311,15 +379,15 @@ export default function TradingScreen() {
 
       {/* Quick Actions */}
       <View style={styles.quickActions}>
-        <TouchableOpacity style={styles.quickActionBtn}>
+        <TouchableOpacity style={styles.quickActionBtn} onPress={() => handleOpenPosition('BTC')}>
           <Ionicons name="add-circle-outline" size={24} color="#00F0FF" />
           <Text style={styles.quickActionText}>开仓</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.quickActionBtn}>
+        <TouchableOpacity style={styles.quickActionBtn} onPress={() => handleClosePosition('BTC')}>
           <Ionicons name="swap-horizontal-outline" size={24} color="#00F0FF" />
           <Text style={styles.quickActionText}>平多</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.quickActionBtn}>
+        <TouchableOpacity style={styles.quickActionBtn} onPress={() => handleClosePosition('BTC')}>
           <Ionicons name="swap-horizontal-outline" size={24} color="#FF3366" />
           <Text style={styles.quickActionText}>平空</Text>
         </TouchableOpacity>
@@ -404,13 +472,13 @@ export default function TradingScreen() {
         </View>
 
         <View style={styles.positionActions}>
-          <TouchableOpacity style={[styles.actionBtn, styles.tpBtn]}>
+          <TouchableOpacity style={[styles.actionBtn, styles.tpBtn]} onPress={() => handleOpenPosition(position.symbol)}>
             <Text style={styles.tpBtnText}>+止盈</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, styles.slBtn]}>
+          <TouchableOpacity style={[styles.actionBtn, styles.slBtn]} onPress={() => handleOpenPosition(position.symbol)}>
             <Text style={styles.slBtnText}>+止损</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, styles.closeBtn]}>
+          <TouchableOpacity style={[styles.actionBtn, styles.closeBtn]} onPress={() => handleClosePosition(position.symbol)}>
             <Text style={styles.closeBtnText}>平仓</Text>
           </TouchableOpacity>
         </View>

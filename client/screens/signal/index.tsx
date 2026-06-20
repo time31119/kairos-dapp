@@ -308,10 +308,12 @@ export default function SignalScreen() {
 
       // 切换到目标链
       try {
-        await window.trustwallet.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: `0x${targetChainId.toString(16)}` }],
-        });
+        if (window.trustwallet && window.trustwallet.request) {
+          await window.trustwallet.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: `0x${targetChainId.toString(16)}` }],
+          });
+        }
       } catch (switchError: any) {
         // 如果链不存在，尝试添加
         if (switchError.code === 4902) {
@@ -329,12 +331,14 @@ export default function SignalScreen() {
       };
 
       // 发送交易
-      const result = await window.trustwallet.request({
-        method: 'eth_sendTransaction',
-        params: [txParams],
-      });
+      if (window.trustwallet && window.trustwallet.request) {
+        const result = await window.trustwallet.request({
+          method: 'eth_sendTransaction',
+          params: [txParams],
+        });
 
-      Alert.alert('成功', `交易已提交: ${result}`);
+        Alert.alert('成功', `交易已提交: ${result}`);
+      }
     } catch (error: any) {
       console.error('TP 钱包交易失败:', error);
       Alert.alert('交易失败', error.message || '请重试');

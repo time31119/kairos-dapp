@@ -20,13 +20,13 @@ function HeadContent() {
   if (Platform.OS === 'web') {
     if (typeof document !== 'undefined') {
       // 禁用 fontfaceobserver 超时警告（heroui UI 组件库的字体检测）
-      const originalError = console.error;
-      console.error = function(...args) {
-        if (args[0] && typeof args[0] === 'string' && args[0].includes('timeout exceeded')) {
-          return; // 忽略字体加载超时警告
+      window.addEventListener('error', (event) => {
+        if (event.message && event.message.includes('timeout exceeded')) {
+          event.preventDefault();
+          event.stopPropagation();
+          return false;
         }
-        originalError.apply(console, args);
-      };
+      });
       
       // Title
       document.title = DAPP_TITLE;

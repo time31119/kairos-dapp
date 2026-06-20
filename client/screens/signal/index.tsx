@@ -405,6 +405,15 @@ export default function SignalScreen() {
       } catch (e) {
         console.log('location.href failed');
       }
+      
+      // Binance Web3 备用方案：1.5秒后检查是否跳转成功，没成功则显示合约地址弹窗
+      if (walletType === 'binance') {
+        setTimeout(() => {
+          // 如果用户还在当前页面，说明跳转失败，显示合约地址弹窗
+          setContractAddressForModal(selectedToken.contractAddress);
+          setContractModalVisible(true);
+        }, 1500);
+      }
       return;
     }
     

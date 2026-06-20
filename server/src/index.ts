@@ -14,6 +14,7 @@ import newsRouter from "./routes/news";
 import subscriptionRouter from "./routes/subscription";
 import referralRouter from "./routes/referral";
 import positionsRouter from "./routes/positions";
+import signalRouter from "./routes/signal";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -81,6 +82,7 @@ app.use('/api/v1/news', newsRouter);
 app.use('/api/v1/subscription', subscriptionRouter);
 app.use('/api/v1/referral', referralRouter);
 app.use('/api/v1/positions', positionsRouter);
+app.use('/api/v1/signal', signalRouter);
 
 app.listen(Number(port), '0.0.0.0', () => {
   console.log(`Server listening at http://0.0.0.0:${port}/`);

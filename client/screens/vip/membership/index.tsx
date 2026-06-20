@@ -354,6 +354,45 @@ export default function MembershipScreen() {
           ))}
         </View>
 
+        {/* 功能对比表 */}
+        <View style={styles.comparisonSection}>
+          <Text style={styles.sectionTitle}>功能对比</Text>
+          <View style={styles.comparisonTable}>
+            {/* 表头 */}
+            <View style={styles.comparisonHeader}>
+              <Text style={[styles.comparisonCell, styles.comparisonLabel]}>功能</Text>
+              <Text style={[styles.comparisonCell, styles.comparisonHeaderCell]}>基础版</Text>
+              <Text style={[styles.comparisonCell, styles.comparisonHeaderCell]}>Pro版</Text>
+              <Text style={[styles.comparisonCell, styles.comparisonHeaderCell]}>企业版</Text>
+            </View>
+            {/* 功能对比行 */}
+            {[
+              { name: '机构跟投-实时信号', basic: true, pro: true, enterprise: true },
+              { name: '热门代币行情', true, pro: true, enterprise: true },
+              { name: '智能分析', true, pro: true, enterprise: true },
+              { name: '跟单功能', false, pro: true, enterprise: true },
+              { name: '聪明钱追踪', false, pro: true, enterprise: true },
+              { name: '风险预警', false, pro: true, enterprise: true },
+              { name: '机构布局追踪', false, false, enterprise: true },
+              { name: 'VIP专属客服', false, false, enterprise: true },
+              { name: '专属策略定制', false, false, enterprise: true },
+            ].map((row, index) => (
+              <View key={index} style={styles.comparisonRow}>
+                <Text style={[styles.comparisonCell, styles.comparisonLabel]}>{row.name}</Text>
+                <Text style={[styles.comparisonCell, styles.comparisonValue]}>
+                  {row.basic === true ? '✓' : row.basic || '-'}
+                </Text>
+                <Text style={[styles.comparisonCell, styles.comparisonValue]}>
+                  {row.pro === true ? '✓' : row.pro || '-'}
+                </Text>
+                <Text style={[styles.comparisonCell, styles.comparisonValue]}>
+                  {row.enterprise === true ? '✓' : row.enterprise || '-'}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
         {/* 支付方式 */}
         <View style={styles.paymentSection}>
           <Text style={styles.sectionTitle}>选择支付方式</Text>
@@ -666,6 +705,50 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     backgroundColor: '#FFD700',
     borderRadius: 4,
+  },
+  // 功能对比表格样式
+  comparisonSection: {
+    marginTop: 24,
+    paddingHorizontal: 16,
+  },
+  comparisonTable: {
+    backgroundColor: '#1A1A2E',
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  comparisonHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#252540',
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  comparisonRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A2A3E',
+  },
+  comparisonCell: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  comparisonLabel: {
+    flex: 2,
+    color: '#A0A0B0',
+    textAlign: 'left',
+    fontWeight: '500',
+  },
+  comparisonHeaderCell: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  comparisonValue: {
+    color: '#00D9A5',
+    fontWeight: 'bold',
   },
   recommendText: {
     fontSize: 10,

@@ -24,17 +24,17 @@ const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955';
 // 价格：99/199/299，周期：月付/季付/年付
 const PLANS = [
   // 白银版
-  { id: 'silver_monthly', name: '白银版', price: 99, period: '月', tier: 'silver', badge: '基础', features: ['机构跟投', '实时行情', '基础分析'] },
-  { id: 'silver_quarterly', name: '白银版', price: 279, period: '季', tier: 'silver', badge: '基础', features: ['机构跟投', '实时行情', '基础分析', '9折优惠'] },
-  { id: 'silver_yearly', name: '白银版', price: 990, period: '年', tier: 'silver', badge: '基础', features: ['机构跟投', '实时行情', '基础分析', '8折优惠'] },
+  { id: 'silver_monthly', name: '白银版', price: 99, period: '月', tier: 'silver', badge: '基础', features: ['机构跟投-实时信号', '热门代币行情', '基础智能分析', '代币详情查看'] },
+  { id: 'silver_quarterly', name: '白银版', price: 267, period: '季', tier: 'silver', badge: '基础', features: ['机构跟投-实时信号', '热门代币行情', '基础智能分析', '代币详情查看', '9折优惠'] },
+  { id: 'silver_yearly', name: '白银版', price: 950, period: '年', tier: 'silver', badge: '基础', features: ['机构跟投-实时信号', '热门代币行情', '基础智能分析', '代币详情查看', '8折优惠'] },
   // 黄金版
-  { id: 'gold_monthly', name: '黄金版', price: 199, period: '月', tier: 'gold', badge: '热门', features: ['全部白银功能', '高级分析', '交易信号', '优先通知'] },
-  { id: 'gold_quarterly', name: '黄金版', price: 559, period: '季', tier: 'gold', badge: '热门', features: ['全部白银功能', '高级分析', '交易信号', '优先通知', '9折优惠'] },
-  { id: 'gold_yearly', name: '黄金版', price: 1990, period: '年', tier: 'gold', badge: '热门', features: ['全部白银功能', '高级分析', '交易信号', '优先通知', '8折优惠'] },
+  { id: 'gold_monthly', name: '黄金版', price: 199, period: '月', tier: 'gold', badge: 'PRO', features: ['机构跟投-实时信号', '热门代币行情', '高级智能分析', '跟单功能', '聪明钱追踪', '风险预警'] },
+  { id: 'gold_quarterly', name: '黄金版', price: 559, period: '季', tier: 'gold', badge: 'PRO', features: ['机构跟投-实时信号', '热门代币行情', '高级智能分析', '跟单功能', '聪明钱追踪', '风险预警', '9折优惠'] },
+  { id: 'gold_yearly', name: '黄金版', price: 1990, period: '年', tier: 'gold', badge: 'PRO', features: ['机构跟投-实时信号', '热门代币行情', '高级智能分析', '跟单功能', '聪明钱追踪', '风险预警', '8折优惠'] },
   // 钻石版
-  { id: 'diamond_monthly', name: '钻石版', price: 299, period: '月', tier: 'diamond', badge: '尊享', features: ['全部黄金功能', '机构布局', 'VIP客服', '优先体验'] },
-  { id: 'diamond_quarterly', name: '钻石版', price: 839, period: '季', tier: 'diamond', badge: '尊享', features: ['全部黄金功能', '机构布局', 'VIP客服', '优先体验', '9折优惠'] },
-  { id: 'diamond_yearly', name: '钻石版', price: 2990, period: '年', tier: 'diamond', badge: '尊享', features: ['全部黄金功能', '机构布局', 'VIP客服', '优先体验', '8折优惠'] },
+  { id: 'diamond_monthly', name: '钻石版', price: 299, period: '月', tier: 'diamond', badge: 'ENTERPRISE', features: ['机构跟投-实时+机构', '热门代币行情', '高级智能分析', '跟单功能', '聪明钱追踪', '风险预警', '机构布局追踪', 'VIP专属客服'] },
+  { id: 'diamond_quarterly', name: '钻石版', price: 839, period: '季', tier: 'diamond', badge: 'ENTERPRISE', features: ['机构跟投-实时+机构', '热门代币行情', '高级智能分析', '跟单功能', '聪明钱追踪', '风险预警', '机构布局追踪', 'VIP专属客服', '9折优惠'] },
+  { id: 'diamond_yearly', name: '钻石版', price: 2990, period: '年', tier: 'diamond', badge: 'ENTERPRISE', features: ['机构跟投-实时+机构', '热门代币行情', '高级智能分析', '跟单功能', '聪明钱追踪', '风险预警', '机构布局追踪', 'VIP专属客服', '8折优惠'] },
 ];
 
 // 钱包类型

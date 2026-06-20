@@ -262,7 +262,7 @@ function ReferralTab() {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
-    referralLink: 'https://kairos.app/inv/',
+    referralLink: '',
     referralCode: '',
     thisMonthReward: 0,
     pendingReward: 0,
@@ -317,6 +317,7 @@ function ReferralTab() {
           setStats(prev => ({ 
             ...prev, 
             referralCode: statsData.data.inviteCode,
+            referralLink: `${getApiBase()}/inv/${statsData.data.inviteCode}`,
             thisMonthReward: statsData.data.directReward + statsData.data.monthlySupportReward,
             totalReferrals: statsData.data.totalReferrals 
           }));
@@ -325,14 +326,16 @@ function ReferralTab() {
           const localCode = await getUserInviteCode();
           setStats(prev => ({ 
             ...prev, 
-            referralCode: localCode
+            referralCode: localCode,
+            referralLink: `${getApiBase()}/inv/${localCode}`
           }));
         }
       } else {
         const localCode = await getUserInviteCode();
         setStats(prev => ({ 
           ...prev, 
-          referralCode: localCode
+          referralCode: localCode,
+          referralLink: `${getApiBase()}/inv/${localCode}`
         }));
       }
     } catch (error) {
@@ -341,7 +344,8 @@ function ReferralTab() {
       const localCode = await getUserInviteCode();
       setStats(prev => ({ 
         ...prev, 
-        referralCode: localCode
+        referralCode: localCode,
+        referralLink: `${getApiBase()}/inv/${localCode}`
       }));
     } finally {
       setLoading(false);

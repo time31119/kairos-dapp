@@ -26,7 +26,7 @@ export default function AIStrategy() {
       profit: '3:7',
       cycle: '一月一结',
       features: ['全天候自动运行', '风险可控', '收益稳定'],
-      history: ['2024年收益 +32.5%', '2023年收益 +28.3%', '2022年收益 +22.1%'],
+      history: ['近1月 +12.5%', '近3月 +32.5%', '近6月 +48.3%'],
     },
     { 
       id: 2, 
@@ -40,7 +40,7 @@ export default function AIStrategy() {
       profit: '3:7',
       cycle: '一月一结',
       features: ['AI智能识别', '顺势而为', '趋势捕捉'],
-      history: ['2024年收益 +45.2%', '2023年收益 +38.6%', '2022年收益 +25.8%'],
+      history: ['近1月 +18.5%', '近3月 +52.3%', '近6月 +86.2%'],
     },
     { 
       id: 3, 
@@ -54,7 +54,7 @@ export default function AIStrategy() {
       profit: '3:7',
       cycle: '一月一结',
       features: ['均值回归逻辑', '逆向思维', '稳健收益'],
-      history: ['2024年收益 +28.5%', '2023年收益 +24.2%', '2022年收益 +18.9%'],
+      history: ['近1月 +8.5%', '近3月 +22.3%', '近6月 +38.6%'],
     },
     { 
       id: 4, 
@@ -68,7 +68,7 @@ export default function AIStrategy() {
       profit: '3:7',
       cycle: '一月一结',
       features: ['双向对冲', '风险对冲', '绝对收益'],
-      history: ['2024年收益 +22.8%', '2023年收益 +19.5%', '2022年收益 +15.2%'],
+      history: ['近1月 +6.8%', '近3月 +18.6%', '近6月 +32.5%'],
     },
   ];
 
@@ -168,7 +168,7 @@ export default function AIStrategy() {
                   <Text style={styles.strategyName}>{strategy.name}</Text>
                   <View style={styles.returnsBadge}>
                     <Text style={styles.returnsText}>{strategy.returns}</Text>
-                    <Text style={styles.returnsLabel}>年化</Text>
+                    <Text style={styles.returnsLabel}>月化</Text>
                   </View>
                 </View>
                 <View style={[styles.riskBadge, { backgroundColor: strategy.risk === '低' ? '#DCFCE7' : '#FEF3C7' }]}>
@@ -186,7 +186,7 @@ export default function AIStrategy() {
 
               {/* 过往业绩 */}
               <View style={styles.strategySection}>
-                <Text style={styles.strategySectionTitle}>过往业绩</Text>
+                <Text style={styles.strategySectionTitle}>近期业绩</Text>
                 <View style={styles.historyContainer}>
                   {strategy.history.map((item, index) => (
                     <View key={index} style={styles.historyItem}>
@@ -270,7 +270,7 @@ export default function AIStrategy() {
                 <Text style={styles.modalStrategyName}>{selectedStrategy.name}</Text>
                 <View style={styles.modalStrategyReturns}>
                   <Text style={styles.modalReturnsText}>{selectedStrategy.returns}</Text>
-                  <Text style={styles.modalReturnsLabel}>预期年化</Text>
+                  <Text style={styles.modalReturnsLabel}>月化收益</Text>
                 </View>
               </View>
             )}

@@ -186,6 +186,8 @@ export default function SignalScreen() {
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [slippage, setSlippage] = useState('1%');
   const [webPrompt, setWebPrompt] = useState<string | null>(null);
+  const [contractModalVisible, setContractModalVisible] = useState(false);
+  const [contractAddressForModal, setContractAddressForModal] = useState('');
 
   // 辅助函数
   const shortenAddress = (address: string) => {
@@ -982,13 +984,18 @@ export default function SignalScreen() {
                 {/* 选择钱包 */}
                 <Text style={styles.walletTitle}>选择钱包买入</Text>
                 
-                <TouchableOpacity style={styles.walletOption} onPress={() => handleOpenWallet('tp')}>
+                <TouchableOpacity style={styles.walletOption} onPress={() => {
+                    if (selectedToken?.contractAddress) {
+                      setContractAddressForModal(selectedToken.contractAddress);
+                      setContractModalVisible(true);
+                    }
+                  }}>
                   <View style={styles.walletIcon}>
                     <Text style={{ fontSize: 20 }}>💎</Text>
                   </View>
                   <View style={styles.walletInfo}>
                     <Text style={styles.walletName}>TokenPocket</Text>
-                    <Text style={styles.walletDesc}>支持多链的去中心化钱包</Text>
+                    <Text style={styles.walletDesc}>复制合约地址到钱包交易</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#555570" />
                 </TouchableOpacity>
@@ -1065,9 +1072,47 @@ export default function SignalScreen() {
         </View>
       </View>
     </Modal>
-  );
 
-  // 渲染设置面板
+    {/* 合约地址弹窗 - 用于TP钱包浏览器 */}
+    <Modal visible={contractModalVisible} transparent animationType="fade">
+      <TouchableWithoutFeedback onPress={() => setContractModalVisible(false)}>
+        <View style={styles.webPromptOverlay}>
+          <TouchableWithoutFeedback>
+            <View style={styles.webPromptContainer}>
+              <Text style={styles.webPromptTitle}>复制合约地址</Text>
+              <Text style={styles.webPromptText}>
+                请复制以下合约地址到 TP 钱包的浏览器中粘贴搜索
+              </Text>
+              <View style={styles.contractAddressBox}>
+                <Text style={styles.contractAddressText} selectable>
+                  {contractAddressForModal}
+                </Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.copyButton}
+                onPress={() => {
+                  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                    navigator.clipboard.writeText(contractAddressForModal);
+                  }
+                  setContractModalVisible(false);
+                }}
+              >
+                <Text style={styles.copyButtonText}>复制合约地址</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.cancelButton}
+                onPress={() => setContractModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>关闭</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+
+    {/* Web端提示弹窗 */}
+    <Modal visible={!!webPrompt} transparent animationType="fade">
   const renderSettings = () => (
     <View style={styles.settingsOverlay}>
       <TouchableOpacity style={styles.settingsBackdrop} onPress={() => setSettingsVisible(false)} />
@@ -2258,5 +2303,84 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#555570',
     marginLeft: 6,
+  },
+  // 合约地址弹窗样式
+  contractModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  contractModalContent: {
+    backgroundColor: '#1A1A2E',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 340,
+    borderWidth: 1,
+    borderColor: '#252545',
+  },
+  contractModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  contractAddressBox: {
+    backgroundColor: '#252545',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  contractAddressLabel: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 8,
+  },
+  contractAddressText: {
+    fontSize: 13,
+    color: '#00F0FF',
+    fontWeight: '500',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    wordBreak: 'break-all',
+  },
+  contractModalHint: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  contractButtonRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  contractButton: {
+    flex: 1,
+    backgroundColor: '#252545',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  contractButtonPrimary: {
+    backgroundColor: '#00F0FF',
+  },
+  contractButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  contractButtonTextPrimary: {
+    color: '#0A0A0F',
+  },
+  closeButton: {
+    marginTop: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    fontSize: 14,
+    color: '#666',
   },
 });

@@ -17,6 +17,7 @@ import {
 import { Ionicons, FontAwesome6, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TabType = 'realtime' | 'institution' | 'decision';
 type FilterType = 'hot' | 'gainers' | 'smart' | 'safe';
@@ -154,6 +155,7 @@ const generateBuyLinks = (token: Token) => {
 };
 
 export default function SignalScreen() {
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('realtime');
   const [filter, setFilter] = useState<FilterType>('hot');
   const [chainFilter, setChainFilter] = useState<ChainFilter>('全部');
@@ -484,7 +486,7 @@ export default function SignalScreen() {
           filteredTokens.map((token, index) => renderTokenCard(token, index))
         )}
       </View>
-      <View style={styles.bottomPadding} />
+      <View style={{ height: Math.max(insets.bottom, 20) }} />
     </ScrollView>
   );
 
@@ -1405,7 +1407,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   bottomPadding: {
-    height: 20,
+    height: Math.max(insets.bottom, 20),
   },
   sectionHeader: {
     paddingHorizontal: 16,

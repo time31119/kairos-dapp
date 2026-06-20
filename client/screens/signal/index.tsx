@@ -277,6 +277,64 @@ export default function SignalScreen() {
     }
   };
 
+  // TP 钱包交易
+  const handleTPWalletTrade = async (token: Token, amount: string) => {
+    if (typeof window === 'undefined' || !window.trustwallet) {
+      Alert.alert('提示', '请先连接 TP 钱包');
+      return;
+    }
+
+    try {
+      // 检查链是否匹配
+      const chainIds: Record<string, number> = {
+        'Ethereum': 1,
+        'BSC': 56,
+        'Base': 8453,
+        'Arbitrum': 42161,
+        'Polygon': 137,
+      };
+      const targetChainId = chainIds[token.chain];
+
+      if (!targetChainId) {
+        Alert.alert('提示', `TP 钱包暂不支持 ${token.chain} 链`);
+        return;
+      }
+
+      // 切换到目标链
+      try {
+        await window.trustwallet.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: `0x${targetChainId.toString(16)}` }],
+        });
+      } catch (switchError: any) {
+        // 如果链不存在，尝试添加
+        if (switchError.code === 4902) {
+          Alert.alert('提示', `请先添加 ${token.chain} 网络`);
+        }
+        return;
+      }
+
+      // 构建交易数据 - 使用 ETH/BNB 购买代币
+      // 这里需要使用 DEX 合约进行 swap，为了简化示例使用转账交易
+      const txParams = {
+        to: token.contractAddress, // 代币合约地址
+        value: `0x${(parseFloat(amount) * 1e18).toString(16)}`, // 发送的 ETH/BNB 数量
+        data: '0xa9059cbb0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000', // 转账 data (需要替换为正确的代币转账 data)
+      };
+
+      // 发送交易
+      const result = await window.trustwallet.request({
+        method: 'eth_sendTransaction',
+        params: [txParams],
+      });
+
+      Alert.alert('成功', `交易已提交: ${result}`);
+    } catch (error: any) {
+      console.error('TP 钱包交易失败:', error);
+      Alert.alert('交易失败', error.message || '请重试');
+    }
+  };
+
   // 打开钱包
   const handleOpenWallet = async (walletType: 'tp' | 'okx' | 'binance' | 'contract') => {
     if (!selectedToken) return;
@@ -294,6 +352,40 @@ export default function SignalScreen() {
         ]
       );
       return;
+    }
+
+    // TP 钱包特殊处理 - 检测是否在 TP 钱包浏览器中
+    if (walletType === 'tp' && typeof window !== 'undefined') {
+      const isInTPBrowser = window.trustwallet?.isTrust || window.trustwallet?.isTokenPocket;
+      
+      if (isInTPBrowser) {
+        // 在 TP 钱包浏览器中，尝试使用 SDK 交易
+        Alert.alert(
+          'TP 钱包交易',
+          `是否使用 TP 钱包购买 ${selectedToken.symbol}？\n\n注意：此功能需要对应的 DEX 合约支持。`,
+          [
+            { text: '取消', style: 'cancel' },
+            { 
+              text: '连接 DEX', 
+              onPress: () => {
+                // 尝试打开 TP 钱包的 DEX/Swap 功能
+                if (window.trustwallet) {
+                  const dexUrl = `tokenpocket://wallet/swap?inputCurrency=ETH&outputCurrency=${selectedToken.contractAddress}&chainId=${links.tpLink.includes('chainId=') ? links.tpLink.split('chainId=')[1] : '1'}`;
+                  window.location.href = dexUrl;
+                }
+              }
+            },
+            {
+              text: '跳转钱包',
+              onPress: () => {
+                const url = links.tpLink;
+                window.location.href = url;
+              }
+            }
+          ]
+        );
+        return;
+      }
     }
 
     const url = walletType === 'tp' ? links.tpLink : walletType === 'okx' ? links.okxLink : links.binanceLink;

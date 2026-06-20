@@ -393,7 +393,11 @@ export default function SignalScreen() {
 
   // 渲染实时Tab
   const renderRealtimeTab = () => (
-    <View style={styles.tabContent}>
+    <ScrollView 
+      style={styles.tabContent}
+      showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00F0FF" />}
+    >
       {/* 搜索框 */}
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={16} color="#555570" />
@@ -446,25 +450,19 @@ export default function SignalScreen() {
         </View>
       </ScrollView>
 
-      {/* 代币列表 - 可滚动 */}
-      <ScrollView 
-        style={styles.tokenList}
-        showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00F0FF" />}
-      >
-        <View>
-          {filteredTokens.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="search-outline" size={48} color="#555570" />
-              <Text style={styles.emptyText}>暂无符合条件的代币</Text>
-            </View>
-          ) : (
-            filteredTokens.map((token, index) => renderTokenCard(token, index))
-          )}
-        </View>
-        <View style={styles.bottomPadding} />
-      </ScrollView>
-    </View>
+      {/* 代币列表 */}
+      <View style={styles.tokenList}>
+        {filteredTokens.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="search-outline" size={48} color="#555570" />
+            <Text style={styles.emptyText}>暂无符合条件的代币</Text>
+          </View>
+        ) : (
+          filteredTokens.map((token, index) => renderTokenCard(token, index))
+        )}
+      </View>
+      <View style={styles.bottomPadding} />
+    </ScrollView>
   );
 
   // 渲染机构Tab

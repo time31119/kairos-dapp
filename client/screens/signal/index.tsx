@@ -378,8 +378,9 @@ export default function SignalScreen() {
   // 渲染实时Tab
   const renderRealtimeTab = () => (
     <View style={styles.tabContent}>
+      {/* 搜索框 */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={18} color="#555570" />
+        <Ionicons name="search" size={16} color="#555570" />
         <TextInput
           style={styles.searchInput}
           placeholder="搜索代币..."
@@ -389,30 +390,30 @@ export default function SignalScreen() {
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={18} color="#555570" />
+            <Ionicons name="close-circle" size={16} color="#555570" />
           </TouchableOpacity>
         )}
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-        <View style={styles.filterRow}>
-          {(['hot', 'gainers', 'smart', 'safe'] as FilterType[]).map((f) => (
-            <TouchableOpacity
-              key={f}
-              style={[styles.filterChip, filter === f && styles.filterChipActive]}
-              onPress={() => setFilter(f)}
-            >
-              <Text style={styles.filterChipIcon}>
-                {f === 'hot' ? '🔥' : f === 'gainers' ? '📈' : f === 'smart' ? '💰' : '🛡️'}
-              </Text>
-              <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>
-                {f === 'hot' ? '热度' : f === 'gainers' ? '涨幅' : f === 'smart' ? '聪明钱' : '安全'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+      {/* 筛选标签 */}
+      <View style={styles.filterRow}>
+        {(['hot', 'gainers', 'smart', 'safe'] as FilterType[]).map((f) => (
+          <TouchableOpacity
+            key={f}
+            style={[styles.filterChip, filter === f && styles.filterChipActive]}
+            onPress={() => setFilter(f)}
+          >
+            <Text style={styles.filterChipIcon}>
+              {f === 'hot' ? '🔥' : f === 'gainers' ? '📈' : f === 'smart' ? '💰' : '🛡️'}
+            </Text>
+            <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>
+              {f === 'hot' ? '热度' : f === 'gainers' ? '涨幅' : f === 'smart' ? '聪明钱' : '安全'}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
+      {/* 链筛选 */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chainFilterScroll}>
         <View style={styles.chainFilterRow}>
           {(['全部', 'Solana', 'Ethereum', 'Base', 'BSC'] as ChainFilter[]).map((chain) => (
@@ -429,6 +430,7 @@ export default function SignalScreen() {
         </View>
       </ScrollView>
 
+      {/* 代币列表 */}
       <ScrollView style={styles.tokenList} refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00F0FF" />
       }>
@@ -917,10 +919,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1a1a2e',
-    borderRadius: 10,
-    marginHorizontal: 16,
-    paddingHorizontal: 12,
-    height: 40,
+    borderRadius: 8,
+    marginHorizontal: 12,
+    marginBottom: 8,
+    paddingHorizontal: 10,
+    height: 36,
   },
   searchInput: {
     flex: 1,
@@ -929,8 +932,7 @@ const styles = StyleSheet.create({
     color: '#EAEAEA',
   },
   filterScroll: {
-    marginTop: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
   },
   filterRow: {
     flexDirection: 'row',
@@ -939,9 +941,9 @@ const styles = StyleSheet.create({
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
     backgroundColor: '#1a1a2e',
     borderWidth: 1,
     borderColor: 'transparent',

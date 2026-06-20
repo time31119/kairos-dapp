@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput,
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { ActivityIndicator } from 'react-native';
 
 export default function AIStrategy() {
   const router = useSafeRouter();
@@ -72,6 +73,8 @@ export default function AIStrategy() {
     },
   ];
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // 统计数据
   const stats = [
     { label: '总管理资金', value: '$28.5M', icon: 'wallet-outline' },
@@ -82,13 +85,17 @@ export default function AIStrategy() {
 
   const handleEntrust = (strategy: any) => {
     setSelectedStrategy(strategy);
-    setEntrustAmount(strategy.minAmount.replace('$', ''));
+    setEntrustAmount(strategy.minAmount.replace('$', '').replace(',', ''));
+    setEntrustPeriod('1个月');
     setPaymentLink('');
     setModalVisible(true);
   };
 
   const handleSubmitEntrust = () => {
-    if (!entrustAmount || parseFloat(entrustAmount) < parseFloat(selectedStrategy?.minAmount?.replace('$', '').replace(',', ''))) {
+    const minAmount = parseFloat(selectedStrategy?.minAmount?.replace('$', '').replace(',', '') || '0');
+    const inputAmount = parseFloat(entrustAmount);
+    
+    if (!entrustAmount || inputAmount < minAmount) {
       Alert.alert('提示', `最低跟单金额为 ${selectedStrategy?.minAmount}`);
       return;
     }
@@ -96,8 +103,26 @@ export default function AIStrategy() {
       Alert.alert('提示', '请填写收款链接');
       return;
     }
-    Alert.alert('提交成功', `您的跟单申请已提交，金额: $${entrustAmount}\n策略: ${selectedStrategy?.name}\n我们将尽快与您联系确认。`);
-    setModalVisible(false);
+    // 简单验证 BNB Chain 地址格式 (0x开头，42位)
+    if (!/^0x[a-fA-F0-9]{40}$/.test(paymentLink)) {
+      Alert.alert('提示', '请输入有效的 BNB Chain 地址（0x开头，42位）');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    // 模拟提交
+    setTimeout(() => {
+      setIsSubmitting(false);
+      Alert.alert(
+        '提交成功', 
+        `您的跟单申请已提交\n\n策略: ${selectedStrategy?.name}\n金额: $${parseFloat(entrustAmount).toLocaleString()}\n期限: ${entrustPeriod}\n\n我们将在24小时内与您联系确认详情。`,
+        [{ text: '确定', onPress: () => setModalVisible(false) }]
+      );
+      // 清空表单
+      setEntrustAmount('');
+      setPaymentLink('');
+    }, 1500);
   };
 
   return (
@@ -333,10 +358,15 @@ export default function AIStrategy() {
             </View>
 
             <TouchableOpacity 
-              style={styles.submitButton}
+              style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
               onPress={handleSubmitEntrust}
+              disabled={isSubmitting}
             >
-              <Text style={styles.submitButtonText}>提交跟单申请</Text>
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Text style={styles.submitButtonText}>提交跟单申请</Text>
+              )}
             </TouchableOpacity>
 
             <Text style={styles.disclaimer}>
@@ -742,6 +772,13 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     backgroundColor: '#8B5CF6',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#6B7280',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',

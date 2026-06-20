@@ -105,9 +105,9 @@ export default function CopytradingScreen() {
     }
   }, [sortBy]);
 
-  // 获取我的实盘数据
+  // 获取我的跟单数据
   const fetchPortfolio = useCallback(async () => {
-    // 模拟我的实盘数据
+    // 模拟我的跟单数据
     setPortfolio([
       {
         id: 'pos_001',
@@ -235,7 +235,7 @@ export default function CopytradingScreen() {
       clearTimeout(timeout);
       
       if (response.ok) {
-        // 添加到我的实盘
+        // 添加到我的跟单
         const trader = traders.find(t => t.id === traderId);
         if (trader) {
           const newPosition: FollowingPosition = {
@@ -457,7 +457,7 @@ export default function CopytradingScreen() {
     </View>
   );
 
-  // 渲染我的实盘Tab
+  // 渲染我的跟单Tab
   const renderPortfolioTab = () => (
     <View style={styles.tabContent}>
       {/* 顶尖交易员实时数据 - 始终显示 */}
@@ -722,7 +722,7 @@ export default function CopytradingScreen() {
               color={activeTab === 'portfolio' ? '#00F0FF' : '#8B8B9A'} 
             />
             <Text style={[styles.tabText, activeTab === 'portfolio' && styles.tabTextActive]}>
-              我的实盘
+              我的跟单
             </Text>
           </TouchableOpacity>
         </View>

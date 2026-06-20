@@ -625,7 +625,7 @@ export default function TradingScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>我的实盘</Text>
+          <Text style={styles.headerTitle}>我的跟单</Text>
           <View style={styles.headerPlaceholder} />
         </View>
         <View style={styles.headerTabs}>

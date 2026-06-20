@@ -936,13 +936,16 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
+    paddingHorizontal: 16,
   },
   filterChip: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     borderRadius: 12,
     backgroundColor: '#1a1a2e',
     borderWidth: 1,
@@ -970,13 +973,15 @@ const styles = StyleSheet.create({
   },
   chainFilterRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
   },
   chainChip: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     borderRadius: 14,
     backgroundColor: '#1a1a2e',
     borderWidth: 1,
@@ -1001,7 +1006,7 @@ const styles = StyleSheet.create({
   tokenCard: {
     backgroundColor: '#1a1a2e',
     borderRadius: 12,
-    padding: 12,
+    padding: 14,
     marginBottom: 10,
     marginHorizontal: 16,
     borderWidth: 1,
@@ -1010,6 +1015,7 @@ const styles = StyleSheet.create({
   tokenHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 10,
   },
   tokenInfo: {
@@ -1021,7 +1027,7 @@ const styles = StyleSheet.create({
   },
   chainIcon: {
     fontSize: 14,
-    marginRight: 5,
+    marginRight: 6,
   },
   tokenSymbol: {
     fontSize: 16,
@@ -1030,20 +1036,20 @@ const styles = StyleSheet.create({
   },
   hotBadge: {
     backgroundColor: '#FF6B6B20',
-    paddingHorizontal: 5,
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 5,
-    marginLeft: 5,
+    borderRadius: 4,
+    marginLeft: 6,
   },
   hotBadgeText: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '700',
     color: '#FF6B6B',
   },
   tokenName: {
     fontSize: 11,
     color: '#888',
-    marginTop: 2,
+    marginTop: 3,
   },
   priceSection: {
     alignItems: 'flex-end',
@@ -1054,8 +1060,8 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   changeText: {
-    fontSize: 11,
-    marginTop: 2,
+    fontSize: 12,
+    marginTop: 3,
   },
   changeUp: {
     color: '#00FF88',
@@ -1072,6 +1078,7 @@ const styles = StyleSheet.create({
   },
   metric: {
     alignItems: 'center',
+    flex: 1,
   },
   metricLabel: {
     fontSize: 9,

@@ -25,7 +25,7 @@ interface Trader {
   avatarUrl?: string;
   country?: string;
   winRate: number;
-  returns: number;
+  returns: number; // APY收益率
   followers: number;
   totalTrades: number;
   avgProfit: number;
@@ -36,9 +36,14 @@ interface Trader {
   blueTick: boolean;
   lastTradeTime?: string;
   todayPnl?: string;
-  weeklyPnL?: string;
+  weeklyPnl?: string;
   maxDrawdown?: string;
   sharpeRatio?: string;
+  // DeFiLlama 真实数据字段
+  tvl?: number;
+  chain?: string[];
+  symbol?: string;
+  description?: string;
 }
 
 interface FollowingPosition {
@@ -449,6 +454,28 @@ export default function CopytradingScreen() {
                   </View>
                 ))}
               </View>
+
+              {/* TVL 数据（来自 DeFiLlama） */}
+              {trader.tvl && (
+                <View style={styles.tvlRow}>
+                  <View style={styles.tvlItem}>
+                    <Text style={styles.tvlLabel}>TVL</Text>
+                    <Text style={styles.tvlValue}>${(trader.tvl / 1000000).toFixed(1)}M</Text>
+                  </View>
+                  {trader.chain && trader.chain.length > 0 && (
+                    <View style={styles.tvlItem}>
+                      <Text style={styles.tvlLabel}>Chain</Text>
+                      <Text style={styles.tvlValue}>{trader.chain[0]}</Text>
+                    </View>
+                  )}
+                  {trader.symbol && (
+                    <View style={styles.tvlItem}>
+                      <Text style={styles.tvlLabel}>Symbol</Text>
+                      <Text style={styles.tvlValue}>{trader.symbol}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
             </TouchableOpacity>
           ))}
           <View style={styles.bottomPadding} />
@@ -1000,6 +1027,27 @@ const styles = {
     flexWrap: 'wrap' as const,
     marginTop: 12,
     gap: 6,
+  },
+  tvlRow: {
+    flexDirection: 'row' as const,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#1F1F2E',
+    gap: 16,
+  },
+  tvlItem: {
+    flexDirection: 'column' as const,
+  },
+  tvlLabel: {
+    fontSize: 10,
+    color: '#8B8B9A',
+    marginBottom: 2,
+  },
+  tvlValue: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: '600' as const,
   },
   specialtyTag: {
     backgroundColor: '#1F1F2E',

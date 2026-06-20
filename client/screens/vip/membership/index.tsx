@@ -106,6 +106,8 @@ export default function MembershipScreen() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [showContractModal, setShowContractModal] = useState(false);
+  const [contractModalData, setContractModalData] = useState<{address: string; amount: string} | null>(null);
 
   // 唤起钱包支付
   const handleWalletPay = async (walletType: WalletType) => {
@@ -113,6 +115,7 @@ export default function MembershipScreen() {
     setIsProcessing(true);
 
     const amountWei = calculateAmount(selectedPlan.price);
+    const amountDisplay = selectedPlan.price.toString();
     let deepLinkUrl: string;
 
     switch (walletType) {
@@ -133,19 +136,27 @@ export default function MembershipScreen() {
     console.log('[PAY] Amount:', selectedPlan.price, 'USDT');
 
     try {
-      const canOpen = await Linking.canOpenURL(deepLinkUrl);
+      // 尝试打开 Deep Link
+      await Linking.openURL(deepLinkUrl);
       
-      if (canOpen) {
-        await Linking.openURL(deepLinkUrl);
-        
-        // 模拟支付成功（实际需要后端监听链上交易）
-        setTimeout(() => {
-          setIsProcessing(false);
-          setTxHash('0x' + Math.random().toString(16).slice(2, 66).padEnd(64, '0'));
-          setShowSuccessModal(true);
-        }, 1500);
-      } else {
+      // 模拟支付成功（实际需要后端监听链上交易）
+      setTimeout(() => {
         setIsProcessing(false);
+        setTxHash('0x' + Math.random().toString(16).slice(2, 66).padEnd(64, '0'));
+        setShowSuccessModal(true);
+      }, 1500);
+    } catch (error: any) {
+      // Deep Link 失败，显示合约地址弹窗
+      setIsProcessing(false);
+      
+      // TP 钱包在 WebView 中 Deep Link 容易失败，显示备用方案
+      if (walletType === 'tp') {
+        setContractModalData({
+          address: RECEIVE_ADDRESS,
+          amount: amountDisplay,
+        });
+        setShowContractModal(true);
+      } else {
         const walletNames: Record<WalletType, string> = {
           tp: 'TokenPocket',
           okx: 'OKX Wallet',
@@ -153,10 +164,6 @@ export default function MembershipScreen() {
         };
         Alert.alert('提示', `请先安装 ${walletNames[walletType]} 钱包`);
       }
-    } catch (error: any) {
-      setIsProcessing(false);
-      console.error('[PAY] DeepLink error:', error);
-      Alert.alert('错误', '无法唤起钱包应用');
     }
   };
 
@@ -410,6 +417,43 @@ export default function MembershipScreen() {
               onPress={handleConfirmSuccess}
             >
               <Text style={styles.doneButtonText}>完成</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* 合约地址弹窗 - TP钱包备用方案 */}
+      <Modal visible={showContractModal} transparent animationType="fade">
+        <View style={styles.successModal}>
+          <View style={styles.successContent}>
+            <View style={styles.successIcon}>
+              <Ionicons name="wallet-outline" size={48} color="#00D9FF" />
+            </View>
+            <Text style={styles.successTitle}>复制合约地址购买</Text>
+            <Text style={styles.contractLabel}>USDT 合约地址:</Text>
+            <TouchableOpacity 
+              style={styles.contractBox}
+              onPress={() => {
+                Clipboard.setString(contractModalData?.address || RECEIVE_ADDRESS);
+                Alert.alert('已复制', '合约地址已复制到剪贴板');
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.contractText} numberOfLines={1}>
+                {contractModalData?.address || RECEIVE_ADDRESS}
+              </Text>
+            </TouchableOpacity>
+            <Text style={styles.contractHint}>
+              点击上方地址复制，然后到TP钱包Browser粘贴购买
+            </Text>
+            <Text style={styles.contractAmount}>
+              购买金额: {contractModalData?.amount || selectedPlan.price.toString()} USDT
+            </Text>
+            <TouchableOpacity
+              style={styles.doneButton}
+              onPress={() => setShowContractModal(false)}
+            >
+              <Text style={styles.doneButtonText}>关闭</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -792,5 +836,72 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#0A0A0F',
+  },
+  // 合约地址弹窗样式
+  contractOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  contractBox: {
+    backgroundColor: '#1A1A2E',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 340,
+    borderWidth: 1,
+    borderColor: '#00F0FF',
+  },
+  contractTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  contractLabel: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 8,
+  },
+  contractText: {
+    fontSize: 13,
+    color: '#00F0FF',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    backgroundColor: '#0A0A1A',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  contractButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  contractCancelBtn: {
+    flex: 1,
+    backgroundColor: '#333',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  contractCancelText: {
+    fontSize: 14,
+    color: '#888',
+    fontWeight: '600',
+  },
+  contractCopyBtn: {
+    flex: 1,
+    backgroundColor: '#00F0FF',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  contractCopyText: {
+    fontSize: 14,
+    color: '#0A0A0F',
+    fontWeight: '600',
   },
 });

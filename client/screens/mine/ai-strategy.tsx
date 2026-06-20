@@ -312,16 +312,19 @@ export default function AIStrategy() {
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>收款链接</Text>
+              <Text style={styles.formLabel}>收款链接（BNB Chain 地址）</Text>
               <TextInput
                 style={styles.formInput}
                 value={paymentLink}
                 onChangeText={setPaymentLink}
-                placeholder="请输入您的TRC20钱包地址或支付链接"
+                placeholder="请输入您的 BNB Chain 收款地址"
                 placeholderTextColor="#6B7280"
                 autoCapitalize="none"
               />
-              <Text style={styles.formHint}>收益将自动结算至此地址</Text>
+              <View style={styles.addressHint}>
+                <Ionicons name="information-circle" size={12} color="#8B5CF6" />
+                <Text style={styles.addressHintText}>使用此地址在 BNB Chain 上接收代币</Text>
+              </View>
             </View>
 
             <View style={styles.agreementSection}>
@@ -685,6 +688,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     marginTop: 6,
+  },
+  addressHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginTop: 8,
+  },
+  addressHintText: {
+    fontSize: 11,
+    color: '#8B5CF6',
+    marginLeft: 4,
   },
   periodSelector: {
     flexDirection: 'row',

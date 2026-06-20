@@ -146,7 +146,7 @@ export default function AIStrategy() {
               </View>
               <View style={styles.cooperationDivider} />
               <View style={styles.cooperationItem}>
-                <Text style={styles.cooperationValue}>$10,000</Text>
+                <Text style={styles.cooperationValue}>$5,000</Text>
                 <Text style={styles.cooperationLabel}>最低门槛</Text>
               </View>
             </View>

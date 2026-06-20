@@ -966,11 +966,25 @@ export default function SignalScreen() {
                   style={styles.walletOption}
                   onPress={() => {
                     if (selectedToken?.contractAddress) {
-                      try {
-                        Clipboard.setString(selectedToken.contractAddress);
-                        Alert.alert('已复制', '合约地址已复制到剪贴板，请到 TP 钱包浏览器粘贴购买');
-                      } catch (e) {
-                        setContractAddressForModal(selectedToken.contractAddress);
+                      const address = selectedToken.contractAddress;
+                      // 尝试使用 window.prompt 显示合约地址（兼容某些 WebView）
+                      if (typeof window !== 'undefined' && window.prompt) {
+                        const result = window.prompt(`合约地址 (点击复制):`, address);
+                        if (result === address) {
+                          // 用户确认复制
+                          Alert.alert('提示', '请手动长按复制合约地址');
+                        }
+                      } else if (navigator.clipboard) {
+                        // 尝试使用 clipboard API
+                        navigator.clipboard.writeText(address).then(() => {
+                          Alert.alert('已复制', '合约地址已复制到剪贴板');
+                        }).catch(() => {
+                          setContractAddressForModal(address);
+                          setContractModalVisible(true);
+                        });
+                      } else {
+                        // 回退到弹窗
+                        setContractAddressForModal(address);
                         setContractModalVisible(true);
                       }
                     }

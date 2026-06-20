@@ -281,35 +281,43 @@ export default function SignalScreen() {
       style={styles.tokenCard}
       onPress={() => handleOpenBuyPage(token)}
     >
-      {/* 排名标识 */}
-      <View style={[
-        styles.tokenRank,
-        index === 0 && styles.tokenRankGold,
-        index === 1 && styles.tokenRankSilver,
-        index === 2 && styles.tokenRankBronze,
-      ]}>
-        <Text style={[
-          styles.tokenRankText,
-          index === 0 && styles.tokenRankGoldText,
-          index === 1 && styles.tokenRankSilverText,
-          index === 2 && styles.tokenRankBronzeText,
+      {/* 第一行：排名 + 代币信息 + 价格 */}
+      <View style={styles.tokenRow1}>
+        {/* 排名 */}
+        <View style={[
+          styles.rankBadge,
+          index === 0 && styles.rankGold,
+          index === 1 && styles.rankSilver,
+          index === 2 && styles.rankBronze,
         ]}>
-          {index + 1}
-        </Text>
-      </View>
-      
-      <View style={styles.tokenHeader}>
-        <View style={styles.tokenInfo}>
+          <Text style={[
+            styles.rankText,
+            index === 0 && styles.rankGoldText,
+            index === 1 && styles.rankSilverText,
+            index === 2 && styles.rankBronzeText,
+          ]}>
+            {index + 1}
+          </Text>
+        </View>
+        
+        {/* 代币信息 */}
+        <View style={styles.tokenMain}>
           <View style={styles.tokenNameRow}>
             <Text style={[styles.chainIcon, { color: CHAIN_CONFIG[token.chain]?.color }]}>
               {CHAIN_CONFIG[token.chain]?.icon}
             </Text>
             <Text style={styles.tokenSymbol}>{token.symbol}</Text>
-            {token.isHot && <View style={styles.hotBadge}><Text style={styles.hotBadgeText}>HOT</Text></View>}
+            <Text style={styles.tokenName}>{token.name}</Text>
+            {token.isHot && (
+              <View style={styles.hotBadge}>
+                <Text style={styles.hotBadgeText}>HOT</Text>
+              </View>
+            )}
           </View>
-          <Text style={styles.tokenName}>{token.name}</Text>
         </View>
-        <View style={styles.priceSection}>
+        
+        {/* 价格和涨幅 */}
+        <View style={styles.priceMain}>
           <Text style={styles.priceText}>{formatPrice(token.price)}</Text>
           <Text style={[styles.changeText, token.change24h > 0 ? styles.changeUp : styles.changeDown]}>
             {token.change24h > 0 ? '↑' : '↓'} {Math.abs(token.change24h).toFixed(1)}%
@@ -317,61 +325,69 @@ export default function SignalScreen() {
         </View>
       </View>
 
+      {/* 第二行：数据指标 */}
       <View style={styles.metricsRow}>
         <View style={styles.metric}>
           <Text style={styles.metricLabel}>市值</Text>
           <Text style={styles.metricValue}>${formatNumber(token.marketCap)}</Text>
         </View>
+        <View style={styles.metricDivider} />
         <View style={styles.metric}>
           <Text style={styles.metricLabel}>24h交易</Text>
           <Text style={styles.metricValue}>${formatNumber(token.volume24h)}</Text>
         </View>
+        <View style={styles.metricDivider} />
         <View style={styles.metric}>
           <Text style={styles.metricLabel}>聪明钱</Text>
           <Text style={[styles.metricValue, { color: '#00F0FF' }]}>{token.smartMoneyCount}</Text>
         </View>
+        <View style={styles.metricDivider} />
         <View style={styles.metric}>
           <Text style={styles.metricLabel}>安全</Text>
           <View style={styles.safetyBadge}>
-            <Ionicons name="shield-checkmark" size={12} color="#00FF88" />
+            <Ionicons name="shield-checkmark" size={11} color="#00FF88" />
             <Text style={styles.safetyText}>{token.safetyScore}/{token.totalScore}</Text>
           </View>
         </View>
       </View>
 
-      {token.tag && (
-        <View style={styles.tagRow}>
-          <View style={[styles.tag, { backgroundColor: CHAIN_CONFIG[token.chain]?.color + '20' }]}>
-            <Text style={[styles.tagText, { color: CHAIN_CONFIG[token.chain]?.color }]}>
-              {token.tag}
-            </Text>
-          </View>
+      {/* 第三行：标签和操作 */}
+      <View style={styles.tokenRow3}>
+        {/* 标签 */}
+        <View style={styles.tagSection}>
+          {token.tag && (
+            <View style={[styles.tag, { backgroundColor: CHAIN_CONFIG[token.chain]?.color + '20' }]}>
+              <Text style={[styles.tagText, { color: CHAIN_CONFIG[token.chain]?.color }]}>
+                {token.tag}
+              </Text>
+            </View>
+          )}
+          {token.riskLevel === 'high' && (
+            <View style={[styles.tag, { backgroundColor: '#FF6B6B20' }]}>
+              <Ionicons name="warning" size={10} color="#FF6B6B" />
+              <Text style={[styles.tagText, { color: '#FF6B6B', marginLeft: 3 }]}>高风险</Text>
+            </View>
+          )}
         </View>
-      )}
-
-      {token.riskLevel === 'high' && (
-        <View style={styles.riskWarning}>
-          <Ionicons name="warning" size={14} color="#FF6B6B" />
-          <Text style={styles.riskWarningText}>高风险Meme，请设置滑点≥2%</Text>
-        </View>
-      )}
-
-      {/* 合约地址和操作按钮 */}
-      <View style={styles.footerRow}>
-        <TouchableOpacity style={styles.contractBadge} onPress={() => copyToClipboard(token.contract)}>
-          <Text style={styles.contractBadgeText}>{shortenAddress(token.contract)}</Text>
-          <Ionicons name="copy" size={12} color="#00F0FF" />
-        </TouchableOpacity>
+        
+        {/* 操作按钮 */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.detailButtonSmall} onPress={() => handleOpenBuyPage(token)}>
-            <Text style={styles.detailButtonSmallText}>详情</Text>
+          <TouchableOpacity style={styles.detailBtn} onPress={() => handleOpenBuyPage(token)}>
+            <Text style={styles.detailBtnText}>详情</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.buyButtonSmall} onPress={() => handleOpenBuyPage(token)}>
-            <Ionicons name="cart" size={14} color="#0A0A0F" />
-            <Text style={styles.buyButtonSmallText}>买入</Text>
+          <TouchableOpacity style={styles.buyBtn} onPress={() => handleOpenBuyPage(token)}>
+            <Ionicons name="cart" size={13} color="#0A0A0F" />
+            <Text style={styles.buyBtnText}>买入</Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* 合约地址 */}
+      <TouchableOpacity style={styles.contractRow} onPress={() => copyToClipboard(token.contractAddress)}>
+        <Text style={styles.contractLabel}>合约:</Text>
+        <Text style={styles.contractText}>{shortenAddress(token.contractAddress)}</Text>
+        <Ionicons name="copy-outline" size={12} color="#00F0FF" />
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 
@@ -1014,13 +1030,32 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#252540',
   },
-  tokenHeader: {
+  tokenRow1: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  tokenInfo: {
+  rankBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#252540',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  rankGold: { backgroundColor: '#FFD70030' },
+  rankSilver: { backgroundColor: '#C0C0C030' },
+  rankBronze: { backgroundColor: '#CD7F3230' },
+  rankText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#888',
+  },
+  rankGoldText: { color: '#FFD700' },
+  rankSilverText: { color: '#C0C0C0' },
+  rankBronzeText: { color: '#CD7F32' },
+  tokenMain: {
     flex: 1,
   },
   tokenNameRow: {
@@ -1036,24 +1071,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  hotBadge: {
-    backgroundColor: '#FF6B6B20',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+  tokenName: {
+    fontSize: 12,
+    color: '#888',
     marginLeft: 6,
   },
+  hotBadge: {
+    backgroundColor: '#FF6B6B20',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
   hotBadgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: '#FF6B6B',
   },
-  tokenName: {
-    fontSize: 11,
-    color: '#888',
-    marginTop: 3,
-  },
-  priceSection: {
+  priceMain: {
     alignItems: 'flex-end',
   },
   priceText: {
@@ -1063,7 +1098,7 @@ const styles = StyleSheet.create({
   },
   changeText: {
     fontSize: 12,
-    marginTop: 3,
+    marginTop: 2,
   },
   changeUp: {
     color: '#00FF88',
@@ -1073,14 +1108,20 @@ const styles = StyleSheet.create({
   },
   metricsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#252540',
+    alignItems: 'center',
+    backgroundColor: '#0f0f1a',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
   },
   metric: {
-    alignItems: 'center',
     flex: 1,
+    alignItems: 'center',
+  },
+  metricDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#252540',
   },
   metricLabel: {
     fontSize: 10,
@@ -1088,7 +1129,7 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   metricValue: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#EAEAEA',
   },
@@ -1099,64 +1140,57 @@ const styles = StyleSheet.create({
   safetyText: {
     fontSize: 12,
     color: '#00FF88',
-    marginLeft: 4,
+    marginLeft: 3,
   },
-  tagRow: {
+  tokenRow3: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginTop: 12,
   },
+  tagSection: {
+    flexDirection: 'row',
+    gap: 6,
+  },
   tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
-    marginRight: 8,
+    borderRadius: 6,
   },
   tagText: {
     fontSize: 11,
     fontWeight: '600',
   },
-  riskWarning: {
+  actionButtons: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FF6B620',
-    paddingHorizontal: 10,
+    gap: 8,
+  },
+  detailBtn: {
+    paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    marginTop: 12,
-  },
-  riskWarningText: {
-    fontSize: 11,
-    color: '#FF6B6B',
-    marginLeft: 6,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    marginTop: 14,
-    gap: 10,
-  },
-  detailButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#00F0FF',
-    alignItems: 'center',
   },
-  detailButtonText: {
+  detailBtnText: {
     color: '#00F0FF',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
   },
-  buyButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
-    backgroundColor: '#00F0FF',
+  buyBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#00F0FF',
+    gap: 4,
   },
-  buyButtonText: {
-    color: '#0a0a1a',
-    fontSize: 13,
+  buyBtnText: {
+    color: '#0A0A0F',
+    fontSize: 12,
     fontWeight: '700',
   },
   contractRow: {
@@ -1166,27 +1200,17 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#252540',
-  },
-  contractBadge: {
-    backgroundColor: '#1a1a2e',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    gap: 6,
   },
   contractLabel: {
     fontSize: 11,
-    color: '#888',
-  },
-  contractBadgeText: {
-    fontSize: 11,
-    color: '#aaa',
-    fontFamily: 'monospace',
+    color: '#666',
   },
   contractText: {
     fontSize: 11,
-    color: '#aaa',
-    marginLeft: 4,
+    color: '#00F0FF',
     fontFamily: 'monospace',
+    flex: 1,
   },
   emptyState: {
     alignItems: 'center',

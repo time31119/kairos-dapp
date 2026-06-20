@@ -962,16 +962,14 @@ export default function SignalScreen() {
                 {/* 选择钱包 */}
                 <Text style={styles.walletTitle}>选择钱包买入</Text>
                 
-                <TouchableOpacity 
-                  style={styles.walletOption} 
-                  onPress={() => {
+                <View 
+                  style={styles.walletOption}
+                  onClick={() => {
                     if (selectedToken?.contractAddress) {
-                      // 直接复制地址
                       try {
                         navigator.clipboard.writeText(selectedToken.contractAddress);
                         Alert.alert('已复制', '合约地址已复制到剪贴板，请到 TP 钱包浏览器粘贴购买');
                       } catch (e) {
-                        // 如果 clipboard 失败，显示地址
                         setContractAddressForModal(selectedToken.contractAddress);
                         setContractModalVisible(true);
                       }
@@ -986,7 +984,7 @@ export default function SignalScreen() {
                     <Text style={styles.walletDesc}>点击复制合约地址</Text>
                   </View>
                   <Ionicons name="copy" size={20} color="#00F0FF" />
-                </TouchableOpacity>
+                </View>
 
                 <TouchableOpacity style={styles.walletOption} onPress={() => handleOpenWallet('okx')}>
                   <View style={styles.walletIcon}>

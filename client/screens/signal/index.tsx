@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   StyleSheet,
   Platform,
   Linking,
@@ -261,7 +262,7 @@ export default function SignalScreen() {
   const handlePasteLink = async (token: Token) => {
     const link = `https://dexscreener.com/${token.chain}/${token.contractAddress}`;
     try {
-      await Clipboard.setStringAsync(link);
+      await Clipboard.setString(link);
       Alert.alert('已复制', '合约链接已复制到剪贴板');
     } catch (e) {
       Alert.alert('提示', '复制失败，请手动复制');
@@ -342,32 +343,37 @@ export default function SignalScreen() {
 
   // 打开钱包
   const handleOpenWallet = async (walletType: 'tp' | 'okx' | 'binance' | 'contract') => {
-    if (!selectedToken) return;
+    // 如果没有选择代币，直接返回
+    if (!selectedToken) {
+      console.log('handleOpenWallet: no selectedToken');
+      return;
+    }
+    
+    // 检查合约地址是否存在
+    if (!selectedToken.contractAddress) {
+      console.log('handleOpenWallet: no contractAddress');
+      return;
+    }
     
     const links = generateBuyLinks(selectedToken);
     
-    if (walletType === 'contract') {
-      Alert.alert(
-        '合约地址',
-        `${selectedToken.symbol}\n${selectedToken.contractAddress}`,
-        [
-          { text: '取消', style: 'cancel' },
-          { text: '复制地址', onPress: () => handleCopyAddress(selectedToken.contractAddress) },
-          { text: '浏览器查看', onPress: () => Linking.openURL(links.contractUrl) }
-        ]
-      );
+    // TP 钱包特殊处理 - Web环境下点击TP按钮显示合约地址
+    if (walletType === 'tp') {
+      // 使用自定义 Modal 显示合约地址
+      console.log('handleOpenWallet TP: showing contract modal, address:', selectedToken.contractAddress);
+      setContractAddressForModal(selectedToken.contractAddress);
+      setContractModalVisible(true);
       return;
     }
-
-    // TP 钱包特殊处理 - Web环境下点击TP按钮都显示合约地址
-    if (walletType === 'tp' && Platform.OS === 'web') {
-      // 使用自定义 Modal 显示合约地址
+    
+    if (walletType === 'contract') {
+      // 复制合约地址
       setContractAddressForModal(selectedToken.contractAddress);
       setContractModalVisible(true);
       return;
     }
 
-    const url = walletType === 'tp' ? links.tpLink : walletType === 'okx' ? links.okxLink : links.binanceLink;
+    const url = walletType === 'okx' ? links.okxLink : links.binanceLink;
     
     // Web 环境使用多种方式尝试跳转 Deep Link
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -404,7 +410,7 @@ export default function SignalScreen() {
       if (supported) {
         Linking.openURL(url);
       } else {
-        Alert.alert('提示', `请安装${walletType === 'tp' ? 'TokenPocket' : walletType === 'okx' ? 'OKX' : 'Binance'}钱包`);
+        Alert.alert('提示', `请安装${walletType === 'okx' ? 'OKX' : 'Binance'}钱包`);
       }
     } catch (e) {
       Alert.alert('错误', '无法打开钱包应用');
@@ -807,15 +813,15 @@ export default function SignalScreen() {
                   <Text style={styles.detailSectionTitle}>安全评分</Text>
                   <View style={styles.detailSafetyRow}>
                     <View style={styles.detailSafetyScore}>
-                      <Text style={styles.detailSafetyNum}>{selectedToken.smartMoneyScore || 0}</Text>
+                      <Text style={styles.detailSafetyNum}>{selectedToken.smartMoneyCount || 0}</Text>
                       <Text style={styles.detailSafetyLabel}>/6</Text>
                     </View>
                     <View style={styles.detailSafetyBar}>
-                      <View style={[styles.detailSafetyFill, { width: `${((selectedToken.smartMoneyScore || 0) / 6) * 100}%` }]} />
+                      <View style={[styles.detailSafetyFill, { width: `${((selectedToken.smartMoneyCount || 0) / 6) * 100}%` }]} />
                     </View>
                   </View>
                   <Text style={styles.detailSafetyDesc}>
-                    {selectedToken.smartMoneyScore >= 5 ? '优秀' : selectedToken.smartMoneyScore >= 3 ? '良好' : '一般'}
+                    {selectedToken.smartMoneyCount >= 5 ? '优秀' : selectedToken.smartMoneyCount >= 3 ? '良好' : '一般'}
                   </Text>
                 </View>
 
@@ -823,7 +829,7 @@ export default function SignalScreen() {
                 <TouchableOpacity 
                   style={styles.detailContract}
                   onPress={() => {
-                    Clipboard.setStringAsync(selectedToken.contractAddress);
+                    Clipboard.setString(selectedToken.contractAddress);
                     Alert.alert('已复制', '合约地址已复制');
                   }}
                 >
@@ -847,7 +853,7 @@ export default function SignalScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.detailCopyBtn} onPress={async () => {
                     const link = `https://dexscreener.com/${selectedToken.chain}/${selectedToken.contractAddress}`;
-                    await Clipboard.setStringAsync(link);
+                    await Clipboard.setString(link);
                     Alert.alert('已复制', '链接已复制到剪贴板');
                   }}>
                     <Ionicons name="link" size={18} color="#00F0FF" />
@@ -956,12 +962,7 @@ export default function SignalScreen() {
                 {/* 选择钱包 */}
                 <Text style={styles.walletTitle}>选择钱包买入</Text>
                 
-                <TouchableOpacity style={styles.walletOption} onPress={() => {
-                    if (selectedToken?.contractAddress) {
-                      setContractAddressForModal(selectedToken.contractAddress);
-                      setContractModalVisible(true);
-                    }
-                  }}>
+                <TouchableOpacity style={styles.walletOption} onPress={() => handleOpenWallet('tp')}>
                   <View style={styles.walletIcon}>
                     <Text style={{ fontSize: 20 }}>💎</Text>
                   </View>
@@ -1044,8 +1045,10 @@ export default function SignalScreen() {
         </View>
       </View>
     </Modal>
+  );
 
-    {/* 合约地址弹窗 - 用于TP钱包浏览器 */}
+  // 合约地址弹窗 - 用于TP钱包浏览器
+  const renderContractModal = () => (
     <Modal visible={contractModalVisible} transparent animationType="fade">
       <TouchableWithoutFeedback onPress={() => setContractModalVisible(false)}>
         <View style={styles.webPromptOverlay}>
@@ -1082,9 +1085,9 @@ export default function SignalScreen() {
         </View>
       </TouchableWithoutFeedback>
     </Modal>
+  );
 
-    {/* Web端提示弹窗 */}
-    <Modal visible={!!webPrompt} transparent animationType="fade">
+  // 设置面板
   const renderSettings = () => (
     <View style={styles.settingsOverlay}>
       <TouchableOpacity style={styles.settingsBackdrop} onPress={() => setSettingsVisible(false)} />
@@ -1181,6 +1184,9 @@ export default function SignalScreen() {
 
         {/* 买入Modal */}
         {renderBuyModal()}
+
+        {/* 合约地址弹窗 */}
+        {renderContractModal()}
 
         {/* 详情Modal */}
         {renderDetailModal()}
@@ -2116,18 +2122,6 @@ const styles = StyleSheet.create({
   contractSection: {
     marginBottom: 20,
   },
-  contractLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 8,
-  },
-  contractRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#252540',
-    padding: 12,
-    borderRadius: 8,
-  },
   contractAddress: {
     flex: 1,
     fontSize: 12,
@@ -2354,5 +2348,50 @@ const styles = StyleSheet.create({
   closeButtonText: {
     fontSize: 14,
     color: '#666',
+  },
+  // 合约地址弹窗样式
+  webPromptOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  webPromptContainer: {
+    backgroundColor: '#252540',
+    borderRadius: 16,
+    padding: 20,
+    width: '85%',
+    maxWidth: 340,
+  },
+  webPromptTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  copyButton: {
+    backgroundColor: '#00F0FF',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  copyButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  cancelButton: {
+    backgroundColor: 'transparent',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#555570',
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    color: '#FFFFFF',
   },
 });

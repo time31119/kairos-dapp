@@ -359,27 +359,37 @@ export default function SignalScreen() {
       const isInTPBrowser = window.trustwallet?.isTrust || window.trustwallet?.isTokenPocket;
       
       if (isInTPBrowser) {
-        // 在 TP 钱包浏览器中，尝试使用 SDK 交易
+        // 在 TP 钱包浏览器中，显示合约地址让用户复制并手动交易
         Alert.alert(
-          'TP 钱包交易',
-          `是否使用 TP 钱包购买 ${selectedToken.symbol}？\n\n注意：此功能需要对应的 DEX 合约支持。`,
+          `购买 ${selectedToken.symbol}`,
+          `合约地址: ${selectedToken.contractAddress}\n\n请复制合约地址，然后在 TP 钱包的搜索框中粘贴进行交易`,
           [
             { text: '取消', style: 'cancel' },
             { 
-              text: '连接 DEX', 
-              onPress: () => {
-                // 尝试打开 TP 钱包的 DEX/Swap 功能
-                if (window.trustwallet) {
-                  const dexUrl = `tokenpocket://wallet/swap?inputCurrency=ETH&outputCurrency=${selectedToken.contractAddress}&chainId=${links.tpLink.includes('chainId=') ? links.tpLink.split('chainId=')[1] : '1'}`;
-                  window.location.href = dexUrl;
-                }
-              }
+              text: '复制合约地址', 
+              onPress: () => handleCopyAddress(selectedToken.contractAddress)
             },
             {
-              text: '跳转钱包',
+              text: '复制并在钱包中打开',
               onPress: () => {
-                const url = links.tpLink;
-                window.location.href = url;
+                // 复制合约地址
+                handleCopyAddress(selectedToken.contractAddress);
+                // 尝试打开 TP 钱包的搜索功能（如果支持的话）
+                try {
+                  // TP 钱包的搜索 URL 格式
+                  const searchUrl = `tokenpocket://search?keyword=${selectedToken.contractAddress}`;
+                  const iframe = document.createElement('iframe');
+                  iframe.style.display = 'none';
+                  iframe.src = searchUrl;
+                  document.body.appendChild(iframe);
+                  setTimeout(() => {
+                    if (document.body.contains(iframe)) {
+                      document.body.removeChild(iframe);
+                    }
+                  }, 500);
+                } catch (e) {
+                  // 静默失败，让用户手动复制
+                }
               }
             }
           ]

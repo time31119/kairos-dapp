@@ -417,6 +417,26 @@ export default function MineScreen() {
               </View>
             </TouchableOpacity>
 
+            {/* 机构跟投 */}
+            <TouchableOpacity
+              className="items-center mb-4"
+              style={{ width: '31%' }}
+              onPress={() => router.push('/signal')}
+            >
+              <View 
+                className="w-full rounded-xl p-3 items-center"
+                style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#1F1F2E' }}
+              >
+                <View 
+                  className="w-10 h-10 rounded-full items-center justify-center mb-2"
+                  style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)' }}
+                >
+                  <FontAwesome6 name="building-columns" size={18} color="#8B5CF6" />
+                </View>
+                <Text className="text-xs" style={{ color: '#FFFFFF' }}>机构跟投</Text>
+              </View>
+            </TouchableOpacity>
+
             {/* 热门赛道 */}
             <TouchableOpacity
               className="items-center mb-4"

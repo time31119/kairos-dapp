@@ -1197,6 +1197,25 @@ export default function SignalScreen() {
         {activeTab === 'institution' && renderInstitutionTab()}
         {activeTab === 'decision' && renderDecisionTab()}
 
+        {/* 快速复制合约地址入口 - 用于TP钱包 */}
+        <TouchableOpacity 
+          style={styles.copyContractButton}
+          onPress={() => {
+            if (tokens.length > 0) {
+              const addr = tokens[0].contractAddress;
+              try {
+                navigator.clipboard.writeText(addr);
+                Alert.alert('已复制', `已复制 ${tokens[0].symbol} 合约地址到剪贴板`);
+              } catch (e) {
+                Alert.alert('合约地址', addr);
+              }
+            }
+          }}
+        >
+          <Ionicons name="copy-outline" size={18} color="#00F0FF" />
+          <Text style={styles.copyContractText}>一键复制合约地址</Text>
+        </TouchableOpacity>
+
         {/* 买入Modal */}
         {renderBuyModal()}
 
@@ -2408,5 +2427,24 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 14,
     color: '#FFFFFF',
+  },
+  // 一键复制合约地址按钮
+  copyContractButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1a1a2e',
+    marginHorizontal: 16,
+    marginVertical: 12,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#00F0FF',
+    gap: 8,
+  },
+  copyContractText: {
+    fontSize: 14,
+    color: '#00F0FF',
+    fontWeight: '500',
   },
 });

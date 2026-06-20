@@ -258,12 +258,29 @@ export default function SignalScreen() {
   };
 
   // 渲染代币卡片
-  const renderTokenCard = (token: Token) => (
+  const renderTokenCard = (token: Token, index: number) => (
     <TouchableOpacity 
       key={token.id} 
       style={styles.tokenCard}
       onPress={() => handleOpenBuyPage(token)}
     >
+      {/* 排名标识 */}
+      <View style={[
+        styles.tokenRank,
+        index === 0 && styles.tokenRankGold,
+        index === 1 && styles.tokenRankSilver,
+        index === 2 && styles.tokenRankBronze,
+      ]}>
+        <Text style={[
+          styles.tokenRankText,
+          index === 0 && styles.tokenRankGoldText,
+          index === 1 && styles.tokenRankSilverText,
+          index === 2 && styles.tokenRankBronzeText,
+        ]}>
+          {index + 1}
+        </Text>
+      </View>
+      
       <View style={styles.tokenHeader}>
         <View style={styles.tokenInfo}>
           <View style={styles.tokenNameRow}>
@@ -351,8 +368,11 @@ export default function SignalScreen() {
               style={[styles.filterChip, filter === f && styles.filterChipActive]}
               onPress={() => setFilter(f)}
             >
+              <Text style={styles.filterChipIcon}>
+                {f === 'hot' ? '🔥' : f === 'gainers' ? '📈' : f === 'smart' ? '💰' : '🛡️'}
+              </Text>
               <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>
-                {f === 'hot' ? '🔥 热度' : f === 'gainers' ? '📈 涨幅' : f === 'smart' ? '💰 聪明钱' : '🛡️ 安全'}
+                {f === 'hot' ? '热度' : f === 'gainers' ? '涨幅' : f === 'smart' ? '聪明钱' : '安全'}
               </Text>
             </TouchableOpacity>
           ))}
@@ -384,7 +404,7 @@ export default function SignalScreen() {
             <Text style={styles.emptyText}>暂无符合条件的代币</Text>
           </View>
         ) : (
-          filteredTokens.map(renderTokenCard)
+          filteredTokens.map((token, index) => renderTokenCard(token, index))
         )}
         <View style={styles.bottomPadding} />
       </ScrollView>
@@ -880,20 +900,30 @@ const styles = StyleSheet.create({
   filterRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
+    gap: 8,
   },
   filterChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    marginRight: 8,
-    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
     backgroundColor: '#1a1a2e',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   filterChipActive: {
-    backgroundColor: '#00F0FF20',
+    backgroundColor: '#00F0FF15',
+    borderColor: '#00F0FF',
+  },
+  filterChipIcon: {
+    fontSize: 12,
+    marginRight: 4,
   },
   filterChipText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#888',
+    fontWeight: '500',
   },
   filterChipTextActive: {
     color: '#00F0FF',
@@ -904,22 +934,26 @@ const styles = StyleSheet.create({
   chainFilterRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
+    gap: 8,
   },
   chainChip: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 6,
-    paddingHorizontal: 10,
-    marginRight: 6,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    borderRadius: 14,
     backgroundColor: '#1a1a2e',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   chainChipActive: {
-    backgroundColor: '#00F0FF20',
+    backgroundColor: '#00F0FF15',
+    borderColor: '#00F0FF',
   },
   chainChipText: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#888',
+    fontWeight: '500',
   },
   chainChipTextActive: {
     color: '#00F0FF',
@@ -936,6 +970,41 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#252540',
+    position: 'relative',
+  },
+  tokenRank: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#2a2a4e',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tokenRankText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#888',
+  },
+  tokenRankGold: {
+    backgroundColor: '#FFD700',
+  },
+  tokenRankGoldText: {
+    color: '#000',
+  },
+  tokenRankSilver: {
+    backgroundColor: '#C0C0C0',
+  },
+  tokenRankSilverText: {
+    color: '#000',
+  },
+  tokenRankBronze: {
+    backgroundColor: '#CD7F32',
+  },
+  tokenRankBronzeText: {
+    color: '#000',
   },
   tokenHeader: {
     flexDirection: 'row',

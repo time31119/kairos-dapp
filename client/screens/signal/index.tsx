@@ -1199,6 +1199,7 @@ export default function SignalScreen() {
         <TouchableOpacity 
           style={styles.copyContractButton}
           onPress={() => {
+            // 复制列表第一个代币的合约地址
             if (tokens.length > 0) {
               const addr = tokens[0].contractAddress;
               try {
@@ -1213,6 +1214,31 @@ export default function SignalScreen() {
           <Ionicons name="copy-outline" size={18} color="#00F0FF" />
           <Text style={styles.copyContractText}>一键复制合约地址</Text>
         </TouchableOpacity>
+
+        {/* TP钱包备用：显示所有代币合约地址 */}
+        <View style={styles.contractListContainer}>
+          <Text style={styles.contractListTitle}>📋 合约地址列表（TP钱包备用）</Text>
+          {tokens.slice(0, 5).map((token) => (
+            <TouchableOpacity 
+              key={token.id}
+              style={styles.contractListItem}
+              onPress={() => {
+                try {
+                  navigator.clipboard.writeText(token.contractAddress);
+                  Alert.alert('已复制', `已复制 ${token.symbol} 合约地址`);
+                } catch (e) {
+                  Alert.alert(token.symbol, token.contractAddress);
+                }
+              }}
+            >
+              <Text style={styles.contractListSymbol}>{token.symbol}</Text>
+              <Text style={styles.contractListAddress} numberOfLines={1}>
+                {token.contractAddress.slice(0, 10)}...{token.contractAddress.slice(-6)}
+              </Text>
+              <Ionicons name="copy" size={16} color="#00F0FF" />
+            </TouchableOpacity>
+          ))}
+        </View>
 
         {/* 买入Modal */}
         {renderBuyModal()}
@@ -2444,5 +2470,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#00F0FF',
     fontWeight: '500',
+  },
+  // 合约地址列表样式
+  contractListContainer: {
+    marginHorizontal: 16,
+    marginBottom: 30,
+    backgroundColor: 'rgba(0, 240, 255, 0.05)',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 240, 255, 0.2)',
+  },
+  contractListTitle: {
+    color: '#00F0FF',
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 10,
+  },
+  contractListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  contractListSymbol: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    width: 60,
+  },
+  contractListAddress: {
+    color: '#888',
+    fontSize: 12,
+    flex: 1,
+    fontFamily: 'monospace',
   },
 });

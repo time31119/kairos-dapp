@@ -417,13 +417,11 @@ export default function MineScreen() {
               </View>
             </TouchableOpacity>
 
-            {/* AI策略交易 - 即将上线 */}
+            {/* AI策略交易 */}
             <TouchableOpacity
               className="items-center mb-4"
               style={{ width: '31%' }}
-              onPress={() => {
-                setToastMessage?.('委托交易功能即将上线，敬请期待！');
-              }}
+              onPress={() => router.push('/ai-strategy')}
             >
               <View 
                 className="w-full rounded-xl p-3 items-center"

@@ -296,13 +296,6 @@ export default function SignalScreen() {
       return;
     }
 
-    // Web 端提示
-    const isWeb = Platform.OS === 'web';
-    if (isWeb) {
-      setWebPrompt('钱包买入功能需要在手机 App 中使用。\n\n请使用手机访问 Kairos DApp，或复制合约地址手动购买。');
-      return;
-    }
-
     const url = walletType === 'tp' ? links.tpLink : walletType === 'okx' ? links.okxLink : links.binanceLink;
     
     try {
@@ -310,7 +303,16 @@ export default function SignalScreen() {
       if (supported) {
         Linking.openURL(url);
       } else {
-        Alert.alert('提示', `请安装${walletType === 'tp' ? 'TokenPocket' : walletType === 'okx' ? 'OKX' : 'Binance'}钱包`);
+        // Deep Link 不支持时提示复制合约地址
+        Alert.alert(
+          '提示',
+          `无法打开${walletType === 'tp' ? 'TokenPocket' : walletType === 'okx' ? 'OKX' : 'Binance'}钱包\n\n请复制合约地址手动购买`,
+          [
+            { text: '取消', style: 'cancel' },
+            { text: '复制合约', onPress: () => Clipboard.setString(token.contractAddress) },
+            { text: '浏览器查看', onPress: () => Linking.openURL(links.contractUrl) }
+          ]
+        );
       }
     } catch (e) {
       Alert.alert('错误', '无法打开钱包应用');

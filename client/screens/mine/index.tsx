@@ -371,7 +371,7 @@ export default function MineScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 功能入口 - 统一 2x3 网格布局 */}
+        {/* 功能入口 - 统一 2x2 网格布局 */}
         <View className="px-5 mb-5">
           <Text className="text-xs mb-3 px-1 uppercase tracking-wider" style={{ color: '#6B7280' }}>
             功能入口
@@ -380,81 +380,84 @@ export default function MineScreen() {
             {/* 一键跟单 */}
             <TouchableOpacity
               className="items-center mb-4"
-              style={{ width: '31%' }}
+              style={{ width: '48%' }}
               onPress={() => router.push('/copytrading')}
             >
               <View 
-                className="w-full rounded-xl p-3 items-center"
+                className="w-full rounded-2xl p-4 items-center"
                 style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#1F1F2E' }}
               >
                 <View 
-                  className="w-10 h-10 rounded-full items-center justify-center mb-2"
+                  className="w-14 h-14 rounded-full items-center justify-center mb-3"
                   style={{ backgroundColor: 'rgba(255, 215, 0, 0.1)' }}
                 >
-                  <FontAwesome6 name="users" size={18} color="#FFD700" />
+                  <FontAwesome6 name="users" size={24} color="#FFD700" />
                 </View>
-                <Text className="text-xs font-medium" style={{ color: '#FFFFFF' }}>一键跟单</Text>
+                <Text className="text-sm font-medium" style={{ color: '#FFFFFF' }}>一键跟单</Text>
+                <Text className="text-xs mt-1" style={{ color: '#6B7280' }}>复制优秀策略</Text>
               </View>
             </TouchableOpacity>
 
             {/* 机构跟投 */}
             <TouchableOpacity
               className="items-center mb-4"
-              style={{ width: '31%' }}
+              style={{ width: '48%' }}
               onPress={() => router.push('/signal')}
             >
               <View 
-                className="w-full rounded-xl p-3 items-center"
+                className="w-full rounded-2xl p-4 items-center"
                 style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#1F1F2E' }}
               >
                 <View 
-                  className="w-10 h-10 rounded-full items-center justify-center mb-2"
+                  className="w-14 h-14 rounded-full items-center justify-center mb-3"
                   style={{ backgroundColor: 'rgba(0, 255, 136, 0.1)' }}
                 >
-                  <FontAwesome6 name="building-columns" size={18} color="#00FF88" />
+                  <FontAwesome6 name="building-columns" size={24} color="#00FF88" />
                 </View>
-                <Text className="text-xs font-medium" style={{ color: '#FFFFFF' }}>机构跟投</Text>
+                <Text className="text-sm font-medium" style={{ color: '#FFFFFF' }}>机构跟投</Text>
+                <Text className="text-xs mt-1" style={{ color: '#6B7280' }}>追踪专业机构</Text>
               </View>
             </TouchableOpacity>
 
             {/* AI策略交易 */}
             <TouchableOpacity
               className="items-center mb-4"
-              style={{ width: '31%' }}
+              style={{ width: '48%' }}
               onPress={() => router.push('/ai-strategy')}
             >
               <View 
-                className="w-full rounded-xl p-3 items-center"
-                style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#1F1F2E' }}
+                className="w-full rounded-2xl p-4 items-center"
+                style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#8B5CF6', borderStyle: 'dashed' }}
               >
                 <View 
-                  className="w-10 h-10 rounded-full items-center justify-center mb-2"
+                  className="w-14 h-14 rounded-full items-center justify-center mb-3"
                   style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)' }}
                 >
-                  <FontAwesome6 name="hand-holding-dollar" size={18} color="#8B5CF6" />
+                  <FontAwesome6 name="brain" size={24} color="#8B5CF6" />
                 </View>
-                <Text className="text-xs font-medium" style={{ color: '#6B7280' }}>AI策略交易</Text>
-                <Text className="text-xs" style={{ color: '#8B5CF6' }}>即将上线</Text>
+                <Text className="text-sm font-medium" style={{ color: '#8B5CF6' }}>AI策略交易</Text>
+                <Text className="text-xs mt-1" style={{ color: '#6B7280' }}>智能量化执行</Text>
               </View>
             </TouchableOpacity>
 
             {/* 会员中心 */}
             <TouchableOpacity
               className="items-center mb-4"
-              style={{ width: '31%' }}
+              style={{ width: '48%' }}
               onPress={() => router.push('/vip')}
             >
               <View 
-                className="w-full rounded-xl p-3 items-center"
-                style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#1F1F2E' }}
+                className="w-full rounded-2xl p-4 items-center"
+                style={{ backgroundColor: '#0A0A0F', borderWidth: 1, borderColor: '#FFD700' }}
               >
                 <View 
-                  className="w-10 h-10 rounded-full items-center justify-center mb-2"
+                  className="w-14 h-14 rounded-full items-center justify-center mb-3"
                   style={{ backgroundColor: 'rgba(255, 215, 0, 0.1)' }}
                 >
-                  <FontAwesome6 name="gem" size={18} color="#FFD700" />
+                  <FontAwesome6 name="gem" size={24} color="#FFD700" />
                 </View>
-                <Text className="text-xs" style={{ color: '#FFFFFF' }}>会员中心</Text>
+                <Text className="text-sm font-medium" style={{ color: '#FFD700' }}>会员中心</Text>
+                <Text className="text-xs mt-1" style={{ color: '#6B7280' }}>尊享专属特权</Text>
               </View>
             </TouchableOpacity>
           </View>

@@ -170,6 +170,7 @@ export default function MembershipScreen() {
   const [txHash, setTxHash] = useState<string | null>(null);
   const [showContractModal, setShowContractModal] = useState(false);
   const [contractModalData, setContractModalData] = useState<{address: string; amount: string} | null>(null);
+  const [copiedMessage, setCopiedMessage] = useState('');
 
   // 唤起钱包支付
   const handleWalletPay = async (walletType: WalletType) => {
@@ -254,27 +255,42 @@ export default function MembershipScreen() {
     } catch (error: any) {
       // Deep Link 失败，显示合约地址弹窗
       setIsProcessing(false);
-      
-      // Deep Link 失败，显示提示
-      const walletNames: Record<WalletType, string> = {
-        tp: 'TokenPocket',
-        okx: 'OKX Wallet',
-        binance: 'Binance Web3',
-      };
-      Alert.alert('提示', `请先安装 ${walletNames[walletType]} 钱包`);
+      setContractModalData({
+        address: RECEIVE_ADDRESS,
+        amount: amountDisplay,
+      });
+      setShowContractModal(true);
     }
   };
 
   // 复制收款地址
   const handleCopyAddress = async () => {
-    await Clipboard.setStringAsync(RECEIVE_ADDRESS);
-    Alert.alert('已复制', '收款地址已复制到剪贴板');
+    try {
+      // Web端优先使用navigator.clipboard
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(RECEIVE_ADDRESS);
+      } else {
+        await Clipboard.setStringAsync(RECEIVE_ADDRESS);
+      }
+      Alert.alert('已复制', '收款地址已复制到剪贴板');
+    } catch (e) {
+      Alert.alert('提示', '请手动复制地址: ' + RECEIVE_ADDRESS);
+    }
   };
 
   // 复制金额
   const handleCopyAmount = async () => {
-    await Clipboard.setStringAsync(selectedPlan.price.toString());
-    Alert.alert('已复制', '金额已复制到剪贴板');
+    try {
+      const amountStr = selectedPlan.price.toString();
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(amountStr);
+      } else {
+        await Clipboard.setStringAsync(amountStr);
+      }
+      Alert.alert('已复制', '金额已复制到剪贴板');
+    } catch (e) {
+      Alert.alert('提示', '请手动复制金额: ' + selectedPlan.price);
+    }
   };
 
   // 确认支付成功（模拟）
@@ -581,7 +597,8 @@ export default function MembershipScreen() {
               style={styles.contractBox}
               onPress={() => {
                 Clipboard.setString(contractModalData?.address || RECEIVE_ADDRESS);
-                Alert.alert('已复制', '合约地址已复制到剪贴板');
+                setCopiedMessage('合约地址已复制');
+                setTimeout(() => setCopiedMessage(''), 3000);
               }}
               activeOpacity={0.7}
             >
@@ -589,9 +606,13 @@ export default function MembershipScreen() {
                 {contractModalData?.address || RECEIVE_ADDRESS}
               </Text>
             </TouchableOpacity>
-            <Text style={styles.contractHint}>
-              点击上方地址复制，然后到TP钱包Browser粘贴购买
-            </Text>
+            {copiedMessage ? (
+              <Text style={styles.copiedHint}>{copiedMessage}</Text>
+            ) : (
+              <Text style={styles.contractHint}>
+                点击上方地址复制，然后到钱包Browser粘贴购买
+              </Text>
+            )}
             <Text style={styles.contractAmount}>
               购买金额: {contractModalData?.amount || selectedPlan.price.toString()} USDT
             </Text>
@@ -1127,6 +1148,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 12,
     lineHeight: 18,
+  },
+  copiedHint: {
+    fontSize: 14,
+    color: '#00D9FF',
+    textAlign: 'center',
+    marginTop: 12,
+    fontWeight: '600',
   },
   contractAmount: {
     fontSize: 18,

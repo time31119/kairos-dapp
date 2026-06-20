@@ -401,6 +401,59 @@ export default function HomeScreen() {
   const [newsData, setNewsData] = useState<any[]>([]);
   const [newsLoading, setNewsLoading] = useState(true);
 
+  // 买入弹窗状态
+  const [buyModalVisible, setBuyModalVisible] = useState(false);
+  const [selectedToken, setSelectedToken] = useState<any>(null);
+  const [buyAmount, setBuyAmount] = useState('');
+  const [buyLoading, setBuyLoading] = useState(false);
+
+  // 打赏弹窗状态
+  const [tipModalVisible, setTipModalVisible] = useState(false);
+  const [selectedTipToken, setSelectedTipToken] = useState<any>(null);
+
+  // 打开买入弹窗
+  const handleOpenBuy = (token: any) => {
+    setSelectedToken(token);
+    setBuyAmount('');
+    setBuyModalVisible(true);
+  };
+
+  // 复制链接
+  const handleCopyLink = async (token: any) => {
+    const url = `https://dexscreener.com/solana/${token.contractAddress || token.mint || ''}`;
+    try {
+      await Clipboard.setStringAsync(url);
+      alert('链接已复制到剪贴板');
+    } catch (error) {
+      console.error('复制失败:', error);
+      alert('复制失败，请手动复制');
+    }
+  };
+
+  // 处理买入
+  const handleBuy = async () => {
+    if (!buyAmount || parseFloat(buyAmount) <= 0) {
+      alert('请输入有效的买入金额');
+      return;
+    }
+    setBuyLoading(true);
+    
+    // 模拟买入流程
+    setTimeout(() => {
+      setBuyLoading(false);
+      setBuyModalVisible(false);
+      alert(`买入成功！\n\n代币: ${selectedToken?.symbol}\n金额: $${buyAmount}\n\n注意：此为模拟交易，实际交易请到DEX进行`);
+    }, 1500);
+  };
+
+  // 复制链接
+
+  // 打赏KOL
+  const handleTip = (token: any) => {
+    setSelectedTipToken(token);
+    setTipModalVisible(true);
+  };
+
   const fetchData = useCallback(() => {
     setLoading(true);
     fetch(API_URL + '/api/v1/screener/featured')
@@ -909,6 +962,14 @@ export default function HomeScreen() {
                       </View>
                       <Text style={styles.rankPrice}>${price.toFixed(4)}</Text>
                       <Text style={styles.rankChangeGreen}>+{change.toFixed(2)}%</Text>
+                      <View style={styles.rankActions}>
+                        <Pressable style={styles.rankBuyBtn} onPress={() => handleOpenBuy(token)}>
+                          <Text style={styles.rankBuyBtnText}>买入</Text>
+                        </Pressable>
+                        <Pressable style={styles.rankCopyBtn} onPress={() => handleCopyLink(token)}>
+                          <Ionicons name="link" size={12} color="#00F0FF" />
+                        </Pressable>
+                      </View>
                     </View>
                   );
                 }) || <Text style={{ color: '#6B7280', fontSize: 13, textAlign: 'center', paddingVertical: 20 }}>暂无数据</Text>}
@@ -938,6 +999,14 @@ export default function HomeScreen() {
                       </View>
                       <Text style={styles.rankPrice}>${price.toFixed(4)}</Text>
                       <Text style={styles.rankChangeRed}>{change.toFixed(2)}%</Text>
+                      <View style={styles.rankActions}>
+                        <Pressable style={styles.rankBuyBtn} onPress={() => handleOpenBuy(token)}>
+                          <Text style={styles.rankBuyBtnText}>买入</Text>
+                        </Pressable>
+                        <Pressable style={styles.rankCopyBtn} onPress={() => handleCopyLink(token)}>
+                          <Ionicons name="link" size={12} color="#00F0FF" />
+                        </Pressable>
+                      </View>
                     </View>
                   );
                 }) || <Text style={{ color: '#6B7280', fontSize: 13, textAlign: 'center', paddingVertical: 20 }}>暂无数据</Text>}
@@ -1348,6 +1417,31 @@ const styles = StyleSheet.create({
     minWidth: 70,
     textAlign: 'right',
   },
+	  rankActions: {
+	    flexDirection: 'row',
+	    alignItems: 'center',
+	    gap: 6,
+	  },
+	  rankBuyBtn: {
+	    backgroundColor: '#3B82F6',
+	    paddingHorizontal: 10,
+	    paddingVertical: 4,
+	    borderRadius: 6,
+	  },
+	  rankBuyBtnText: {
+	    color: '#FFFFFF',
+	    fontSize: 12,
+	    fontWeight: '600',
+	  },
+	  rankCopyBtn: {
+	    backgroundColor: 'rgba(0, 240, 255, 0.15)',
+	    paddingHorizontal: 8,
+	    paddingVertical: 4,
+	    borderRadius: 6,
+	    borderWidth: 1,
+	    borderColor: '#00F0FF',
+	  },
+
   billboardContainer: {
     flexDirection: 'row',
     marginTop: 16,

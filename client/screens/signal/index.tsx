@@ -1191,7 +1191,7 @@ export default function SignalScreen() {
 
   return (
     <Screen>
-      <View style={styles.container}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* 顶部栏 */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>📡 机构跟投</Text>
@@ -1295,7 +1295,7 @@ export default function SignalScreen() {
           <Ionicons name="shield-checkmark" size={14} color="#555570" />
           <Text style={styles.riskBannerText}>投资有风险，跟单需谨慎</Text>
         </View>
-      </View>
+      </ScrollView>
     </Screen>
   );
 }

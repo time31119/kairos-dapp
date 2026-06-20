@@ -168,6 +168,23 @@ export default function SignalScreen() {
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [slippage, setSlippage] = useState('1%');
 
+  // 辅助函数
+  const shortenAddress = (address: string) => {
+    if (!address) return '';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        alert('已复制到剪贴板');
+      }
+    } catch (err) {
+      console.error('复制失败:', err);
+    }
+  };
+
   // 筛选代币
   React.useEffect(() => {
     let filtered = [...tokens];
@@ -338,6 +355,23 @@ export default function SignalScreen() {
           <Text style={styles.riskWarningText}>高风险Meme，请设置滑点≥2%</Text>
         </View>
       )}
+
+      {/* 合约地址 */}
+      <TouchableOpacity style={styles.contractRow} onPress={() => copyToClipboard(token.contract)}>
+        <Text style={styles.contractLabel}>合约:</Text>
+        <Text style={styles.contractText}>{shortenAddress(token.contract)}</Text>
+        <Ionicons name="copy-outline" size={14} color="#00F0FF" style={{ marginLeft: 6 }} />
+      </TouchableOpacity>
+
+      {/* 操作按钮 */}
+      <View style={styles.actionRow}>
+        <TouchableOpacity style={styles.detailButton} onPress={() => handleOpenBuyPage(token)}>
+          <Text style={styles.detailButtonText}>查看详情</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.buyButton} onPress={() => handleOpenBuyPage(token)}>
+          <Text style={styles.buyButtonText}>买入</Text>
+        </TouchableOpacity>
+      </View>
     </TouchableOpacity>
   );
 
@@ -1118,6 +1152,54 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#FF6B6B',
     marginLeft: 6,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    marginTop: 14,
+    gap: 10,
+  },
+  detailButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#00F0FF',
+    alignItems: 'center',
+  },
+  detailButtonText: {
+    color: '#00F0FF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  buyButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#00F0FF',
+    alignItems: 'center',
+  },
+  buyButtonText: {
+    color: '#0a0a1a',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  contractRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#252540',
+  },
+  contractLabel: {
+    fontSize: 11,
+    color: '#666',
+  },
+  contractText: {
+    fontSize: 11,
+    color: '#888',
+    marginLeft: 4,
+    fontFamily: 'monospace',
   },
   emptyState: {
     alignItems: 'center',

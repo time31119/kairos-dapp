@@ -962,14 +962,6 @@ export default function HomeScreen() {
                       </View>
                       <Text style={styles.rankPrice}>${price.toFixed(4)}</Text>
                       <Text style={styles.rankChangeGreen}>+{change.toFixed(2)}%</Text>
-                      <View style={styles.rankActions}>
-                        <Pressable style={styles.rankBuyBtn} onPress={() => handleOpenBuy(token)}>
-                          <Text style={styles.rankBuyBtnText}>买入</Text>
-                        </Pressable>
-                        <Pressable style={styles.rankCopyBtn} onPress={() => handleCopyLink(token)}>
-                          <Ionicons name="link" size={12} color="#00F0FF" />
-                        </Pressable>
-                      </View>
                     </View>
                   );
                 }) || <Text style={{ color: '#6B7280', fontSize: 13, textAlign: 'center', paddingVertical: 20 }}>暂无数据</Text>}
@@ -999,14 +991,6 @@ export default function HomeScreen() {
                       </View>
                       <Text style={styles.rankPrice}>${price.toFixed(4)}</Text>
                       <Text style={styles.rankChangeRed}>{change.toFixed(2)}%</Text>
-                      <View style={styles.rankActions}>
-                        <Pressable style={styles.rankBuyBtn} onPress={() => handleOpenBuy(token)}>
-                          <Text style={styles.rankBuyBtnText}>买入</Text>
-                        </Pressable>
-                        <Pressable style={styles.rankCopyBtn} onPress={() => handleCopyLink(token)}>
-                          <Ionicons name="link" size={12} color="#00F0FF" />
-                        </Pressable>
-                      </View>
                     </View>
                   );
                 }) || <Text style={{ color: '#6B7280', fontSize: 13, textAlign: 'center', paddingVertical: 20 }}>暂无数据</Text>}

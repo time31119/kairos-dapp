@@ -192,6 +192,7 @@ export default function SignalScreen() {
   const [webPrompt, setWebPrompt] = useState<string | null>(null);
   const [contractModalVisible, setContractModalVisible] = useState(false);
   const [contractAddressForModal, setContractAddressForModal] = useState('');
+  const [copiedMessage, setCopiedMessage] = useState('');
 
   // 辅助函数
   const shortenAddress = (address: string) => {
@@ -276,10 +277,18 @@ export default function SignalScreen() {
   };
 
   // 复制地址
-  const handleCopyAddress = (address: string) => {
-    if (navigator.clipboard) {
+  const handleCopyAddress = async (address: string) => {
+    try {
       Clipboard.setString(address);
-      Alert.alert('已复制', '合约地址已复制到剪贴板');
+      // 显示临时提示（使用 setTimeout 确保在 TP 钱包中也能显示）
+      setCopiedMessage('已复制到剪贴板');
+      setTimeout(() => setCopiedMessage(''), 2000);
+    } catch (err) {
+      console.log('Copy failed:', err);
+      // 备用方案：使用 prompt
+      if (typeof window !== 'undefined' && window.prompt) {
+        window.prompt('合约地址（长按复制）:', address);
+      }
     }
   };
 
@@ -990,6 +999,9 @@ export default function SignalScreen() {
                     <Ionicons name="copy" size={18} color="#00F0FF" />
                   </View>
                 </TouchableOpacity>
+                {copiedMessage && (
+                  <Text style={styles.copiedHint}>{copiedMessage}</Text>
+                )}
 
                 {/* 选择钱包 */}
                 <Text style={styles.walletTitle}>选择钱包买入</Text>
@@ -2561,5 +2573,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     flex: 1,
     fontFamily: 'monospace',
+  },
+  // 复制成功提示
+  copiedHint: {
+    backgroundColor: '#00F0FF',
+    color: '#000',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 8,
   },
 });

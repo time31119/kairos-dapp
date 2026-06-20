@@ -962,12 +962,12 @@ export default function SignalScreen() {
                 {/* 选择钱包 */}
                 <Text style={styles.walletTitle}>选择钱包买入</Text>
                 
-                <View 
+                <TouchableOpacity 
                   style={styles.walletOption}
-                  onClick={() => {
+                  onPress={() => {
                     if (selectedToken?.contractAddress) {
                       try {
-                        navigator.clipboard.writeText(selectedToken.contractAddress);
+                        Clipboard.setString(selectedToken.contractAddress);
                         Alert.alert('已复制', '合约地址已复制到剪贴板，请到 TP 钱包浏览器粘贴购买');
                       } catch (e) {
                         setContractAddressForModal(selectedToken.contractAddress);
@@ -975,6 +975,7 @@ export default function SignalScreen() {
                       }
                     }
                   }}
+                  activeOpacity={0.7}
                 >
                   <View style={styles.walletIcon}>
                     <Text style={{ fontSize: 20 }}>💎</Text>
@@ -984,7 +985,7 @@ export default function SignalScreen() {
                     <Text style={styles.walletDesc}>点击复制合约地址</Text>
                   </View>
                   <Ionicons name="copy" size={20} color="#00F0FF" />
-                </View>
+                </TouchableOpacity>
 
                 <TouchableOpacity style={styles.walletOption} onPress={() => handleOpenWallet('okx')}>
                   <View style={styles.walletIcon}>

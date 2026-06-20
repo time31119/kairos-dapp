@@ -72,6 +72,19 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="signal"
+        options={{
+          title: '跟投',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? 'pulse' : 'pulse-outline'} 
+              size={22} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="vip"
         options={{
           title: '会员',

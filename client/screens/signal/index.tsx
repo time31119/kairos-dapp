@@ -298,21 +298,19 @@ export default function SignalScreen() {
 
     const url = walletType === 'tp' ? links.tpLink : walletType === 'okx' ? links.okxLink : links.binanceLink;
     
+    // Web 环境使用 window.location.href 直接跳转
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.location.href = url;
+      return;
+    }
+    
+    // 原生环境使用 Linking
     try {
       const supported = await Linking.canOpenURL(url);
       if (supported) {
         Linking.openURL(url);
       } else {
-        // Deep Link 不支持时提示复制合约地址
-        Alert.alert(
-          '提示',
-          `无法打开${walletType === 'tp' ? 'TokenPocket' : walletType === 'okx' ? 'OKX' : 'Binance'}钱包\n\n请复制合约地址手动购买`,
-          [
-            { text: '取消', style: 'cancel' },
-            { text: '复制合约', onPress: () => Clipboard.setString(token.contractAddress) },
-            { text: '浏览器查看', onPress: () => Linking.openURL(links.contractUrl) }
-          ]
-        );
+        Alert.alert('提示', `请安装${walletType === 'tp' ? 'TokenPocket' : walletType === 'okx' ? 'OKX' : 'Binance'}钱包`);
       }
     } catch (e) {
       Alert.alert('错误', '无法打开钱包应用');

@@ -356,7 +356,9 @@ export default function SignalScreen() {
 
     // TP 钱包特殊处理 - Web环境下点击TP按钮都显示合约地址
     // 因为无法可靠检测具体的钱包浏览器
+    console.log('Platform.OS:', Platform.OS, 'walletType:', walletType);
     if (walletType === 'tp' && Platform.OS === 'web') {
+      console.log('Showing TP wallet modal for:', selectedToken.symbol);
       Alert.alert(
         `购买 ${selectedToken.symbol}`,
         `合约地址: ${selectedToken.contractAddress}\n\n请复制合约地址，然后在 TP 钱包的搜索框中粘贴进行交易`,

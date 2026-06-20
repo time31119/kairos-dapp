@@ -295,6 +295,17 @@ export default function SignalScreen() {
       return;
     }
 
+    // Web 端提示
+    const isWeb = Platform.OS === 'web';
+    if (isWeb) {
+      Alert.alert(
+        '提示', 
+        '钱包买入功能需要在手机 App 中使用。\n\n请使用手机浏览器打开 Kairos DApp，或复制合约地址到钱包中进行购买。',
+        [{ text: '确定' }]
+      );
+      return;
+    }
+
     const url = walletType === 'tp' ? links.tpLink : walletType === 'okx' ? links.okxLink : links.binanceLink;
     
     try {

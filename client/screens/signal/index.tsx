@@ -157,6 +157,9 @@ const generateBuyLinks = (token: Token) => {
     ? `tokenpocket://wallet/buy?symbol=${token.symbol}&address=${token.contractAddress}&chain=solana`
     : `tokenpocket://wallet/buy?symbol=${token.symbol}&address=${token.contractAddress}&chainId=${chainId}`;
   
+  // TP钱包 HTTPS 跳转（备选，用于浏览器环境）
+  const tpHttpsLink = `https://tokenpocket.pages.dev/#/swap?inputCurrency=BNB&outputCurrency=${token.contractAddress}`;
+  
   // OKX钱包 - 跳转买入页面
   const okxLink = `okx://wallet/inscribe?address=${token.contractAddress}&chain=${token.chain}`;
   
@@ -357,41 +360,10 @@ export default function SignalScreen() {
     }
 
     // TP 钱包特殊处理 - Web环境下点击TP按钮都显示合约地址
-    // 因为无法可靠检测具体的钱包浏览器
-    console.log('Platform.OS:', Platform.OS, 'walletType:', walletType);
     if (walletType === 'tp' && Platform.OS === 'web') {
-      console.log('Showing TP wallet modal for:', selectedToken.symbol);
-      Alert.alert(
-        `购买 ${selectedToken.symbol}`,
-        `合约地址: ${selectedToken.contractAddress}\n\n请复制合约地址，然后在 TP 钱包的搜索框中粘贴进行交易`,
-        [
-          { text: '取消', style: 'cancel' },
-          { 
-            text: '复制合约地址', 
-            onPress: () => handleCopyAddress(selectedToken.contractAddress)
-          },
-          {
-            text: '复制并在钱包中打开',
-            onPress: () => {
-              handleCopyAddress(selectedToken.contractAddress);
-              try {
-                const searchUrl = `tokenpocket://search?keyword=${selectedToken.contractAddress}`;
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                iframe.src = searchUrl;
-                document.body.appendChild(iframe);
-                setTimeout(() => {
-                  if (document.body.contains(iframe)) {
-                    document.body.removeChild(iframe);
-                  }
-                }, 500);
-              } catch (e) {
-                // 静默失败
-              }
-            }
-          }
-        ]
-      );
+      // 使用自定义 Modal 显示合约地址
+      setContractAddressForModal(selectedToken.contractAddress);
+      setContractModalVisible(true);
       return;
     }
 

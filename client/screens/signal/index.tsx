@@ -1083,12 +1083,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   metricLabel: {
-    fontSize: 9,
-    color: '#666',
+    fontSize: 10,
+    color: '#888',
     marginBottom: 3,
   },
   metricValue: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     color: '#EAEAEA',
   },

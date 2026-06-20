@@ -1018,14 +1018,14 @@ const styles = StyleSheet.create({
     color: '#00F0FF',
   },
   tokenList: {
-    flex: 1,
     marginTop: 8,
+    paddingBottom: 20,
   },
   tokenCard: {
     backgroundColor: '#1a1a2e',
     borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
+    padding: 10,
+    marginBottom: 6,
     marginHorizontal: 12,
     borderWidth: 1,
     borderColor: '#252540',
@@ -1033,7 +1033,7 @@ const styles = StyleSheet.create({
   tokenRow1: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   rankBadge: {
     width: 24,
@@ -1150,7 +1150,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 8,
+    marginTop: 6,
   },
   tagSection: {
     flexDirection: 'row',
@@ -1200,8 +1200,8 @@ const styles = StyleSheet.create({
   contractRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 8,
+    marginTop: 6,
+    paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: '#252540',
     gap: 4,

@@ -354,48 +354,41 @@ export default function SignalScreen() {
       return;
     }
 
-    // TP 钱包特殊处理 - 检测是否在 TP 钱包浏览器中
-    if (walletType === 'tp' && typeof window !== 'undefined') {
-      const isInTPBrowser = window.trustwallet?.isTrust || window.trustwallet?.isTokenPocket;
-      
-      if (isInTPBrowser) {
-        // 在 TP 钱包浏览器中，显示合约地址让用户复制并手动交易
-        Alert.alert(
-          `购买 ${selectedToken.symbol}`,
-          `合约地址: ${selectedToken.contractAddress}\n\n请复制合约地址，然后在 TP 钱包的搜索框中粘贴进行交易`,
-          [
-            { text: '取消', style: 'cancel' },
-            { 
-              text: '复制合约地址', 
-              onPress: () => handleCopyAddress(selectedToken.contractAddress)
-            },
-            {
-              text: '复制并在钱包中打开',
-              onPress: () => {
-                // 复制合约地址
-                handleCopyAddress(selectedToken.contractAddress);
-                // 尝试打开 TP 钱包的搜索功能（如果支持的话）
-                try {
-                  // TP 钱包的搜索 URL 格式
-                  const searchUrl = `tokenpocket://search?keyword=${selectedToken.contractAddress}`;
-                  const iframe = document.createElement('iframe');
-                  iframe.style.display = 'none';
-                  iframe.src = searchUrl;
-                  document.body.appendChild(iframe);
-                  setTimeout(() => {
-                    if (document.body.contains(iframe)) {
-                      document.body.removeChild(iframe);
-                    }
-                  }, 500);
-                } catch (e) {
-                  // 静默失败，让用户手动复制
-                }
+    // TP 钱包特殊处理 - Web环境下点击TP按钮都显示合约地址
+    // 因为无法可靠检测具体的钱包浏览器
+    if (walletType === 'tp' && Platform.OS === 'web') {
+      Alert.alert(
+        `购买 ${selectedToken.symbol}`,
+        `合约地址: ${selectedToken.contractAddress}\n\n请复制合约地址，然后在 TP 钱包的搜索框中粘贴进行交易`,
+        [
+          { text: '取消', style: 'cancel' },
+          { 
+            text: '复制合约地址', 
+            onPress: () => handleCopyAddress(selectedToken.contractAddress)
+          },
+          {
+            text: '复制并在钱包中打开',
+            onPress: () => {
+              handleCopyAddress(selectedToken.contractAddress);
+              try {
+                const searchUrl = `tokenpocket://search?keyword=${selectedToken.contractAddress}`;
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = searchUrl;
+                document.body.appendChild(iframe);
+                setTimeout(() => {
+                  if (document.body.contains(iframe)) {
+                    document.body.removeChild(iframe);
+                  }
+                }, 500);
+              } catch (e) {
+                // 静默失败
               }
             }
-          ]
-        );
-        return;
-      }
+          }
+        ]
+      );
+      return;
     }
 
     const url = walletType === 'tp' ? links.tpLink : walletType === 'okx' ? links.okxLink : links.binanceLink;

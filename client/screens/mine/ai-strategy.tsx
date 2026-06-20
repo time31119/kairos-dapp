@@ -89,14 +89,14 @@ export default function AIStrategy() {
 
   const handleSubmitEntrust = () => {
     if (!entrustAmount || parseFloat(entrustAmount) < parseFloat(selectedStrategy?.minAmount?.replace('$', '').replace(',', ''))) {
-      Alert.alert('提示', `最低委托金额为 ${selectedStrategy?.minAmount}`);
+      Alert.alert('提示', `最低跟单金额为 ${selectedStrategy?.minAmount}`);
       return;
     }
     if (!paymentLink) {
       Alert.alert('提示', '请填写收款链接');
       return;
     }
-    Alert.alert('提交成功', `您的委托申请已提交，金额: $${entrustAmount}\n策略: ${selectedStrategy?.name}\n我们将尽快与您联系确认。`);
+    Alert.alert('提交成功', `您的跟单申请已提交，金额: $${entrustAmount}\n策略: ${selectedStrategy?.name}\n我们将尽快与您联系确认。`);
     setModalVisible(false);
   };
 
@@ -130,9 +130,9 @@ export default function AIStrategy() {
           ))}
         </View>
 
-        {/* 委托合作说明 */}
+        {/* 跟单合作说明 */}
         <View style={styles.cooperationSection}>
-          <Text style={styles.sectionTitle}>委托合作方式</Text>
+          <Text style={styles.sectionTitle}>跟单合作方式</Text>
           <View style={styles.cooperationCard}>
             <View className="flex-row justify-between items-center mb-3">
               <View style={styles.cooperationItem}>
@@ -208,9 +208,9 @@ export default function AIStrategy() {
                 </View>
               </View>
 
-              {/* 委托合作 */}
+              {/* 跟单合作 */}
               <View style={styles.strategySection}>
-                <Text style={styles.strategySectionTitle}>委托合作</Text>
+                <Text style={styles.strategySectionTitle}>跟单合作</Text>
                 <View style={styles.profitInfo}>
                   <View style={styles.profitItem}>
                     <Text style={styles.profitLabel}>分成比例</Text>
@@ -227,19 +227,19 @@ export default function AIStrategy() {
                 </View>
               </View>
 
-              {/* 我要委托按钮 */}
+              {/* 我要跟单按钮 */}
               <TouchableOpacity 
                 style={styles.entrustButton}
                 onPress={() => handleEntrust(strategy)}
               >
                 <Ionicons name="wallet-outline" size={18} color="#fff" />
-                <Text style={styles.entrustButtonText}>我要委托</Text>
+                <Text style={styles.entrustButtonText}>我要跟单</Text>
               </TouchableOpacity>
 
               {/* 跟投人数 */}
               <View style={styles.usersContainer}>
                 <Ionicons name="people" size={14} color="#6B7280" />
-                <Text style={styles.usersText}>{strategy.users}人已委托</Text>
+                <Text style={styles.usersText}>{strategy.users}人已跟单</Text>
               </View>
             </View>
           ))}
@@ -249,7 +249,7 @@ export default function AIStrategy() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* 委托 Modal */}
+      {/* 跟单 Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -259,7 +259,7 @@ export default function AIStrategy() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>委托申请</Text>
+              <Text style={styles.modalTitle}>跟单申请</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Ionicons name="close" size={24} color="#6B7280" />
               </TouchableOpacity>
@@ -276,7 +276,7 @@ export default function AIStrategy() {
             )}
 
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>委托金额 (USDT)</Text>
+              <Text style={styles.formLabel}>跟单金额 (USDT)</Text>
               <TextInput
                 style={styles.formInput}
                 value={entrustAmount}
@@ -289,7 +289,7 @@ export default function AIStrategy() {
             </View>
 
             <View style={styles.formGroup}>
-              <Text style={styles.formLabel}>委托期限</Text>
+              <Text style={styles.formLabel}>跟单期限</Text>
               <View style={styles.periodSelector}>
                 {['1个月', '3个月', '6个月', '12个月'].map((period) => (
                   <TouchableOpacity
@@ -326,18 +326,18 @@ export default function AIStrategy() {
 
             <View style={styles.agreementSection}>
               <Ionicons name="shield-checkmark" size={16} color="#22C55E" />
-              <Text style={styles.agreementText}>我已阅读并同意《AI策略委托协议》</Text>
+              <Text style={styles.agreementText}>我已阅读并同意《AI策略跟单协议》</Text>
             </View>
 
             <TouchableOpacity 
               style={styles.submitButton}
               onPress={handleSubmitEntrust}
             >
-              <Text style={styles.submitButtonText}>提交委托申请</Text>
+              <Text style={styles.submitButtonText}>提交跟单申请</Text>
             </TouchableOpacity>
 
             <Text style={styles.disclaimer}>
-              * 投资有风险，委托需谨慎。过往业绩不代表未来表现。
+              * 投资有风险，跟单需谨慎。过往业绩不代表未来表现。
             </Text>
           </View>
         </View>

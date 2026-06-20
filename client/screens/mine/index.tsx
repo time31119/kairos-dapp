@@ -417,7 +417,7 @@ export default function MineScreen() {
               </View>
             </TouchableOpacity>
 
-            {/* 委托交易 - 即将上线 */}
+            {/* AI策略交易 - 即将上线 */}
             <TouchableOpacity
               className="items-center mb-4"
               style={{ width: '31%' }}
@@ -435,7 +435,7 @@ export default function MineScreen() {
                 >
                   <FontAwesome6 name="hand-holding-dollar" size={18} color="#8B5CF6" />
                 </View>
-                <Text className="text-xs font-medium" style={{ color: '#6B7280' }}>委托交易</Text>
+                <Text className="text-xs font-medium" style={{ color: '#6B7280' }}>AI策略交易</Text>
                 <Text className="text-xs" style={{ color: '#8B5CF6' }}>即将上线</Text>
               </View>
             </TouchableOpacity>

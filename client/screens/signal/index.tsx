@@ -356,21 +356,21 @@ export default function SignalScreen() {
         </View>
       )}
 
-      {/* 合约地址 */}
-      <TouchableOpacity style={styles.contractRow} onPress={() => copyToClipboard(token.contract)}>
-        <Text style={styles.contractLabel}>合约:</Text>
-        <Text style={styles.contractText}>{shortenAddress(token.contract)}</Text>
-        <Ionicons name="copy-outline" size={14} color="#00F0FF" style={{ marginLeft: 6 }} />
-      </TouchableOpacity>
-
-      {/* 操作按钮 */}
-      <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.detailButton} onPress={() => handleOpenBuyPage(token)}>
-          <Text style={styles.detailButtonText}>查看详情</Text>
+      {/* 合约地址和操作按钮 */}
+      <View style={styles.footerRow}>
+        <TouchableOpacity style={styles.contractBadge} onPress={() => copyToClipboard(token.contract)}>
+          <Text style={styles.contractBadgeText}>{shortenAddress(token.contract)}</Text>
+          <Ionicons name="copy" size={12} color="#00F0FF" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.buyButton} onPress={() => handleOpenBuyPage(token)}>
-          <Text style={styles.buyButtonText}>买入</Text>
-        </TouchableOpacity>
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.detailButtonSmall} onPress={() => handleOpenBuyPage(token)}>
+            <Text style={styles.detailButtonSmallText}>详情</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.buyButtonSmall} onPress={() => handleOpenBuyPage(token)}>
+            <Ionicons name="cart" size={14} color="#0A0A0F" />
+            <Text style={styles.buyButtonSmallText}>买入</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -890,13 +890,13 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   tab: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
     marginRight: 8,
-    borderRadius: 20,
+    borderRadius: 18,
     backgroundColor: '#1a1a2e',
   },
   tabActive: {
@@ -917,31 +917,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1a1a2e',
-    borderRadius: 12,
+    borderRadius: 10,
     marginHorizontal: 16,
     paddingHorizontal: 12,
-    height: 44,
+    height: 40,
   },
   searchInput: {
     flex: 1,
     marginLeft: 8,
-    fontSize: 14,
+    fontSize: 13,
     color: '#EAEAEA',
   },
   filterScroll: {
-    marginTop: 12,
+    marginTop: 8,
+    paddingHorizontal: 16,
   },
   filterRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
     gap: 8,
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
     backgroundColor: '#1a1a2e',
     borderWidth: 1,
     borderColor: 'transparent',
@@ -951,11 +951,11 @@ const styles = StyleSheet.create({
     borderColor: '#00F0FF',
   },
   filterChipIcon: {
-    fontSize: 12,
+    fontSize: 11,
     marginRight: 4,
   },
   filterChipText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#888',
     fontWeight: '500',
   },
@@ -963,11 +963,11 @@ const styles = StyleSheet.create({
     color: '#00F0FF',
   },
   chainFilterScroll: {
-    marginTop: 8,
+    marginTop: 6,
+    paddingHorizontal: 16,
   },
   chainFilterRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
     gap: 8,
   },
   chainChip: {
@@ -994,56 +994,21 @@ const styles = StyleSheet.create({
   },
   tokenList: {
     flex: 1,
-    marginTop: 12,
-    paddingHorizontal: 16,
+    marginTop: 8,
   },
   tokenCard: {
     backgroundColor: '#1a1a2e',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    marginHorizontal: 16,
     borderWidth: 1,
     borderColor: '#252540',
-    position: 'relative',
-  },
-  tokenRank: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#2a2a4e',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tokenRankText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#888',
-  },
-  tokenRankGold: {
-    backgroundColor: '#FFD700',
-  },
-  tokenRankGoldText: {
-    color: '#000',
-  },
-  tokenRankSilver: {
-    backgroundColor: '#C0C0C0',
-  },
-  tokenRankSilverText: {
-    color: '#000',
-  },
-  tokenRankBronze: {
-    backgroundColor: '#CD7F32',
-  },
-  tokenRankBronzeText: {
-    color: '#000',
   },
   tokenHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   tokenInfo: {
     flex: 1,
@@ -1053,28 +1018,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   chainIcon: {
-    fontSize: 16,
-    marginRight: 6,
+    fontSize: 14,
+    marginRight: 5,
   },
   tokenSymbol: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
   },
   hotBadge: {
     backgroundColor: '#FF6B6B20',
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
     paddingVertical: 2,
-    borderRadius: 6,
-    marginLeft: 6,
+    borderRadius: 5,
+    marginLeft: 5,
   },
   hotBadgeText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: '#FF6B6B',
   },
   tokenName: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#888',
     marginTop: 2,
   },
@@ -1082,12 +1047,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   priceText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
   },
   changeText: {
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 2,
   },
   changeUp: {
@@ -1099,7 +1064,7 @@ const styles = StyleSheet.create({
   metricsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: 12,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#252540',
   },
@@ -1107,12 +1072,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   metricLabel: {
-    fontSize: 10,
+    fontSize: 9,
     color: '#666',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   metricValue: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: '#EAEAEA',
   },

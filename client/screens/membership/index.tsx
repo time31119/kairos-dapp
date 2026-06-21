@@ -9,6 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 
@@ -70,6 +71,13 @@ const PLANS = [
 ];
 
 // 用户评价数据
+
+// 统计数据
+const STATS = [
+  { value: '10,000+', label: 'VIP会员' },
+  { value: '95%', label: '准确率' },
+  { value: '24/7', label: '客服支持' },
+];
 
 // 钱包类型
 type WalletType = 'tp' | 'okx' | 'binance';
@@ -290,17 +298,7 @@ export default function MembershipScreen() {
   const handleCopyInviteCode = async () => {
     const link = `https://kairosdapp.com/membership?invite=${inviteCode}`;
     try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(link);
-      } else {
-        // 降级方案
-        const textarea = document.createElement('textarea');
-        textarea.value = link;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-      }
+      await Clipboard.setStringAsync(link);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
@@ -385,20 +383,9 @@ export default function MembershipScreen() {
       `请向以下地址转账 ${price} USDT (BEP20)\n\n${RECEIVE_ADDRESS}\n\n转账完成后，系统将自动开通VIP权限。`,
       [
         { text: '查看支付状态', onPress: () => router.push(`/payment-confirm?orderId=${localOrderId}&walletAddress=${RECEIVE_ADDRESS}&amount=${price}&tier=${selectedPlan.name}`) },
-        { text: '复制地址', onPress: () => {
+        { text: '复制地址', onPress: async () => {
           try {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              navigator.clipboard.writeText(RECEIVE_ADDRESS);
-            } else {
-              const textarea = document.createElement('textarea');
-              textarea.value = RECEIVE_ADDRESS;
-              textarea.style.position = 'fixed';
-              textarea.style.opacity = '0';
-              document.body.appendChild(textarea);
-              textarea.select();
-              document.execCommand('copy');
-              document.body.removeChild(textarea);
-            }
+            await Clipboard.setStringAsync(RECEIVE_ADDRESS);
             Alert.alert('复制成功', '收款地址已复制到剪贴板');
           } catch (error) {
             console.log('Copy failed:', error);
@@ -724,18 +711,7 @@ export default function MembershipScreen() {
               style={{ backgroundColor: '#059669' }}
               onPress={async () => {
                 try {
-                  if (navigator.clipboard && navigator.clipboard.writeText) {
-                    await navigator.clipboard.writeText(RECEIVE_ADDRESS);
-                  } else {
-                    const textarea = document.createElement('textarea');
-                    textarea.value = RECEIVE_ADDRESS;
-                    textarea.style.position = 'fixed';
-                    textarea.style.opacity = '0';
-                    document.body.appendChild(textarea);
-                    textarea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textarea);
-                  }
+                  await Clipboard.setStringAsync(RECEIVE_ADDRESS);
                   Alert.alert('复制成功', '收款地址已复制到剪贴板');
                 } catch (error) {
                   console.log('Copy failed:', error);

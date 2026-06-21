@@ -197,24 +197,43 @@ export default function MembershipScreen() {
   useEffect(() => {
     // 优先从 localStorage 获取已保存的邀请码
     if (typeof window !== 'undefined') {
+      // 获取用户标识符（优先使用钱包地址，否则使用已保存的邀请码）
+      const walletAddress = localStorage.getItem('wallet_address') || '';
       const savedCode = localStorage.getItem('invite_code');
-      if (savedCode) {
+      
+      // 优先使用钱包地址生成固定邀请码
+      if (walletAddress) {
+        const code = generateFixedInviteCode(walletAddress);
+        setInviteCode(code);
+        localStorage.setItem('invite_code', code);
+      } else if (savedCode) {
+        // 使用已保存的邀请码
         setInviteCode(savedCode);
       } else {
-        // 生成新的邀请码
-        const newCode = generateInviteCode();
+        // 生成新的邀请码（首次访问）
+        const newCode = generateFixedInviteCode(Date.now().toString());
         setInviteCode(newCode);
         localStorage.setItem('invite_code', newCode);
       }
     }
   }, []);
 
-  // 生成邀请码
-  function generateInviteCode(): string {
+  // 生成固定邀请码（基于用户标识符，确保每次相同）
+  function generateFixedInviteCode(identifier: string): string {
+    // 使用用户标识符生成固定的邀请码
+    let hash = 0;
+    for (let i = 0; i < identifier.length; i++) {
+      const char = identifier.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = 'KAI-';
+    // 使用hash值确保同一用户生成相同邀请码
     for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
+      code += chars.charAt(Math.abs(hash) % chars.length);
+      hash = ((hash << 5) - hash) + i;
     }
     return code;
   }

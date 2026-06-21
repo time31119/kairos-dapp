@@ -115,6 +115,7 @@ export default function RootLayout() {
             <Stack.Screen name="coin/[symbol]" />
             <Stack.Screen name="search" />
             <Stack.Screen name="auth" />
+            <Stack.Screen name="membership" />
             <Stack.Screen name="vip" />
             <Stack.Screen name="vip/membership" />
             <Stack.Screen name="vip-status" />

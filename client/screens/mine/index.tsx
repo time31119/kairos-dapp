@@ -45,7 +45,7 @@ export default function MineScreen() {
   
   // Web端降级：使用window.location.href
   const navigateTo = (path: string) => {
-    if (typeof window !== 'undefined') {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
       window.location.href = path;
     } else {
       router.push(path);

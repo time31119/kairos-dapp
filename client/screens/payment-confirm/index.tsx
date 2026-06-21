@@ -16,12 +16,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { Link } from 'expo-router';
+import { useSafeSearchParams } from '@/hooks/useSafeRouter';
 
 const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
 type PaymentStatus = 'pending' | 'confirming' | 'confirmed' | 'failed';
 
 export default function PaymentConfirmScreen() {
+  const params = useSafeSearchParams<{ orderId?: string; walletAddress?: string; amount?: string; tier?: string }>();
   const [orderId, setOrderId] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
   const [amount, setAmount] = useState('');
@@ -35,14 +37,11 @@ export default function PaymentConfirmScreen() {
 
   // 从URL参数获取数据
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      setOrderId(params.get('orderId') || '');
-      setWalletAddress(params.get('walletAddress') || '');
-      setAmount(params.get('amount') || '');
-      setTier(params.get('tier') || '');
-    }
-  }, []);
+    setOrderId(params.orderId || '');
+    setWalletAddress(params.walletAddress || '');
+    setAmount(params.amount || '');
+    setTier(params.tier || '');
+  }, [params.orderId, params.walletAddress, params.amount, params.tier]);
 
   // 倒计时逻辑
   useEffect(() => {

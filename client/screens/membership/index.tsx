@@ -382,7 +382,7 @@ export default function MembershipScreen() {
       } else if (wallet.id === 'okx' && (window as any).okxwallet) {
         web3Success = await okxWalletWeb3Transfer(RECEIVE_ADDRESS, amountWei);
       } else if (wallet.id === 'binance' && (window as any).BinanceChain) {
-        web3Success = await handleBinanceWeb3(RECEIVE_ADDRESS, price, amountWei);
+        web3Success = await handleBinanceWeb3(RECEIVE_ADDRESS, price.toString(), amountWei);
       }
       
       if (web3Success) {

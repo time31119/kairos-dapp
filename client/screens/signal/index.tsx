@@ -294,7 +294,7 @@ export default function SignalScreen() {
 
   // TP 钱包交易
   const handleTPWalletTrade = async (token: Token, amount: string) => {
-    if (typeof window === 'undefined' || !window.trustwallet) {
+    if (Platform.OS !== 'web' || typeof window === 'undefined' || !window.trustwallet) {
       Alert.alert('提示', '请先连接 TP 钱包');
       return;
     }

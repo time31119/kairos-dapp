@@ -150,9 +150,37 @@ async function okxWalletWeb3Transfer(toAddress: string, amountWei: string): Prom
   }
 }
 
-// 构建Binance Web3 DeepLink
-function buildBinanceDeepLink(): string {
-  return `bnbwallet://swap?inputCurrency=BNB&outputCurrency=${USDT_CONTRACT}`;
+// Binance Web3 转账
+async function handleBinanceWeb3(toAddress: string, amount: string, amountWei: string): Promise<boolean> {
+  try {
+    if (typeof window === 'undefined' || !(window as any).BinanceChain) {
+      return false;
+    }
+    const accounts = await (window as any).BinanceChain.request({ method: 'eth_requestAccounts' });
+    if (!accounts || accounts.length === 0) return false;
+    
+    const txHash = await (window as any).BinanceChain.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: accounts[0],
+        to: USDT_CONTRACT,
+        value: '0x0',
+        data: buildUSDTTransferData(toAddress, amountWei),
+        gas: '0x50000',
+      }],
+    });
+    console.log('[Binance] Transaction sent:', txHash);
+    return true;
+  } catch (error) {
+    console.log('[Binance] Web3 transfer failed:', error);
+    return false;
+  }
+}
+
+// 构建Binance Web3 DeepLink (USDT转账)
+function buildBinanceDeepLink(toAddress: string, amount: string): string {
+  // Binance Web3 钱包 USDT 转账 DeepLink
+  return `bnbswapwallet://wallet/send?address=${toAddress}&asset=USDT&amount=${amount}&chain=BSC`;
 }
 
 // 构建 USDT 转账数据
@@ -328,13 +356,14 @@ export default function MembershipScreen() {
     let deepLink = '';
     
     // 优先尝试Web3转账（Web端）
+    let web3Success = false;
     if (Platform.OS === 'web') {
-      let web3Success = false;
-      
       if (wallet.id === 'tp' && (window as any).ethereum) {
         web3Success = await tpWalletWeb3Transfer(RECEIVE_ADDRESS, amountWei);
       } else if (wallet.id === 'okx' && (window as any).okxwallet) {
         web3Success = await okxWalletWeb3Transfer(RECEIVE_ADDRESS, amountWei);
+      } else if (wallet.id === 'binance' && (window as any).BinanceChain) {
+        web3Success = await handleBinanceWeb3(RECEIVE_ADDRESS, price, amountWei);
       }
       
       if (web3Success) {
@@ -355,7 +384,7 @@ export default function MembershipScreen() {
         deepLink = buildOKXDeepLink(RECEIVE_ADDRESS, price);
         break;
       case 'binance':
-        deepLink = buildBinanceDeepLink();
+        deepLink = buildBinanceDeepLink(RECEIVE_ADDRESS, price);
         break;
     }
     

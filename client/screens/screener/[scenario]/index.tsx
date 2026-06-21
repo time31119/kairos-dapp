@@ -175,7 +175,7 @@ export default function ScreenerScenario() {
               </View>
               
               <View style={styles.tokenRight}>
-                <Text style={styles.tokenPrice}>${token.price.toFixed(token.price < 1 ? 4 : 2)}</Text>
+                <Text style={styles.tokenPrice}>${token.price < 0.0001 ? token.price.toFixed(10) : token.price.toFixed(token.price < 1 ? 4 : 2)}</Text>
                 <Text style={[
                   styles.tokenChange,
                   { color: token.change >= 0 ? colors.success : colors.error }

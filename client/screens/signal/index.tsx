@@ -134,7 +134,9 @@ const formatPrice = (price: number): string => {
   if (price >= 1000) return `$${price.toFixed(2)}`;
   if (price >= 1) return `$${price.toFixed(2)}`;
   if (price >= 0.01) return `$${price.toFixed(4)}`;
-  return `$${price.toFixed(6)}`;
+  if (price >= 0.0001) return `$${price.toFixed(8)}`;
+  if (price >= 0.000001) return `$${price.toFixed(10)}`;
+  return `$${price.toExponential(4)}`;
 };
 
 // 生成买入链接

@@ -25,20 +25,6 @@ const WalletStatus = {
   CONNECTED: 'connected',
 };
 
-// TP Wallet 提供者类型
-declare global {
-  interface Window {
-    trustwallet?: {
-      isTrust?: boolean;
-      request?: (args: any) => Promise<any>;
-    };
-    BinanceChain?: {
-      bsc?: boolean;
-      request?: (args: any) => Promise<any>;
-    };
-  }
-}
-
 // 我的页面主组件
 export default function MineScreen() {
   const router = useSafeRouter();

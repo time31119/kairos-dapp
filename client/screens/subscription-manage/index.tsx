@@ -105,7 +105,7 @@ export default function SubscriptionManageScreen() {
   };
 
   // 计算剩余天数
-  const getRemainingDays = (expireAt: string | null) => {
+  const getRemainingDays = (expireAt: string | null | undefined) => {
     if (!expireAt) return 0;
     const now = new Date();
     const expire = new Date(expireAt);

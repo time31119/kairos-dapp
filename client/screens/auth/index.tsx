@@ -115,10 +115,9 @@ export default function LoginScreen() {
     
     try {
       if (walletType === 'walletconnect') {
-        // 启动 WalletConnect 连接
-        const uri = await initiateWalletConnect();
-        setWcUri(uri);
-        setShowWCQR(true);
+        // WalletConnect 需要额外配置，暂时不支持
+        Alert.alert('提示', 'WalletConnect 功能正在开发中，请使用其他钱包');
+        return;
       } else {
         // 其他钱包使用普通连接
         await connect(walletType as any);
@@ -448,6 +447,18 @@ const styles = StyleSheet.create({
   },
   emoji: {
     fontSize: 20,
+  },
+  walletInfo: {
+    flex: 1,
+  },
+  walletDesc: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  arrowIcon: {
+    fontSize: 24,
+    color: '#666',
   },
 
   connected: {

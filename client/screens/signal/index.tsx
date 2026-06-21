@@ -2438,7 +2438,6 @@ const styles = StyleSheet.create({
     color: '#00F0FF',
     fontWeight: '500',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    wordBreak: 'break-all',
   },
   contractModalHint: {
     fontSize: 12,

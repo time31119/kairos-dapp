@@ -78,6 +78,8 @@ interface ScreenProps {
   safeAreaEdges?: Edge[];
   /** 自定义容器样式 */
   style?: ViewStyle;
+  /** 内容容器样式 (用于ScrollView等) */
+  contentContainerStyle?: ViewStyle;
 }
 
 type KeyboardAwareProps = {

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, ActivityIndicator, Alert } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 import { Ionicons } from '@expo/vector-icons';
@@ -277,7 +277,7 @@ export default function TradingScreen() {
         setTradeModalVisible(false);
         loadData();
       } else {
-        Alert.alert('失败', result.message || '交易失败');
+        Alert.alert('失败', (result as any)?.message || result?.data?.message || '交易失败');
       }
     } catch (error) {
       Alert.alert('错误', '交易请求失败');

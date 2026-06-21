@@ -1,10 +1,10 @@
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import Screen from '@/components/Screen';
+import { Screen } from '@/components/Screen';
 
 export default function FollowScreen() {
   return (
-    <Screen contentContainerStyle={styles.container}>
-      <ScrollView>
+    <Screen>
+      <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>跟单记录</Text>
         <Text style={styles.placeholder}>跟单记录内容即将上线</Text>
       </ScrollView>

@@ -161,7 +161,7 @@ export default function VipStatusScreen() {
   const tier = subscription?.tier || subscriptionInfo?.tier;
   const tierName = TIER_NAMES[tier || ''] || (subscription?.tierName || '未订阅');
   const tierColor = TIER_COLORS[tier || ''] || '#9CA3AF';
-  const remainingDays = getRemainingDays(subscription?.expire_at || subscriptionInfo?.expireAt);
+  const remainingDays = getRemainingDays(subscription?.expire_at || subscriptionInfo?.expireAt || '');
 
   return (
     <Screen>

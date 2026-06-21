@@ -100,7 +100,8 @@ export default function CopytradingScreen() {
       
       if (response.ok) {
         const data = await response.json();
-        setTraders(data.data || []);
+        const tradersData = (data.data || []) as Trader[];
+        setTraders(tradersData);
       }
     } catch (error) {
       console.log('获取交易员失败');
@@ -154,7 +155,7 @@ export default function CopytradingScreen() {
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
-          setTopTraders(data.data);
+          setTopTraders(data.data as Trader[]);
           
           // 生成模拟实时数据
           const liveData: Record<string, any> = {};
@@ -241,7 +242,7 @@ export default function CopytradingScreen() {
       
       if (response.ok) {
         // 添加到我的跟单
-        const trader = traders.find(t => t.id === traderId);
+        const trader = traders.find(t => t.id === traderId) as Trader | undefined;
         if (trader) {
           const newPosition: FollowingPosition = {
             id: `pos_${Date.now()}`,
@@ -520,9 +521,9 @@ export default function CopytradingScreen() {
                     <Text style={styles.liveRankText}>#{index + 1}</Text>
                   </View>
                   <View style={styles.liveTraderAvatar}>
-                    <Text style={styles.liveAvatarText}>{trader.name.charAt(0)}</Text>
+                    <Text style={styles.liveAvatarText}>{trader.name?.charAt(0) || '?'}</Text>
                   </View>
-                  <Text style={styles.liveTraderName} numberOfLines={1}>{trader.name}</Text>
+                  <Text style={styles.liveTraderName} numberOfLines={1}>{trader.name || `Trader ${trader.id}`}</Text>
                   <Text style={styles.liveTraderPlatform}>{trader.platform}</Text>
                   <View style={[
                     styles.livePnlBadge,
@@ -1341,16 +1342,3 @@ const styles = {
   },
 };
 
-// 处理跟单
-const handleFollow = async (traderId: string, amount: number): Promise<boolean> => {
-  try {
-    const response = await fetch(`${API_BASE}/api/v1/copytrading/follow`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ traderId, amount }),
-    });
-    return response.ok;
-  } catch (error) {
-    return false;
-  }
-};

@@ -44,11 +44,11 @@ router.get('/info', (req, res) => {
   const currentMonth = new Date().toISOString().slice(0, 7);
   const monthlyStat = userData.monthlyStats[currentMonth] || { totalSubscription: 0, extraReward: 0 };
   
-  // 生成唯一的邀请码：kai_ + 5位随机字符
+  // 生成唯一的邀请码：KAI- + 6位大写字母数字
   const generateInviteCode = () => {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    let code = 'kai_';
-    for (let i = 0; i < 5; i++) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'KAI-';
+    for (let i = 0; i < 6; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return code;

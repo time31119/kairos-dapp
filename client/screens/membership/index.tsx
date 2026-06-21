@@ -256,44 +256,61 @@ export default function MembershipScreen() {
   useEffect(() => {
     const initInviteCode = async () => {
       try {
-        // 根据平台选择存储方式
+        // 获取用户ID
+        let userId = '';
         if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          // Web端使用localStorage
-          const walletAddress = localStorage.getItem('wallet_address') || '';
-          const savedCode = localStorage.getItem('invite_code');
-          
-          if (walletAddress) {
-            const code = generateFixedInviteCode(walletAddress);
-            setInviteCode(code);
-            localStorage.setItem('invite_code', code);
-          } else if (savedCode) {
-            setInviteCode(savedCode);
-          } else {
-            const newCode = generateFixedInviteCode(Date.now().toString());
-            setInviteCode(newCode);
-            localStorage.setItem('invite_code', newCode);
-          }
+          userId = localStorage.getItem('user_id') || '';
         } else {
-          // 原生端使用AsyncStorage
-          const walletAddress = await AsyncStorage.getItem('wallet_address') || '';
-          const savedCode = await AsyncStorage.getItem('invite_code');
-          
-          if (walletAddress) {
-            const code = generateFixedInviteCode(walletAddress);
-            setInviteCode(code);
-            await AsyncStorage.setItem('invite_code', code);
-          } else if (savedCode) {
-            setInviteCode(savedCode);
-          } else {
-            const newCode = generateFixedInviteCode(Date.now().toString());
-            setInviteCode(newCode);
-            await AsyncStorage.setItem('invite_code', newCode);
+          userId = (await AsyncStorage.getItem('user_id')) || '';
+        }
+        
+        // 如果有userId，优先从后端获取邀请码
+        if (userId) {
+          try {
+            const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/referral/stats?userId=${userId}`);
+            const data = await response.json();
+            if (data.success && data.data.inviteCode) {
+              setInviteCode(data.data.inviteCode);
+              if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                localStorage.setItem('invite_code', data.data.inviteCode);
+              } else {
+                await AsyncStorage.setItem('invite_code', data.data.inviteCode);
+              }
+              return;
+            }
+          } catch (e) {
+            console.log('Failed to fetch invite code from backend');
           }
         }
+        
+        // 后端没有邀请码，使用本地保存的
+        let walletAddress = '';
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          walletAddress = localStorage.getItem('wallet_address') || '';
+          const savedCode = localStorage.getItem('invite_code');
+          if (savedCode) {
+            setInviteCode(savedCode);
+            return;
+          }
+        } else {
+          walletAddress = (await AsyncStorage.getItem('wallet_address')) || '';
+          const savedCode = await AsyncStorage.getItem('invite_code');
+          if (savedCode) {
+            setInviteCode(savedCode);
+            return;
+          }
+        }
+        
+        // 生成新的固定邀请码
+        const newCode = generateFixedInviteCode(walletAddress || Date.now().toString());
+        setInviteCode(newCode);
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          localStorage.setItem('invite_code', newCode);
+        } else {
+          await AsyncStorage.setItem('invite_code', newCode);
+        }
       } catch (error) {
-        // 降级处理：生成临时邀请码
-        const code = generateFixedInviteCode(Date.now().toString());
-        setInviteCode(code);
+        console.log('Error initializing invite code:', error);
       }
     };
     

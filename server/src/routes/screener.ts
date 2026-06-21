@@ -118,6 +118,7 @@ router.get('/featured', (req: any, res: any) => {
       scenario,
       config: SCENARIO_CONFIG[scenario],
       tokens: top3,
+      count: tokens.length,
     };
   });
   

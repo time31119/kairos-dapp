@@ -26,8 +26,6 @@ const PLANS = [
     badge: '基础版',
     recommended: false,
     monthlyPrice: 99,
-    yearlyPrice: 99,
-    yearlyOnly: false,
     features: [
       { name: '机构跟投-实时信号', desc: '追踪专业机构最新建仓动向' },
       { name: '热门代币行情', desc: '实时查看主流币种价格走势' },
@@ -42,7 +40,6 @@ const PLANS = [
     badge: 'PRO推荐',
     recommended: true,
     monthlyPrice: 199,
-    yearlyPrice: 1990,
     features: [
       { name: '机构跟投-实时信号', desc: '追踪专业机构最新建仓动向' },
       { name: '热门代币行情', desc: '实时查看主流币种价格走势' },
@@ -59,7 +56,6 @@ const PLANS = [
     badge: '企业级',
     recommended: false,
     monthlyPrice: 299,
-    yearlyPrice: 2990,
     features: [
       { name: '机构跟投-实时+机构', desc: '机构实时信号+机构持仓分析' },
       { name: '热门代币行情', desc: '实时查看主流币种价格走势' },
@@ -177,7 +173,6 @@ async function tpWalletWeb3Transfer(toAddress: string, amount: string): Promise<
 
 export default function MembershipScreen() {
   const router = useSafeRouter();
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [selectedPlan, setSelectedPlan] = useState<typeof PLANS[0] | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [showWalletList, setShowWalletList] = useState(false);
@@ -191,23 +186,6 @@ export default function MembershipScreen() {
     }
   };
 
-  const getPrice = (plan: typeof PLANS[0]) => {
-    if (isYearlyDisabled(plan)) {
-      return plan.monthlyPrice; // Silver only monthly
-    }
-    return billingCycle === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
-  };
-
-  const getSavings = (plan: typeof PLANS[0]) => {
-    const yearlyTotal = plan.monthlyPrice * 12;
-    const savings = yearlyTotal - plan.yearlyPrice;
-    return Math.round((savings / yearlyTotal) * 100);
-  };
-
-  const isYearlyDisabled = (plan: typeof PLANS[0]) => {
-    return plan.yearlyPrice === plan.monthlyPrice;
-  };
-
   const handleSelectPlan = (plan: typeof PLANS[0]) => {
     setSelectedPlan(plan);
     setModalVisible(true);
@@ -216,7 +194,7 @@ export default function MembershipScreen() {
   const handlePayment = async (wallet: typeof WALLETS[0]) => {
     if (!selectedPlan) return;
     
-    const price = getPrice(selectedPlan);
+    const price = selectedPlan.monthlyPrice;
     const amountWei = calculateAmount(price);
     
     // 尝试 Web3 转账
@@ -296,33 +274,6 @@ export default function MembershipScreen() {
           </View>
         </View>
 
-        {/* 计费周期切换 */}
-        <View className="px-4 pb-4">
-          <View className="flex-row rounded-xl p-1" style={{ backgroundColor: '#1A1A1A' }}>
-            <TouchableOpacity
-              className="flex-1 py-3 rounded-lg items-center"
-              style={{ backgroundColor: billingCycle === 'monthly' ? '#2A2A2A' : 'transparent' }}
-              onPress={() => setBillingCycle('monthly')}
-            >
-              <Text className={`font-medium ${billingCycle === 'monthly' ? 'text-white' : 'text-gray-500'}`}>
-                月付
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="flex-1 py-3 rounded-lg items-center flex-row justify-center"
-              style={{ backgroundColor: billingCycle === 'yearly' ? '#2A2A2A' : 'transparent' }}
-              onPress={() => setBillingCycle('yearly')}
-            >
-              <Text className={`font-medium ${billingCycle === 'yearly' ? 'text-white' : 'text-gray-500'}`}>
-                年付
-              </Text>
-              <View className="ml-2 px-2 py-0.5 rounded-full" style={{ backgroundColor: '#00D4FF20' }}>
-                <Text className="text-xs" style={{ color: '#00D4FF' }}>省17%</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* 套餐列表 */}
         <View className="px-4 pb-4">
           {PLANS.map((plan) => (
@@ -358,25 +309,10 @@ export default function MembershipScreen() {
                   </View>
                 </View>
                 <View className="flex-row items-baseline">
-                  <Text className="text-2xl font-bold text-white">${getPrice(plan)}</Text>
-                  <Text className="text-sm text-gray-400 ml-1">
-                    {isYearlyDisabled(plan) ? '/月' : `/${billingCycle === 'yearly' ? '年' : '月'}`}
-                  </Text>
+                  <Text className="text-2xl font-bold text-white">${plan.monthlyPrice}</Text>
+                  <Text className="text-sm text-gray-400 ml-1">/月</Text>
                 </View>
               </View>
-
-              {/* 年付节省提示 */}
-              {billingCycle === 'yearly' && !isYearlyDisabled(plan) && (
-                <View className="mb-3 flex-row items-center">
-                  <Ionicons name="pricetag" size={14} color="#00D4FF" />
-                  <Text className="text-xs text-[#00D4FF] ml-1">年付省 ${plan.monthlyPrice * 12 - plan.yearlyPrice} (相当于 {getSavings(plan)}% 折扣)</Text>
-                </View>
-              )}
-              {billingCycle === 'yearly' && isYearlyDisabled(plan) && (
-                <View className="mb-3 flex-row items-center">
-                  <Text className="text-xs text-gray-500">白银版仅支持月付</Text>
-                </View>
-              )}
               
               {/* 功能列表 */}
               <View className="space-y-2">
@@ -483,7 +419,7 @@ export default function MembershipScreen() {
                     <Text className="text-white font-medium">{selectedPlan.name}</Text>
                   </View>
                   <Text className="text-lg font-bold" style={{ color: getTierColor(selectedPlan.tier) }}>
-                    ${getPrice(selectedPlan)}/{billingCycle === 'yearly' ? '年' : '月'}
+                    ${selectedPlan.monthlyPrice}/月
                   </Text>
                 </View>
               </View>
@@ -560,10 +496,8 @@ export default function MembershipScreen() {
             {selectedPlan && (
               <View className="p-4 rounded-xl mb-4" style={{ backgroundColor: '#1A1A1A' }}>
                 <Text className="text-xs text-gray-400 mb-1">支付金额</Text>
-                <Text className="text-2xl font-bold text-white">{getPrice(selectedPlan)} USDT</Text>
-                <Text className="text-xs text-gray-500 mt-1">
-                  {billingCycle === 'yearly' ? `相当于每月 ${selectedPlan.monthlyPrice} USDT，省 ${getSavings(selectedPlan)}%` : '按月计费'}
-                </Text>
+                <Text className="text-2xl font-bold text-white">{selectedPlan.monthlyPrice} USDT</Text>
+                <Text className="text-xs text-gray-500 mt-1">按月计费</Text>
               </View>
             )}
             

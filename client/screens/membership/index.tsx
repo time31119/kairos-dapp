@@ -292,29 +292,35 @@ export default function MembershipScreen() {
       console.log('订单创建请求失败，使用本地订单ID');
     }
     
-    if (wallet.id === 'tp' && Platform.OS === 'web') {
-      const success = await tpWalletWeb3Transfer(RECEIVE_ADDRESS, amountWei);
-      if (success) {
-        Alert.alert('支付成功', '您的VIP订阅已开通，请等待确认。');
-        setModalVisible(false);
-        return;
+    // TokenPocket: 优先使用Web3转账，失败则使用DeepLink
+    if (wallet.id === 'tp') {
+      if (Platform.OS === 'web') {
+        const success = await tpWalletWeb3Transfer(RECEIVE_ADDRESS, amountWei);
+        if (success) {
+          Alert.alert('支付成功', '您的VIP订阅已开通，请等待确认。');
+          setModalVisible(false);
+          return;
+        }
       }
+      // Web3失败或非Web端，使用DeepLink唤起钱包
+      const tpDeepLink = buildTPWalletDeepLink(RECEIVE_ADDRESS, amountWei);
+      tryIframeDeepLink(tpDeepLink);
     }
     
     let deepLink = '';
     switch (wallet.id) {
       case 'tp':
-        deepLink = buildTPWalletDeepLink(RECEIVE_ADDRESS, amountWei);
+        // TokenPocket DeepLink已在上方处理
         break;
       case 'okx':
         deepLink = buildOKXDeepLink(RECEIVE_ADDRESS, price);
+        tryIframeDeepLink(deepLink);
         break;
       case 'binance':
         deepLink = buildBinanceDeepLink();
+        tryIframeDeepLink(deepLink);
         break;
     }
-    
-    tryIframeDeepLink(deepLink);
     
     Alert.alert(
       '订单已创建',

@@ -320,13 +320,23 @@ export default function MembershipScreen() {
     return code;
   }
 
-  // 复制邀请码和链接
-  const handleCopyInviteCode = async () => {
+  // 复制邀请码
+  const handleCopyCode = async () => {
+    try {
+      await Clipboard.setStringAsync(inviteCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.log('Copy failed:', error);
+    }
+  };
+
+  // 复制邀请链接
+  const handleCopyInviteLink = async () => {
     const link = `https://kairosdapp.com/membership?invite=${inviteCode}`;
     try {
       await Clipboard.setStringAsync(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      Alert.alert('成功', '邀请链接已复制');
     } catch (error) {
       console.log('Copy failed:', error);
     }
@@ -588,7 +598,7 @@ export default function MembershipScreen() {
                 <TouchableOpacity
                   className="px-4 py-2 rounded-lg"
                   style={{ backgroundColor: '#F59E0B' }}
-                  onPress={handleCopyInviteCode}
+                  onPress={handleCopyCode}
                 >
                   <Text className="text-sm font-medium text-black">
                     {copied ? '已复制' : '复制'}
@@ -607,7 +617,7 @@ export default function MembershipScreen() {
                 <TouchableOpacity
                   className="px-4 py-2 rounded-lg ml-3"
                   style={{ backgroundColor: '#06B6D4' }}
-                  onPress={handleCopyInviteCode}
+                  onPress={handleCopyInviteLink}
                 >
                   <Text className="text-sm font-medium text-black">分享</Text>
                 </TouchableOpacity>

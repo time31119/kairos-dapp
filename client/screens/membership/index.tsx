@@ -343,7 +343,7 @@ export default function MembershipScreen() {
                 style={{ backgroundColor: getTierColor(plan.tier) }}
                 onPress={() => handleSelectPlan(plan)}
               >
-                <Text className="text-base font-bold text-black">立即开通</Text>
+                <Text className="text-base font-bold text-black">开通：立即开通所有功能</Text>
               </TouchableOpacity>
             </TouchableOpacity>
           ))}

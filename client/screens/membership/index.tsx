@@ -26,7 +26,8 @@ const PLANS = [
     badge: '基础版',
     recommended: false,
     monthlyPrice: 99,
-    yearlyPrice: 990,
+    yearlyPrice: 99,
+    yearlyOnly: false,
     features: [
       { name: '机构跟投-实时信号', desc: '追踪专业机构最新建仓动向' },
       { name: '热门代币行情', desc: '实时查看主流币种价格走势' },
@@ -191,6 +192,9 @@ export default function MembershipScreen() {
   };
 
   const getPrice = (plan: typeof PLANS[0]) => {
+    if (isYearlyDisabled(plan)) {
+      return plan.monthlyPrice; // Silver only monthly
+    }
     return billingCycle === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
   };
 
@@ -198,6 +202,10 @@ export default function MembershipScreen() {
     const yearlyTotal = plan.monthlyPrice * 12;
     const savings = yearlyTotal - plan.yearlyPrice;
     return Math.round((savings / yearlyTotal) * 100);
+  };
+
+  const isYearlyDisabled = (plan: typeof PLANS[0]) => {
+    return plan.yearlyPrice === plan.monthlyPrice;
   };
 
   const handleSelectPlan = (plan: typeof PLANS[0]) => {
@@ -351,15 +359,22 @@ export default function MembershipScreen() {
                 </View>
                 <View className="flex-row items-baseline">
                   <Text className="text-2xl font-bold text-white">${getPrice(plan)}</Text>
-                  <Text className="text-sm text-gray-400 ml-1">/{billingCycle === 'yearly' ? '年' : '月'}</Text>
+                  <Text className="text-sm text-gray-400 ml-1">
+                    {isYearlyDisabled(plan) ? '/月' : `/${billingCycle === 'yearly' ? '年' : '月'}`}
+                  </Text>
                 </View>
               </View>
 
               {/* 年付节省提示 */}
-              {billingCycle === 'yearly' && (
+              {billingCycle === 'yearly' && !isYearlyDisabled(plan) && (
                 <View className="mb-3 flex-row items-center">
                   <Ionicons name="pricetag" size={14} color="#00D4FF" />
                   <Text className="text-xs text-[#00D4FF] ml-1">年付省 ${plan.monthlyPrice * 12 - plan.yearlyPrice} (相当于 {getSavings(plan)}% 折扣)</Text>
+                </View>
+              )}
+              {billingCycle === 'yearly' && isYearlyDisabled(plan) && (
+                <View className="mb-3 flex-row items-center">
+                  <Text className="text-xs text-gray-500">白银版仅支持月付</Text>
                 </View>
               )}
               

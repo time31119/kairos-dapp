@@ -900,7 +900,13 @@ export default function HomeScreen() {
                       color: categoryColor || '#00F0FF',
                       tokens: cat.tokens,
                       // 传递技术分析信号
-                      techStats: cat.stats,
+                      techStats: cat.stats || {
+                        bullishCount: cat.tokens?.filter((t: any) => t.change > 0).length || 0,
+                        bearishCount: cat.tokens?.filter((t: any) => t.change < 0).length || 0,
+                        neutralCount: cat.tokens?.filter((t: any) => t.change === 0).length || 0,
+                        avgWinRate: 0,
+                        totalCoins: cat.tokens?.length || 0,
+                      },
                     }} 
                     onPress={() => router.push('/screener/' + categoryId)}
                     onTokenPress={(token) => router.push('/screener/' + categoryId + '?token=' + encodeURIComponent(JSON.stringify(token)))}

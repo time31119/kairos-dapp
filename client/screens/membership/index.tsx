@@ -112,10 +112,42 @@ function buildTPWalletDeepLink(toAddress: string, amountWei: string): string {
   return `tokenpocket://wallet/transfer?param=${encodeURIComponent(JSON.stringify(params))}`;
 }
 
-// 构建OKX Wallet DeepLink
+// 构建OKX Wallet DeepLink - BSC链USDT转账
 function buildOKXDeepLink(toAddress: string, amount: number): string {
-  const amountWei = calculateAmount(amount);
-  return `okx://wallet/inscribe?address=${toAddress}&chain=BSC&token=USDT&amount=${amountWei}`;
+  const params = new URLSearchParams({
+    to: toAddress,
+    value: amount.toString(),
+    token: USDT_CONTRACT,
+    chainId: '56', // BSC chainId
+  });
+  return `okxwallet://wallet/send?${params.toString()}`;
+}
+
+// OKX Wallet Web3转账
+async function okxWalletWeb3Transfer(toAddress: string, amountWei: string): Promise<boolean> {
+  try {
+    if (typeof window === 'undefined' || !(window as any).okxwallet) {
+      return false;
+    }
+    const accounts = await (window as any).okxwallet.request({ method: 'eth_requestAccounts' });
+    if (!accounts || accounts.length === 0) return false;
+    
+    const txHash = await (window as any).okxwallet.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: accounts[0],
+        to: USDT_CONTRACT,
+        value: '0x0',
+        data: buildUSDTTransferData(toAddress, amountWei),
+        gas: '0x50000',
+      }],
+    });
+    console.log('[OKX] Transaction sent:', txHash);
+    return true;
+  } catch (error) {
+    console.log('[OKX] Web3 transfer failed:', error);
+    return false;
+  }
 }
 
 // 构建Binance Web3 DeepLink
@@ -292,34 +324,43 @@ export default function MembershipScreen() {
       console.log('订单创建请求失败，使用本地订单ID');
     }
     
-    // TokenPocket: 优先使用Web3转账，失败则使用DeepLink
-    if (wallet.id === 'tp') {
-      if (Platform.OS === 'web') {
-        const success = await tpWalletWeb3Transfer(RECEIVE_ADDRESS, amountWei);
-        if (success) {
-          Alert.alert('支付成功', '您的VIP订阅已开通，请等待确认。');
-          setModalVisible(false);
-          return;
-        }
+    // 处理各钱包支付
+    let deepLink = '';
+    
+    // 优先尝试Web3转账（Web端）
+    if (Platform.OS === 'web') {
+      let web3Success = false;
+      
+      if (wallet.id === 'tp' && (window as any).ethereum) {
+        web3Success = await tpWalletWeb3Transfer(RECEIVE_ADDRESS, amountWei);
+      } else if (wallet.id === 'okx' && (window as any).okxwallet) {
+        web3Success = await okxWalletWeb3Transfer(RECEIVE_ADDRESS, amountWei);
       }
-      // Web3失败或非Web端，使用DeepLink唤起钱包
-      const tpDeepLink = buildTPWalletDeepLink(RECEIVE_ADDRESS, amountWei);
-      tryIframeDeepLink(tpDeepLink);
+      
+      if (web3Success) {
+        Alert.alert('交易已发送', '请在钱包中确认交易，转账完成后系统将自动开通VIP。', [
+          { text: '查看支付状态', onPress: () => router.push(`/payment-confirm?orderId=${localOrderId}&walletAddress=${RECEIVE_ADDRESS}&amount=${price}&tier=${selectedPlan.name}`) },
+        ]);
+        setModalVisible(false);
+        return;
+      }
     }
     
-    let deepLink = '';
+    // Web3失败或非Web端，使用DeepLink唤起钱包
     switch (wallet.id) {
       case 'tp':
-        // TokenPocket DeepLink已在上方处理
+        deepLink = buildTPWalletDeepLink(RECEIVE_ADDRESS, amountWei);
         break;
       case 'okx':
         deepLink = buildOKXDeepLink(RECEIVE_ADDRESS, price);
-        tryIframeDeepLink(deepLink);
         break;
       case 'binance':
         deepLink = buildBinanceDeepLink();
-        tryIframeDeepLink(deepLink);
         break;
+    }
+    
+    if (deepLink) {
+      tryIframeDeepLink(deepLink);
     }
     
     Alert.alert(

@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Screen } from '@/components/Screen';
 import { router } from 'expo-router';
+import { useSafeRouter } from '@/hooks/useSafeRouter';
 
 // BSC USDT 收款地址
 const RECEIVE_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d';

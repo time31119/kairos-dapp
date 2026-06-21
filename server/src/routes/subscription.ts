@@ -1,438 +1,234 @@
+/**
+ * 订阅管理路由
+ */
 import express from 'express';
-import { getUserSubscription, createSubscription, updateSubscription, getSubscriptionPlans } from '../services/subscriptionService.js';
+import {
+  getUserSubscription,
+  getUserOrders,
+  createSubscription,
+  confirmSubscription,
+  cancelSubscription,
+  upgradeSubscription,
+  monitorPayment,
+  getSubscriptionStats,
+  PAYMENT_ADDRESS,
+  PRICING,
+  BENEFITS,
+  SubscriptionTier,
+  SubscriptionStatus,
+} from '../services/subscription-service';
 
 const router = express.Router();
 
-// BSCScan API 配置
-const BSCSCAN_API_KEY = 'SZF45F5REQV292FA7FXZ9BSVPJGF397XJW';
-const BSCSCAN_BASE_URL = 'https://api.bscscan.com/api';
-const USDT_CONTRACT = '0x55d398326f99059fF775485246999027B3197955'; // USDT BEP20
-const RECEIVE_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d';
+// ==================== 公开接口 ====================
 
-// 订单存储（内存中，用于 Confirm Payment 流程）
-const orders = new Map();
-
-// 获取订阅套餐列表
-router.get('/plans', (req, res) => {
-  const plans = getSubscriptionPlans();
-  res.json({ success: true, data: plans });
-});
-
-// 获取用户当前订阅状态
-router.get('/status', async (req, res) => {
+/**
+ * 获取订阅方案信息
+ */
+router.get('/plans', (_req, res) => {
   try {
-    // 从 header 获取用户标识（简化版，实际应从 session 获取）
-    const userId = req.headers['x-user-id'] as string || 'demo-user';
-    const subscription = getUserSubscription(userId);
+    const plans = Object.values(SubscriptionTier).map((tier) => ({
+      tier,
+      name: BENEFITS[tier].name,
+      price: PRICING[tier],
+      benefits: BENEFITS[tier].items,
+    }));
     
-    res.json({ 
-      success: true, 
-      data: {
-        isSubscribed: subscription?.status === 'active',
-        plan: subscription?.plan,
-        expiresAt: subscription?.expiresAt,
-        status: subscription?.status
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: '获取订阅状态失败' });
+    res.json({ success: true, data: plans });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// 创建订阅订单 - 别名路由（兼容前端调用）
+/**
+ * 获取支付地址
+ */
+router.get('/payment-address', (_req, res) => {
+  try {
+    res.json({ success: true, data: { address: PAYMENT_ADDRESS } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * 获取订阅统计数据
+ */
+router.get('/stats', async (_req, res) => {
+  try {
+    const stats = await getSubscriptionStats();
+    res.json({ success: true, data: stats });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ==================== 需要钱包地址的接口 ====================
+
+/**
+ * 获取用户当前订阅状态
+ */
+router.get('/current', async (req, res) => {
+  try {
+    const walletAddress = req.headers['x-wallet-address'] as string;
+    if (!walletAddress) {
+      return res.status(401).json({ success: false, message: '缺少钱包地址' });
+    }
+    
+    const subscription = await getUserSubscription(walletAddress);
+    const isActive = subscription?.status === SubscriptionStatus.ACTIVE && 
+                     subscription?.expire_at && 
+                     new Date(subscription.expire_at) > new Date();
+    
+    res.json({
+      success: true,
+      data: {
+        hasActive: !!isActive,
+        subscription: subscription || null,
+        tier: subscription?.tier || null,
+        status: subscription?.status || null,
+        expireAt: subscription?.expire_at || null,
+        activatedAt: subscription?.activated_at || null,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * 获取用户订单列表
+ */
+router.get('/orders', async (req, res) => {
+  try {
+    const walletAddress = req.headers['x-wallet-address'] as string;
+    if (!walletAddress) {
+      return res.status(401).json({ success: false, message: '缺少钱包地址' });
+    }
+    
+    const orders = await getUserOrders(walletAddress);
+    res.json({ success: true, data: orders });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * 创建新订单
+ */
 router.post('/create', async (req, res) => {
   try {
-    const { planId, billingCycle, walletAddress } = req.body;
-    
-    if (!planId || !billingCycle) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Missing required parameters: planId, billingCycle' 
-      });
+    const walletAddress = req.headers['x-wallet-address'] as string;
+    if (!walletAddress) {
+      return res.status(401).json({ success: false, message: '缺少钱包地址' });
     }
-
-    const plans = getSubscriptionPlans();
-    const plan = plans.find(p => p.id === planId);
     
-    if (!plan) {
-      return res.status(400).json({ success: false, message: 'Invalid plan' });
+    const { tier, paymentMethod } = req.body;
+    
+    if (!tier || !Object.values(SubscriptionTier).includes(tier)) {
+      return res.status(400).json({ success: false, message: '无效的订阅方案' });
     }
-
-    const price = plan.price[billingCycle as keyof typeof plan.price];
-    const orderId = `ORD${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     
-    // 收款地址配置（TP钱包使用BEP20）
-    const PAYMENT_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d';
-    
-    // 保存订单到内存
-    const orderData = {
-      orderId,
-      planId,
-      planName: plan.name,
-      billingCycle,
-      price,
-      paymentAddress: PAYMENT_ADDRESS,
+    const order = await createSubscription({
+      userId: walletAddress,
       walletAddress,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
-    orders.set(orderId, orderData);
-    
-    res.json({ 
-      success: true, 
-      orderId,
-      data: orderData
-    });
-  } catch (error) {
-    console.error('Create order error:', error);
-    res.status(500).json({ success: false, message: 'Failed to create order' });
-  }
-});
-
-// 创建订阅订单
-router.post('/create-order', async (req, res) => {
-  try {
-    const { planId, billingCycle, paymentMethod } = req.body;
-    
-    if (!planId || !billingCycle || !paymentMethod) {
-      return res.status(400).json({ 
-        success: false, 
-        message: '缺少必要参数：planId, billingCycle, paymentMethod' 
-      });
-    }
-
-    const plans = getSubscriptionPlans();
-    const plan = plans.find(p => p.id === planId);
-    
-    if (!plan) {
-      return res.status(400).json({ success: false, message: '无效的套餐' });
-    }
-
-    const price = plan.price[billingCycle as keyof typeof plan.price];
-    const orderId = `ORD${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-    
-    // 收款地址配置（TP钱包使用TRC20）
-    const PAYMENT_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d'; // USDT BEP20
-    const PAYMENT_ADDRESS_BNB = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d'; // USDT BEP20
-    
-    // TP钱包默认使用BNB Chain (BEP20)
-    let paymentAddress = PAYMENT_ADDRESS_BNB;
-    let paymentChain = 'BEP20';
-
-    const order = {
-      orderId,
-      planId,
-      planName: plan.name,
-      billingCycle,
-      price,
+      tier,
       paymentMethod,
-      paymentAddress,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
-
-    res.json({ 
-      success: true, 
-      data: order,
-      message: '订单创建成功'
     });
-  } catch (error) {
-    console.error('创建订单失败:', error);
-    res.status(500).json({ success: false, message: '创建订单失败' });
+    
+    res.json({
+      success: true,
+      data: {
+        orderId: order.id,
+        walletAddress: PAYMENT_ADDRESS,
+        amount: PRICING[tier as SubscriptionTier],
+        tier,
+        status: order.status,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// 模拟支付回调（实际项目中由支付网关调用）
-router.post('/callback', async (req, res) => {
-  try {
-    const { orderId, paymentMethod, txHash, status, walletAddress, planId, billingCycle } = req.body;
-    const userId = req.headers['x-user-id'] as string || 'demo-user';
-    
-    if (status === 'confirmed' && planId) {
-      // 获取套餐信息
-      const plans = getSubscriptionPlans();
-      const plan = plans.find(p => p.id === planId);
-      
-      if (!plan) {
-        return res.status(400).json({ success: false, message: '无效的套餐' });
-      }
-
-      // 根据计费周期计算过期时间
-      let days = 30;
-      if (billingCycle === 'quarterly') days = 90;
-      else if (billingCycle === 'yearly') days = 365;
-
-      // 创建/更新订阅
-      createSubscription(userId, {
-        plan: planId,
-        status: 'active',
-        expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
-      });
-
-      console.log(`[订阅] 用户 ${userId} 订阅成功 - 套餐: ${plan.name}, 周期: ${billingCycle}, 到期: ${new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()}`);
-
-      res.json({ 
-        success: true, 
-        message: '支付确认成功',
-        data: {
-          plan: plan.name,
-          expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
-        }
-      });
-    } else {
-      res.json({ success: false, message: '支付未确认' });
-    }
-  } catch (error) {
-    console.error('支付回调处理失败:', error);
-    res.status(500).json({ success: false, message: '处理回调失败' });
-  }
-});
-
-// BSCScan API 验证交易
-async function verifyBSCTransaction(walletAddress: string, expectedAmount: number): Promise<{ valid: boolean; txHash?: string; message: string }> {
-  try {
-    // 将金额转换为最小单位 (USDT BEP20 有 18 位小数)
-    const amountInWei = BigInt(Math.round(expectedAmount * 1e18));
-    
-    // 从 BSCScan API 获取钱包的交易列表
-    const url = `${BSCSCAN_BASE_URL}?module=account&action=tokentx&contractaddress=${USDT_CONTRACT}&address=${walletAddress}&startblock=0&endblock=99999999&sort=desc&apikey=${BSCSCAN_API_KEY}`;
-    
-    const response = await fetch(url);
-    const data = await response.json() as any;
-    
-    if (data.status !== '1' || !data.result || !Array.isArray(data.result)) {
-      console.log('[Verify] BSCScan API error:', data.message || 'No transactions found');
-      return { valid: false, message: 'Unable to verify transaction. Please try again or contact support.' };
-    }
-    
-    // 查找符合条件的交易
-    for (const tx of data.result) {
-      // 检查是否转入收款地址
-      if (tx.to && tx.to.toLowerCase() !== RECEIVE_ADDRESS.toLowerCase()) {
-        continue;
-      }
-      
-      // 检查是否从用户钱包转出
-      if (tx.from && tx.from.toLowerCase() !== walletAddress.toLowerCase()) {
-        continue;
-      }
-      
-      // 检查金额 (value 是 hex string，需要转换)
-      const txValue = BigInt(tx.value);
-      if (txValue < amountInWei) {
-        continue;
-      }
-      
-      // 检查交易状态 (1 = success)
-      if (tx.status !== '1') {
-        continue;
-      }
-      
-      // 找到有效交易
-      console.log('[Verify] Valid transaction found:', tx.hash, 'Amount:', tx.value);
-      return { 
-        valid: true, 
-        txHash: tx.hash, 
-        message: 'Transaction verified successfully' 
-      };
-    }
-    
-    console.log('[Verify] No valid transaction found for wallet:', walletAddress, 'expected amount:', expectedAmount);
-    return { valid: false, message: 'No valid USDT transaction found. Please make sure you have transferred the correct amount.' };
-    
-  } catch (error) {
-    console.error('[Verify] Error verifying transaction:', error);
-    return { valid: false, message: 'Network error during verification. Please try again.' };
-  }
-}
-
-// Confirm Payment - 用户完成链上转账后确认（真实交易验证）
+/**
+ * 确认支付
+ */
 router.post('/confirm', async (req, res) => {
   try {
-    const { orderId, walletAddress } = req.body;
+    const { orderId, txHash } = req.body;
     
     if (!orderId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Missing required parameter: orderId' 
-      });
+      return res.status(400).json({ success: false, message: '缺少订单ID' });
     }
-
-    // 查找订单
-    const order = orders.get(orderId);
     
-    if (!order) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Order not found' 
-      });
-    }
-
-    if (order.status === 'completed') {
-      return res.json({ 
-        success: true, 
-        message: 'Payment already confirmed',
-        data: { status: 'completed' }
-      });
-    }
-
-    // 验证钱包地址（如果提供）
-    if (walletAddress && order.walletAddress && walletAddress.toLowerCase() !== order.walletAddress.toLowerCase()) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Wallet address mismatch' 
-      });
-    }
-
-    // 验证区块链上的真实交易
-    const verification = await verifyBSCTransaction(
-      walletAddress || order.walletAddress, 
-      order.price
-    );
-    
-    if (!verification.valid) {
-      return res.status(400).json({ 
-        success: false, 
-        message: verification.message 
-      });
-    }
-
-    // 交易验证通过，更新订单状态
-    order.status = 'completed';
-    order.confirmedAt = new Date().toISOString();
-    order.txHash = verification.txHash;
-    orders.set(orderId, order);
-
-    // 获取套餐信息，计算过期时间
-    const plans = getSubscriptionPlans();
-    const plan = plans.find(p => p.id === order.planId);
-    
-    if (!plan) {
-      return res.status(400).json({ success: false, message: 'Invalid plan' });
-    }
-
-    // 根据计费周期计算过期时间
-    let days = 30;
-    if (order.billingCycle === 'quarterly') days = 90;
-    else if (order.billingCycle === 'yearly') days = 365;
-
-    // 订阅时长映射
-    const durationMap: Record<string, string> = {
-      monthly: '月',
-      quarterly: '季',
-      yearly: '年'
-    };
-
-    // 创建/更新订阅（使用钱包地址作为用户标识）
-    const userId = walletAddress || order.walletAddress || 'anonymous';
-    createSubscription(userId, {
-      plan: order.planId,
-      status: 'active',
-      expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
-    });
-
-    console.log(`[Confirm] Payment verified for order ${orderId}, txHash: ${verification.txHash}, user ${userId} subscribed to ${plan.name}`);
-
-    res.json({ 
-      success: true, 
-      message: 'Payment verified successfully',
-      data: {
-        orderId,
-        plan: plan.name,
-        planId: order.planId,
-        billingCycle: order.billingCycle,
-        duration: durationMap[order.billingCycle] || '月',
-        expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString(),
-        status: 'active',
-        txHash: verification.txHash
-      }
-    });
-  } catch (error) {
-    console.error('Confirm payment error:', error);
-    res.status(500).json({ success: false, message: 'Failed to verify payment' });
+    const result = await confirmSubscription(orderId, txHash);
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// 查询订单状态
-router.get('/order/:orderId', async (req, res) => {
+/**
+ * 监听支付
+ */
+router.post('/monitor', async (req, res) => {
   try {
-    const { orderId } = req.params;
-    const order = orders.get(orderId);
+    const { orderId, walletAddress, expectedAmount } = req.body;
     
-    if (!order) {
-      return res.status(404).json({ success: false, message: 'Order not found' });
+    if (!orderId || !walletAddress || !expectedAmount) {
+      return res.status(400).json({ success: false, message: '参数不完整' });
     }
     
-    res.json({ 
-      success: true, 
-      data: {
-        orderId: order.orderId,
-        planId: order.planId,
-        planName: order.planName,
-        billingCycle: order.billingCycle,
-        price: order.price,
-        status: order.status,
-        createdAt: order.createdAt,
-        confirmedAt: order.confirmedAt
-      }
+    const result = await monitorPayment({
+      orderId,
+      walletAddress,
+      expectedAmount,
     });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to get order status' });
+    
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// 取消订阅
+/**
+ * 取消订阅
+ */
 router.post('/cancel', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string || 'demo-user';
-    updateSubscription(userId, { status: 'cancelled' });
+    const { orderId } = req.body;
     
-    res.json({ success: true, message: '订阅已取消' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: '取消订阅失败' });
+    if (!orderId) {
+      return res.status(400).json({ success: false, message: '缺少订单ID' });
+    }
+    
+    const result = await cancelSubscription(orderId);
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// 激活订阅
-router.post('/activate', async (req, res) => {
+/**
+ * 升级订阅
+ */
+router.post('/upgrade', async (req, res) => {
   try {
-    const { planId, billingCycle } = req.body;
-    const userId = req.headers['x-user-id'] as string || 'demo-user';
+    const { orderId, newTier } = req.body;
     
-    if (!planId) {
-      res.status(400).json({ success: false, message: '缺少套餐参数' });
-      return;
+    if (!orderId || !newTier) {
+      return res.status(400).json({ success: false, message: '参数不完整' });
     }
     
-    // 根据计费周期计算过期时间
-    let days = 30;
-    if (billingCycle === 'quarterly') days = 90;
-    else if (billingCycle === 'yearly') days = 365;
+    if (!Object.values(SubscriptionTier).includes(newTier)) {
+      return res.status(400).json({ success: false, message: '无效的订阅方案' });
+    }
     
-    // 订阅时长映射
-    const durationMap: Record<string, string> = {
-      monthly: '月',
-      quarterly: '季',
-      yearly: '年'
-    };
-    
-    createSubscription(userId, {
-      plan: planId,
-      status: 'active',
-      expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
-    });
-    
-    res.json({ 
-      success: true, 
-      message: '会员开通成功',
-      data: {
-        plan: planId,
-        duration: durationMap[billingCycle] || '月',
-        expiresAt: new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: '开通会员失败' });
+    const result = await upgradeSubscription(orderId, newTier);
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

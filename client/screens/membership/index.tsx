@@ -262,18 +262,41 @@ export default function MembershipScreen() {
 
   const inviteLink = inviteCode ? `https://kairosdapp.com/membership?invite=${inviteCode}` : '';
 
+  const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
+
   const handlePayment = async (wallet: typeof WALLETS[0]) => {
     if (!selectedPlan) return;
     
     const price = selectedPlan.monthlyPrice;
     const amountWei = calculateAmount(price);
+    const localOrderId = `ORD-${Date.now()}`;
+    
+    // 创建订单
+    try {
+      const orderResponse = await fetch(`${API_BASE}/api/v1/subscription/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tier: selectedPlan.tier,
+          walletAddress: walletAddress,
+          amount: price,
+        }),
+      });
+      
+      const orderResult = await orderResponse.json();
+      
+      if (orderResult.success && orderResult.data?.orderId) {
+        // 使用服务端返回的订单ID
+      }
+    } catch (error) {
+      console.log('订单创建请求失败，使用本地订单ID');
+    }
     
     if (wallet.id === 'tp' && Platform.OS === 'web') {
       const success = await tpWalletWeb3Transfer(RECEIVE_ADDRESS, amountWei);
       if (success) {
         Alert.alert('支付成功', '您的VIP订阅已开通，请等待确认。');
         setModalVisible(false);
-        setShowWalletList(false);
         return;
       }
     }
@@ -297,14 +320,13 @@ export default function MembershipScreen() {
       '订单已创建',
       `请向以下地址转账 ${price} USDT (BEP20)\n\n${RECEIVE_ADDRESS}\n\n转账完成后，系统将自动开通VIP权限。`,
       [
-        { text: '取消', style: 'cancel' },
-        { 
-          text: '复制地址', 
-          onPress: async () => {
-            await navigator.clipboard.writeText(RECEIVE_ADDRESS);
+        { text: '查看支付状态', onPress: () => router.push(`/payment-confirm?orderId=${localOrderId}&walletAddress=${RECEIVE_ADDRESS}&amount=${price}&tier=${selectedPlan.name}`) },
+        { text: '复制地址', onPress: () => {
+          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            navigator.clipboard.writeText(RECEIVE_ADDRESS);
             Alert.alert('已复制', '收款地址已复制到剪贴板');
           }
-        }
+        }},
       ]
     );
     

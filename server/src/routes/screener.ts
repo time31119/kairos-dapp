@@ -129,6 +129,28 @@ router.get('/featured', (req: any, res: any) => {
   });
 });
 
+// 热门赛道实时涨跌
+router.get('/featured/realtime', (req: any, res: any) => {
+  const scenarios: ScenarioType[] = ['defi', 'meme', 'ai', 'gaming', 'infrastructure', 'layer2'];
+  
+  const featured = scenarios.map(scenario => {
+    const tokens = getScenarioTokens(scenario);
+    const top3 = tokens.slice(0, 3).map((t, i) => ({ ...t, rank: i + 1 }));
+    
+    return {
+      scenario,
+      config: SCENARIO_CONFIG[scenario],
+      tokens: top3,
+    };
+  });
+  
+  res.json({ 
+    success: true, 
+    data: featured,
+    updatedAt: new Date().toISOString(),
+  });
+});
+
 // 获取所有赛道
 router.get('/scenarios', (req: any, res: any) => {
   const scenarios: ScenarioType[] = ['defi', 'meme', 'ai', 'gaming', 'infrastructure', 'layer2'];
@@ -265,6 +287,11 @@ router.get('/analysis/realtime', (req: any, res: any) => {
   res.json({
     success: true,
     data: analysis,
+    stats: {
+      bullishCount: analysis.filter(a => a.indicators.trend.includes('bullish')).length,
+      bearishCount: analysis.filter(a => a.indicators.trend.includes('bearish')).length,
+      neutralCount: analysis.filter(a => !a.indicators.trend.includes('bullish') && !a.indicators.trend.includes('bearish')).length,
+    },
     updatedAt: new Date().toISOString(),
   });
 });

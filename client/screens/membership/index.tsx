@@ -110,10 +110,10 @@ function buildTPWalletDeepLink(toAddress: string, amountUsdt: string): string {
 }
 
 // 构建OKX Wallet DeepLink - BSC链USDT转账
-function buildOKXDeepLink(toAddress: string, amount: number): string {
+function buildOKXDeepLink(toAddress: string, amount: string): string {
   const params = new URLSearchParams({
     to: toAddress,
-    value: amount.toString(),
+    value: amount,
     token: USDT_CONTRACT,
     chainId: '56', // BSC chainId
   });
@@ -393,10 +393,10 @@ export default function MembershipScreen() {
         deepLink = buildTPWalletDeepLink(RECEIVE_ADDRESS, amountWei);
         break;
       case 'okx':
-        deepLink = buildOKXDeepLink(RECEIVE_ADDRESS, price);
+        deepLink = buildOKXDeepLink(RECEIVE_ADDRESS, amountWei);
         break;
       case 'binance':
-        deepLink = buildBinanceDeepLink(RECEIVE_ADDRESS, price);
+        deepLink = buildBinanceDeepLink(RECEIVE_ADDRESS, amountWei);
         break;
     }
     

@@ -70,18 +70,6 @@ const PLANS = [
 ];
 
 // 用户评价数据
-const TESTIMONIALS = [
-  { name: '王先生', role: '合约交易者', text: '跟单功能太好用了，每月稳定收益提升30%', avatar: '👨' },
-  { name: '李女士', role: '现货投资者', text: '机构信号准确率很高，帮助我抓住了几次大行情', avatar: '👩' },
-  { name: '张先生', role: '机构分析师', text: '智能分析功能帮我节省了大量研究时间', avatar: '🧑‍💼' },
-];
-
-// 统计数据
-const STATS = [
-  { value: '50,000+', label: '活跃用户' },
-  { value: '92%', label: '信号准确率' },
-  { value: '365天', label: '稳定运行' },
-];
 
 // 钱包类型
 type WalletType = 'tp' | 'okx' | 'binance';
@@ -615,54 +603,6 @@ export default function MembershipScreen() {
           </View>
         </View>
 
-        {/* 用户评价 */}
-        <View className="px-5 pb-5">
-          <Text className="text-lg font-bold text-white mb-4">用户真实评价</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5 px-5">
-            {TESTIMONIALS.map((item, index) => (
-              <View
-                key={index}
-                className="w-72 mr-3 p-5 rounded-2xl border"
-                style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-              >
-                <View className="flex-row items-center mb-3">
-                  <Text className="text-3xl mr-3">{item.avatar}</Text>
-                  <View>
-                    <Text className="text-base font-semibold text-gray-100">{item.name}</Text>
-                    <Text className="text-sm text-gray-500">{item.role}</Text>
-                  </View>
-                </View>
-                <Text className="text-base text-gray-300 leading-6">"{item.text}"</Text>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* 信任保障 */}
-        <View className="px-5 pb-6">
-          <View className="p-5 rounded-2xl border" style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}>
-            <View className="flex-row items-center mb-4">
-              <View className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(6, 182, 212, 0.15)' }}>
-                <Ionicons name="shield-checkmark" size={22} color="#06B6D4" />
-              </View>
-              <Text className="text-lg font-bold text-white ml-3">信任保障</Text>
-            </View>
-            <View className="space-y-3">
-              <View className="flex-row items-center">
-                <Ionicons name="checkmark-circle" size={18} color="#06B6D4" />
-                <Text className="text-base text-gray-300 ml-3">7天无理由退款</Text>
-              </View>
-              <View className="flex-row items-center">
-                <Ionicons name="checkmark-circle" size={18} color="#06B6D4" />
-                <Text className="text-base text-gray-300 ml-3">支付安全 (USDT链上转账)</Text>
-              </View>
-              <View className="flex-row items-center">
-                <Ionicons name="checkmark-circle" size={18} color="#06B6D4" />
-                <Text className="text-base text-gray-300 ml-3">24小时自动到账</Text>
-              </View>
-            </View>
-          </View>
-        </View>
 
         {/* 底部说明 */}
         <View className="px-5 pb-10">

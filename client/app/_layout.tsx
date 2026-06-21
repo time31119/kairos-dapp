@@ -116,8 +116,8 @@ export default function RootLayout() {
             <Stack.Screen name="search" />
             <Stack.Screen name="auth" />
             <Stack.Screen name="membership" />
-            <Stack.Screen name="vip" />
-            <Stack.Screen name="vip/membership" />
+
+
             <Stack.Screen name="vip-status" />
             <Stack.Screen name="vip-status/subscription-manage" />
             <Stack.Screen name="vip-status/order-history" />

@@ -90,21 +90,21 @@ const WALLETS: { id: WalletType; name: string; icon: string; deeplink: string }[
   { id: 'binance', name: 'Binance Web3', icon: '🟡', deeplink: 'bnbwallet://' },
 ];
 
-// 计算USDT金额
+// 计算USDT金额 (精度6位)
 function calculateAmount(amount: number): string {
-  const weiAmount = BigInt(Math.round(amount * 1e18));
-  return weiAmount.toString();
+  const usdtAmount = Math.round(amount * 1e6);
+  return usdtAmount.toString();
 }
 
-// 构建TP Wallet DeepLink
-function buildTPWalletDeepLink(toAddress: string, amountWei: string): string {
+// 构建TP Wallet DeepLink (USDT精度6位)
+function buildTPWalletDeepLink(toAddress: string, amountUsdt: string): string {
   const params = {
     action: 'transfer',
     symbol: 'USDT',
     contract: USDT_CONTRACT,
     to: toAddress,
-    amount: amountWei,
-    decimal: '18',
+    amount: amountUsdt,
+    decimal: '6',
   };
   return `tokenpocket://wallet/transfer?param=${encodeURIComponent(JSON.stringify(params))}`;
 }

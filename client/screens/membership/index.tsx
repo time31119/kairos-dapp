@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -176,6 +176,8 @@ export default function MembershipScreen() {
   const [selectedPlan, setSelectedPlan] = useState<typeof PLANS[0] | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [showWalletList, setShowWalletList] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const getTierColor = (tier: string) => {
     switch (tier) {
@@ -190,6 +192,56 @@ export default function MembershipScreen() {
     setSelectedPlan(plan);
     setModalVisible(true);
   };
+
+  // 初始化邀请码
+  useEffect(() => {
+    // 优先从 localStorage 获取已保存的邀请码
+    if (typeof window !== 'undefined') {
+      const savedCode = localStorage.getItem('invite_code');
+      if (savedCode) {
+        setInviteCode(savedCode);
+      } else {
+        // 生成新的邀请码
+        const newCode = generateInviteCode();
+        setInviteCode(newCode);
+        localStorage.setItem('invite_code', newCode);
+      }
+    }
+  }, []);
+
+  // 生成邀请码
+  function generateInviteCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'KAI-';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+
+  // 复制邀请码和链接
+  const handleCopyInviteCode = async () => {
+    const link = `https://kairosdapp.com/membership?invite=${inviteCode}`;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(link);
+      } else {
+        // 降级方案
+        const textarea = document.createElement('textarea');
+        textarea.value = link;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.log('Copy failed:', error);
+    }
+  };
+
+  const inviteLink = inviteCode ? `https://kairosdapp.com/membership?invite=${inviteCode}` : '';
 
   const handlePayment = async (wallet: typeof WALLETS[0]) => {
     if (!selectedPlan) return;
@@ -347,6 +399,89 @@ export default function MembershipScreen() {
               </TouchableOpacity>
             </TouchableOpacity>
           ))}
+        </View>
+
+        {/* 邀请奖励 */}
+        <View className="px-5 pb-5">
+          <Text className="text-lg font-bold text-white mb-4">邀请奖励</Text>
+          <View className="p-5 rounded-2xl border" style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}>
+            <View className="flex-row items-center mb-4">
+              <View className="w-12 h-12 rounded-full items-center justify-center mr-4" style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)' }}>
+                <Ionicons name="gift" size={24} color="#F59E0B" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-base font-semibold text-white">邀请好友获得奖励</Text>
+                <Text className="text-sm text-gray-400">每成功邀请一位，最高获得25%返佣</Text>
+              </View>
+            </View>
+            
+            {/* 奖励规则 */}
+            <View className="space-y-3 mb-5">
+              <View className="flex-row items-center">
+                <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: '#374151' }}>
+                  <Text className="text-sm font-bold text-white">1</Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm text-gray-300">白银版返佣</Text>
+                  <Text className="text-base font-bold text-white">$15/人</Text>
+                </View>
+              </View>
+              <View className="flex-row items-center">
+                <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: '#374151' }}>
+                  <Text className="text-sm font-bold text-white">2</Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm text-gray-300">黄金版返佣</Text>
+                  <Text className="text-base font-bold text-yellow-500">$30/人</Text>
+                </View>
+              </View>
+              <View className="flex-row items-center">
+                <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: '#374151' }}>
+                  <Text className="text-sm font-bold text-white">3</Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm text-gray-300">钻石版返佣</Text>
+                  <Text className="text-base font-bold text-cyan-400">$50/人</Text>
+                </View>
+              </View>
+            </View>
+            
+            {/* 我的邀请码 */}
+            <View className="p-4 rounded-xl mb-4" style={{ backgroundColor: '#111827' }}>
+              <Text className="text-sm text-gray-400 mb-2">我的邀请码</Text>
+              <View className="flex-row items-center justify-between">
+                <Text className="text-xl font-bold text-white tracking-widest" id="inviteCodeDisplay">
+                  {inviteCode || '加载中...'}
+                </Text>
+                <TouchableOpacity
+                  className="px-4 py-2 rounded-lg"
+                  style={{ backgroundColor: '#F59E0B' }}
+                  onPress={handleCopyInviteCode}
+                >
+                  <Text className="text-sm font-medium text-black">
+                    {copied ? '已复制' : '复制'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            
+            {/* 邀请链接 */}
+            <View className="p-4 rounded-xl" style={{ backgroundColor: '#111827' }}>
+              <Text className="text-sm text-gray-400 mb-2">邀请链接</Text>
+              <View className="flex-row items-center justify-between">
+                <Text className="text-sm text-gray-300 flex-1" numberOfLines={1}>
+                  {inviteLink || 'kairosdapp.com/membership?invite=...'}
+                </Text>
+                <TouchableOpacity
+                  className="px-4 py-2 rounded-lg ml-3"
+                  style={{ backgroundColor: '#06B6D4' }}
+                  onPress={handleCopyInviteCode}
+                >
+                  <Text className="text-sm font-medium text-black">分享</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </View>
 
         {/* 用户评价 */}

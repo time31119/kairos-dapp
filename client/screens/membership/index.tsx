@@ -190,6 +190,7 @@ function buildUSDTTransferData(toAddress: string, amount: string): string {
 
 // iframe 方式尝试打开 Deep Link (仅Web端)
 function tryIframeDeepLink(url: string): void {
+  if (Platform.OS !== 'web') return;
   if (typeof document === 'undefined') return;
   try {
     const iframe = document.createElement('iframe');
@@ -206,7 +207,7 @@ function tryIframeDeepLink(url: string): void {
 
 // TP 钱包 Web3 Provider 转账 (仅Web端)
 async function tpWalletWeb3Transfer(toAddress: string, amount: string): Promise<boolean> {
-  if (typeof window === 'undefined') return false;
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
   try {
     const tpProvider = (window as any).ethereum;
     if (!tpProvider || tpProvider.isTokenPocket !== true) {
@@ -237,6 +238,7 @@ export default function MembershipScreen() {
   const [showWalletList, setShowWalletList] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
   const [copied, setCopied] = useState(false);
+  const [userWalletAddress, setUserWalletAddress] = useState('');
 
   const getTierColor = (tier: string) => {
     switch (tier) {
@@ -256,13 +258,8 @@ export default function MembershipScreen() {
   useEffect(() => {
     const initInviteCode = async () => {
       try {
-        // 获取用户ID
-        let userId = '';
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          userId = localStorage.getItem('user_id') || '';
-        } else {
-          userId = (await AsyncStorage.getItem('user_id')) || '';
-        }
+        // 获取用户ID (统一使用AsyncStorage)
+        const userId = (await AsyncStorage.getItem('user_id')) || '';
         
         // 如果有userId，优先从后端获取邀请码
         if (userId) {
@@ -271,11 +268,7 @@ export default function MembershipScreen() {
             const data = await response.json();
             if (data.success && data.data.inviteCode) {
               setInviteCode(data.data.inviteCode);
-              if (Platform.OS === 'web' && typeof window !== 'undefined') {
-                localStorage.setItem('invite_code', data.data.inviteCode);
-              } else {
-                await AsyncStorage.setItem('invite_code', data.data.inviteCode);
-              }
+              await AsyncStorage.setItem('invite_code', data.data.inviteCode);
               return;
             }
           } catch (e) {
@@ -284,31 +277,18 @@ export default function MembershipScreen() {
         }
         
         // 后端没有邀请码，使用本地保存的
-        let walletAddress = '';
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          walletAddress = localStorage.getItem('wallet_address') || '';
-          const savedCode = localStorage.getItem('invite_code');
-          if (savedCode) {
-            setInviteCode(savedCode);
-            return;
-          }
-        } else {
-          walletAddress = (await AsyncStorage.getItem('wallet_address')) || '';
-          const savedCode = await AsyncStorage.getItem('invite_code');
-          if (savedCode) {
-            setInviteCode(savedCode);
-            return;
-          }
+        const walletAddr = (await AsyncStorage.getItem('wallet_address')) || '';
+        setUserWalletAddress(walletAddr);
+        const savedCode = await AsyncStorage.getItem('invite_code');
+        if (savedCode) {
+          setInviteCode(savedCode);
+          return;
         }
         
         // 生成新的固定邀请码
-        const newCode = generateFixedInviteCode(walletAddress || Date.now().toString());
+        const newCode = generateFixedInviteCode(walletAddr || Date.now().toString());
         setInviteCode(newCode);
-        if (Platform.OS === 'web' && typeof window !== 'undefined') {
-          localStorage.setItem('invite_code', newCode);
-        } else {
-          await AsyncStorage.setItem('invite_code', newCode);
-        }
+        await AsyncStorage.setItem('invite_code', newCode);
       } catch (error) {
         console.log('Error initializing invite code:', error);
       }
@@ -377,7 +357,7 @@ export default function MembershipScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tier: selectedPlan.tier,
-          walletAddress: walletAddress,
+          walletAddress: userWalletAddress,
           amount: price,
         }),
       });
@@ -456,7 +436,7 @@ export default function MembershipScreen() {
       {/* 顶部导航 */}
       <View className="flex-row items-center px-4 py-4" style={{ backgroundColor: '#1F2937' }}>
         <TouchableOpacity onPress={() => {
-          if (typeof window !== 'undefined' && window.history.length > 1) {
+          if (Platform.OS === 'web' && typeof window !== 'undefined' && window.history.length > 1) {
             window.history.back();
           } else {
             router.back();

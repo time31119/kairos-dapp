@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 
@@ -187,8 +188,9 @@ function buildUSDTTransferData(toAddress: string, amount: string): string {
   return '0x' + methodId + paddedAddress + paddedAmount;
 }
 
-// iframe 方式尝试打开 Deep Link
+// iframe 方式尝试打开 Deep Link (仅Web端)
 function tryIframeDeepLink(url: string): void {
+  if (typeof document === 'undefined') return;
   try {
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
@@ -202,8 +204,9 @@ function tryIframeDeepLink(url: string): void {
   }
 }
 
-// TP 钱包 Web3 Provider 转账
+// TP 钱包 Web3 Provider 转账 (仅Web端)
 async function tpWalletWeb3Transfer(toAddress: string, amount: string): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
   try {
     const tpProvider = (window as any).ethereum;
     if (!tpProvider || tpProvider.isTokenPocket !== true) {
@@ -251,27 +254,50 @@ export default function MembershipScreen() {
 
   // 初始化邀请码
   useEffect(() => {
-    // 优先从 localStorage 获取已保存的邀请码
-    if (typeof window !== 'undefined') {
-      // 获取用户标识符（优先使用钱包地址，否则使用已保存的邀请码）
-      const walletAddress = localStorage.getItem('wallet_address') || '';
-      const savedCode = localStorage.getItem('invite_code');
-      
-      // 优先使用钱包地址生成固定邀请码
-      if (walletAddress) {
-        const code = generateFixedInviteCode(walletAddress);
+    const initInviteCode = async () => {
+      try {
+        // 根据平台选择存储方式
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          // Web端使用localStorage
+          const walletAddress = localStorage.getItem('wallet_address') || '';
+          const savedCode = localStorage.getItem('invite_code');
+          
+          if (walletAddress) {
+            const code = generateFixedInviteCode(walletAddress);
+            setInviteCode(code);
+            localStorage.setItem('invite_code', code);
+          } else if (savedCode) {
+            setInviteCode(savedCode);
+          } else {
+            const newCode = generateFixedInviteCode(Date.now().toString());
+            setInviteCode(newCode);
+            localStorage.setItem('invite_code', newCode);
+          }
+        } else {
+          // 原生端使用AsyncStorage
+          const walletAddress = await AsyncStorage.getItem('wallet_address') || '';
+          const savedCode = await AsyncStorage.getItem('invite_code');
+          
+          if (walletAddress) {
+            const code = generateFixedInviteCode(walletAddress);
+            setInviteCode(code);
+            await AsyncStorage.setItem('invite_code', code);
+          } else if (savedCode) {
+            setInviteCode(savedCode);
+          } else {
+            const newCode = generateFixedInviteCode(Date.now().toString());
+            setInviteCode(newCode);
+            await AsyncStorage.setItem('invite_code', newCode);
+          }
+        }
+      } catch (error) {
+        // 降级处理：生成临时邀请码
+        const code = generateFixedInviteCode(Date.now().toString());
         setInviteCode(code);
-        localStorage.setItem('invite_code', code);
-      } else if (savedCode) {
-        // 使用已保存的邀请码
-        setInviteCode(savedCode);
-      } else {
-        // 生成新的邀请码（首次访问）
-        const newCode = generateFixedInviteCode(Date.now().toString());
-        setInviteCode(newCode);
-        localStorage.setItem('invite_code', newCode);
       }
-    }
+    };
+    
+    initInviteCode();
   }, []);
 
   // 生成固定邀请码（基于用户标识符，确保每次相同）
@@ -402,7 +428,7 @@ export default function MembershipScreen() {
     <Screen style={{ backgroundColor: '#111827' }}>
       {/* 顶部导航 */}
       <View className="flex-row items-center px-4 py-4" style={{ backgroundColor: '#1F2937' }}>
-        <TouchableOpacity onPress={() => window.history.back()} className="p-2 -ml-2">
+        <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
           <Ionicons name="chevron-back" size={26} color="#F9FAFB" />
         </TouchableOpacity>
         <Text className="text-lg font-bold text-white flex-1 text-center pr-10">会员订阅</Text>

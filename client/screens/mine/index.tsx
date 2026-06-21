@@ -42,6 +42,15 @@ declare global {
 // 我的页面主组件
 export default function MineScreen() {
   const router = useSafeRouter();
+  
+  // Web端降级：使用window.location.href
+  const navigateTo = (path: string) => {
+    if (typeof window !== 'undefined') {
+      window.location.href = path;
+    } else {
+      router.push(path);
+    }
+  };
   const [walletStatus, setWalletStatus] = useState(WalletStatus.DISCONNECTED);
   const [walletAddress, setWalletAddress] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -348,7 +357,7 @@ export default function MineScreen() {
               borderWidth: 1,
               borderColor: '#FFD700',
             }}
-            onPress={() => router.push('/membership')}
+            onPress={() => navigateTo('/membership')}
           >
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-3">
@@ -381,7 +390,7 @@ export default function MineScreen() {
             <TouchableOpacity
               className="items-center mb-4"
               style={{ width: '48%' }}
-              onPress={() => router.push('/copytrading')}
+              onPress={() => navigateTo('/copytrading')}
             >
               <View 
                 className="w-full rounded-2xl p-4 items-center"
@@ -402,7 +411,7 @@ export default function MineScreen() {
             <TouchableOpacity
               className="items-center mb-4"
               style={{ width: '48%' }}
-              onPress={() => router.push('/signal')}
+              onPress={() => navigateTo('/signal')}
             >
               <View 
                 className="w-full rounded-2xl p-4 items-center"
@@ -423,7 +432,7 @@ export default function MineScreen() {
             <TouchableOpacity
               className="items-center mb-4"
               style={{ width: '48%' }}
-              onPress={() => router.push('/ai-strategy')}
+              onPress={() => navigateTo('/ai-strategy')}
             >
               <View 
                 className="w-full rounded-2xl p-4 items-center"
@@ -444,7 +453,7 @@ export default function MineScreen() {
             <TouchableOpacity
               className="items-center mb-4"
               style={{ width: '48%' }}
-              onPress={() => router.push('/membership')}
+              onPress={() => navigateTo('/membership')}
             >
               <View 
                 className="w-full rounded-2xl p-4 items-center"

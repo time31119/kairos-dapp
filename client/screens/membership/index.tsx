@@ -455,7 +455,13 @@ export default function MembershipScreen() {
     <Screen style={{ backgroundColor: '#111827' }}>
       {/* 顶部导航 */}
       <View className="flex-row items-center px-4 py-4" style={{ backgroundColor: '#1F2937' }}>
-        <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
+        <TouchableOpacity onPress={() => {
+          if (typeof window !== 'undefined' && window.history.length > 1) {
+            window.history.back();
+          } else {
+            router.back();
+          }
+        }} className="p-2 -ml-2">
           <Ionicons name="chevron-back" size={26} color="#F9FAFB" />
         </TouchableOpacity>
         <Text className="text-lg font-bold text-white flex-1 text-center pr-10">会员订阅</Text>

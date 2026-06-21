@@ -322,9 +322,23 @@ export default function MembershipScreen() {
       [
         { text: '查看支付状态', onPress: () => router.push(`/payment-confirm?orderId=${localOrderId}&walletAddress=${RECEIVE_ADDRESS}&amount=${price}&tier=${selectedPlan.name}`) },
         { text: '复制地址', onPress: () => {
-          if (typeof navigator !== 'undefined' && navigator.clipboard) {
-            navigator.clipboard.writeText(RECEIVE_ADDRESS);
-            Alert.alert('已复制', '收款地址已复制到剪贴板');
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(RECEIVE_ADDRESS);
+            } else {
+              const textarea = document.createElement('textarea');
+              textarea.value = RECEIVE_ADDRESS;
+              textarea.style.position = 'fixed';
+              textarea.style.opacity = '0';
+              document.body.appendChild(textarea);
+              textarea.select();
+              document.execCommand('copy');
+              document.body.removeChild(textarea);
+            }
+            Alert.alert('复制成功', '收款地址已复制到剪贴板');
+          } catch (error) {
+            console.log('Copy failed:', error);
+            Alert.alert('复制失败', '请手动复制地址: ' + RECEIVE_ADDRESS);
           }
         }},
       ]
@@ -693,8 +707,24 @@ export default function MembershipScreen() {
               className="py-4 rounded-xl items-center mb-3"
               style={{ backgroundColor: '#059669' }}
               onPress={async () => {
-                await navigator.clipboard.writeText(RECEIVE_ADDRESS);
-                Alert.alert('已复制', '收款地址已复制到剪贴板');
+                try {
+                  if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(RECEIVE_ADDRESS);
+                  } else {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = RECEIVE_ADDRESS;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                  }
+                  Alert.alert('复制成功', '收款地址已复制到剪贴板');
+                } catch (error) {
+                  console.log('Copy failed:', error);
+                  Alert.alert('复制失败', '请手动复制地址: ' + RECEIVE_ADDRESS);
+                }
               }}
             >
               <Text className="text-lg font-bold text-white">复制收款地址</Text>

@@ -376,7 +376,7 @@ export default function MembershipScreen() {
     
     // 优先尝试Web3转账（Web端）
     let web3Success = false;
-    if (Platform.OS === 'web') {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
       if (wallet.id === 'tp' && (window as any).ethereum) {
         web3Success = await tpWalletWeb3Transfer(RECEIVE_ADDRESS, amountWei);
       } else if (wallet.id === 'okx' && (window as any).okxwallet) {

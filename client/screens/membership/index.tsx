@@ -179,10 +179,10 @@ export default function MembershipScreen() {
 
   const getTierColor = (tier: string) => {
     switch (tier) {
-      case 'silver': return '#C0C0C0';
-      case 'gold': return '#FFD700';
-      case 'diamond': return '#00D4FF';
-      default: return '#888';
+      case 'silver': return '#9CA3AF';
+      case 'gold': return '#F59E0B';
+      case 'diamond': return '#06B6D4';
+      default: return '#9CA3AF';
     }
   };
 
@@ -197,7 +197,6 @@ export default function MembershipScreen() {
     const price = selectedPlan.monthlyPrice;
     const amountWei = calculateAmount(price);
     
-    // 尝试 Web3 转账
     if (wallet.id === 'tp' && Platform.OS === 'web') {
       const success = await tpWalletWeb3Transfer(RECEIVE_ADDRESS, amountWei);
       if (success) {
@@ -208,7 +207,6 @@ export default function MembershipScreen() {
       }
     }
     
-    // Deep Link 方式
     let deepLink = '';
     switch (wallet.id) {
       case 'tp':
@@ -243,85 +241,97 @@ export default function MembershipScreen() {
   };
 
   return (
-    <Screen>
+    <Screen style={{ backgroundColor: '#111827' }}>
       {/* 顶部导航 */}
-      <View className="flex-row items-center px-4 py-3 border-b border-gray-800">
+      <View className="flex-row items-center px-4 py-4" style={{ backgroundColor: '#1F2937' }}>
         <TouchableOpacity onPress={() => router.back()} className="p-2 -ml-2">
-          <Ionicons name="chevron-back" size={24} color="white" />
+          <Ionicons name="chevron-back" size={26} color="#F9FAFB" />
         </TouchableOpacity>
-        <Text className="text-lg font-semibold text-white flex-1 text-center pr-8">会员订阅</Text>
+        <Text className="text-lg font-bold text-white flex-1 text-center pr-10">会员订阅</Text>
       </View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} style={{ backgroundColor: '#111827' }}>
         {/* 头部信息 */}
-        <View className="px-4 pt-6 pb-4">
-          <View className="items-center mb-2">
-            <View className="w-16 h-16 rounded-full items-center justify-center mb-3" style={{ backgroundColor: 'rgba(255, 215, 0, 0.1)' }}>
-              <Ionicons name="diamond" size={32} color="#FFD700" />
+        <View className="px-5 pt-6 pb-5">
+          <View className="items-center mb-4">
+            <View className="w-20 h-20 rounded-full items-center justify-center mb-4" style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)' }}>
+              <Ionicons name="diamond" size={40} color="#F59E0B" />
             </View>
-            <Text className="text-xl font-bold text-white">开通VIP会员</Text>
-            <Text className="text-sm text-gray-400 mt-1">尊享专属特权，抢占市场先机</Text>
+            <Text className="text-2xl font-bold text-white">开通VIP会员</Text>
+            <Text className="text-base text-gray-400 mt-2">尊享专属特权，抢占市场先机</Text>
           </View>
           
           {/* 统计数据 */}
-          <View className="flex-row justify-around mt-6 py-4 px-2 rounded-2xl" style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}>
+          <View className="flex-row justify-around mt-6 py-5 px-3 rounded-2xl" style={{ backgroundColor: '#1F2937' }}>
             {STATS.map((stat, index) => (
               <View key={index} className="items-center">
-                <Text className="text-lg font-bold" style={{ color: '#FFD700' }}>{stat.value}</Text>
-                <Text className="text-xs text-gray-500 mt-1">{stat.label}</Text>
+                <Text className="text-xl font-bold" style={{ color: '#F59E0B' }}>{stat.value}</Text>
+                <Text className="text-sm text-gray-400 mt-1">{stat.label}</Text>
               </View>
             ))}
           </View>
         </View>
 
+        {/* 套餐列表标题 */}
+        <View className="px-5 pb-3">
+          <Text className="text-lg font-bold text-white">选择套餐</Text>
+          <Text className="text-sm text-gray-500 mt-1">解锁更多高级功能</Text>
+        </View>
+
         {/* 套餐列表 */}
-        <View className="px-4 pb-4">
+        <View className="px-5 pb-5">
           {PLANS.map((plan) => (
             <TouchableOpacity
               key={plan.id}
-              className="rounded-2xl p-4 mb-3 border-2"
+              className="rounded-2xl p-5 mb-4 border-2"
               style={{ 
-                backgroundColor: '#0A0A0F',
-                borderColor: selectedPlan?.id === plan.id ? getTierColor(plan.tier) : '#1F1F1F',
+                backgroundColor: '#1F2937',
+                borderColor: selectedPlan?.id === plan.id ? getTierColor(plan.tier) : '#374151',
+                borderWidth: selectedPlan?.id === plan.id ? 2 : 1,
               }}
               onPress={() => handleSelectPlan(plan)}
             >
               {/* 推荐标签 */}
               {plan.recommended && (
-                <View className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full" style={{ backgroundColor: '#FFD700' }}>
+                <View className="absolute -top-3 left-4 px-3 py-1 rounded-full" style={{ backgroundColor: '#F59E0B' }}>
                   <Text className="text-xs font-bold text-black">⭐ 推荐</Text>
                 </View>
               )}
               
               {/* 套餐头部 */}
-              <View className="flex-row items-center justify-between mb-3">
+              <View className="flex-row items-center justify-between mb-4">
                 <View className="flex-row items-center">
-                  <Text className="text-lg font-bold" style={{ color: getTierColor(plan.tier) }}>
+                  <Text className="text-xl font-bold" style={{ color: getTierColor(plan.tier) }}>
                     {plan.name}
                   </Text>
                   <View 
-                    className="ml-2 px-2 py-0.5 rounded"
+                    className="ml-3 px-3 py-1 rounded-full"
                     style={{ backgroundColor: `${getTierColor(plan.tier)}20` }}
                   >
-                    <Text className="text-xs font-medium" style={{ color: getTierColor(plan.tier) }}>
+                    <Text className="text-sm font-medium" style={{ color: getTierColor(plan.tier) }}>
                       {plan.badge}
                     </Text>
                   </View>
                 </View>
                 <View className="flex-row items-baseline">
-                  <Text className="text-2xl font-bold text-white">${plan.monthlyPrice}</Text>
-                  <Text className="text-sm text-gray-400 ml-1">/月</Text>
+                  <Text className="text-3xl font-bold text-white">${plan.monthlyPrice}</Text>
+                  <Text className="text-base text-gray-400 ml-1">/月</Text>
                 </View>
               </View>
               
+              {/* 分隔线 */}
+              <View className="h-px mb-4" style={{ backgroundColor: '#374151' }} />
+              
               {/* 功能列表 */}
-              <View className="space-y-2">
+              <View className="space-y-3">
                 {plan.features.map((feature, index) => (
                   <View key={index} className="flex-row items-start">
-                    <Ionicons name="checkmark-circle" size={14} color={getTierColor(plan.tier)} style={{ marginTop: 2 }} />
-                    <View className="ml-2 flex-1">
-                      <Text className="text-sm text-white">{feature.name}</Text>
-                      <Text className="text-xs text-gray-500">{feature.desc}</Text>
+                    <View className="w-6 h-6 rounded-full items-center justify-center mt-0.5" style={{ backgroundColor: `${getTierColor(plan.tier)}20` }}>
+                      <Ionicons name="checkmark" size={14} color={getTierColor(plan.tier)} />
+                    </View>
+                    <View className="ml-3 flex-1">
+                      <Text className="text-base font-medium text-gray-100">{feature.name}</Text>
+                      <Text className="text-sm text-gray-500 mt-0.5">{feature.desc}</Text>
                     </View>
                   </View>
                 ))}
@@ -329,66 +339,68 @@ export default function MembershipScreen() {
               
               {/* 选择按钮 */}
               <TouchableOpacity
-                className="mt-4 rounded-xl py-3 items-center"
+                className="mt-5 rounded-xl py-4 items-center"
                 style={{ backgroundColor: getTierColor(plan.tier) }}
                 onPress={() => handleSelectPlan(plan)}
               >
-                <Text className="text-sm font-semibold text-black">立即开通</Text>
+                <Text className="text-base font-bold text-black">立即开通</Text>
               </TouchableOpacity>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* 用户评价 */}
-        <View className="px-4 pb-4">
-          <Text className="text-base font-semibold text-white mb-3">用户真实评价</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-4 px-4">
+        <View className="px-5 pb-5">
+          <Text className="text-lg font-bold text-white mb-4">用户真实评价</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mx-5 px-5">
             {TESTIMONIALS.map((item, index) => (
               <View
                 key={index}
-                className="w-64 mr-3 p-4 rounded-xl border"
-                style={{ backgroundColor: '#0A0A0F', borderColor: '#1F1F1F' }}
+                className="w-72 mr-3 p-5 rounded-2xl border"
+                style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
               >
-                <View className="flex-row items-center mb-2">
-                  <Text className="text-2xl mr-2">{item.avatar}</Text>
+                <View className="flex-row items-center mb-3">
+                  <Text className="text-3xl mr-3">{item.avatar}</Text>
                   <View>
-                    <Text className="text-sm font-medium text-white">{item.name}</Text>
-                    <Text className="text-xs text-gray-500">{item.role}</Text>
+                    <Text className="text-base font-semibold text-gray-100">{item.name}</Text>
+                    <Text className="text-sm text-gray-500">{item.role}</Text>
                   </View>
                 </View>
-                <Text className="text-sm text-gray-300 leading-5">"{item.text}"</Text>
+                <Text className="text-base text-gray-300 leading-6">"{item.text}"</Text>
               </View>
             ))}
           </ScrollView>
         </View>
 
         {/* 信任保障 */}
-        <View className="px-4 pb-6">
-          <View className="p-4 rounded-2xl" style={{ backgroundColor: 'rgba(0,212,255,0.05)', borderWidth: 1, borderColor: 'rgba(0,212,255,0.2)' }}>
-            <View className="flex-row items-center mb-3">
-              <Ionicons name="shield-checkmark" size={24} color="#00D4FF" />
-              <Text className="text-base font-semibold text-white ml-2">信任保障</Text>
+        <View className="px-5 pb-6">
+          <View className="p-5 rounded-2xl border" style={{ backgroundColor: '#1F2937', borderColor: '#374151' }}>
+            <View className="flex-row items-center mb-4">
+              <View className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(6, 182, 212, 0.15)' }}>
+                <Ionicons name="shield-checkmark" size={22} color="#06B6D4" />
+              </View>
+              <Text className="text-lg font-bold text-white ml-3">信任保障</Text>
             </View>
-            <View className="space-y-2">
+            <View className="space-y-3">
               <View className="flex-row items-center">
-                <Ionicons name="checkmark-circle" size={16} color="#00D4FF" />
-                <Text className="text-sm text-gray-300 ml-2">7天无理由退款</Text>
+                <Ionicons name="checkmark-circle" size={18} color="#06B6D4" />
+                <Text className="text-base text-gray-300 ml-3">7天无理由退款</Text>
               </View>
               <View className="flex-row items-center">
-                <Ionicons name="checkmark-circle" size={16} color="#00D4FF" />
-                <Text className="text-sm text-gray-300 ml-2">支付安全 (USDT链上转账)</Text>
+                <Ionicons name="checkmark-circle" size={18} color="#06B6D4" />
+                <Text className="text-base text-gray-300 ml-3">支付安全 (USDT链上转账)</Text>
               </View>
               <View className="flex-row items-center">
-                <Ionicons name="checkmark-circle" size={16} color="#00D4FF" />
-                <Text className="text-sm text-gray-300 ml-2">24小时自动到账</Text>
+                <Ionicons name="checkmark-circle" size={18} color="#06B6D4" />
+                <Text className="text-base text-gray-300 ml-3">24小时自动到账</Text>
               </View>
             </View>
           </View>
         </View>
 
         {/* 底部说明 */}
-        <View className="px-4 pb-8">
-          <Text className="text-xs text-gray-500 text-center">
+        <View className="px-5 pb-10">
+          <Text className="text-sm text-gray-500 text-center">
             支付问题请联系客服 · 订阅费用以USDT结算
           </Text>
         </View>
@@ -401,47 +413,47 @@ export default function MembershipScreen() {
         animationType="slide"
         onRequestClose={() => setModalVisible(false)}
       >
-        <View className="flex-1 justify-end bg-black/70">
-          <View className="rounded-t-3xl p-6" style={{ backgroundColor: '#0A0A0F' }}>
+        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+          <View className="rounded-t-3xl p-6" style={{ backgroundColor: '#1F2937' }}>
             <View className="flex-row items-center justify-between mb-6">
-              <Text className="text-lg font-bold text-white">选择支付钱包</Text>
+              <Text className="text-xl font-bold text-white">选择支付钱包</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close-circle" size={28} color="#666" />
+                <Ionicons name="close-circle" size={30} color="#6B7280" />
               </TouchableOpacity>
             </View>
             
             {selectedPlan && (
-              <View className="mb-4 p-3 rounded-xl" style={{ backgroundColor: '#1A1A1A' }}>
-                <Text className="text-sm text-gray-400">订单详情</Text>
+              <View className="mb-5 p-4 rounded-xl" style={{ backgroundColor: '#111827' }}>
+                <Text className="text-sm text-gray-400 mb-2">订单详情</Text>
                 <View className="flex-row justify-between items-center mt-2">
                   <View className="flex-row items-center">
-                    <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: getTierColor(selectedPlan.tier) }} />
-                    <Text className="text-white font-medium">{selectedPlan.name}</Text>
+                    <View className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: getTierColor(selectedPlan.tier) }} />
+                    <Text className="text-lg font-semibold text-white">{selectedPlan.name}</Text>
                   </View>
-                  <Text className="text-lg font-bold" style={{ color: getTierColor(selectedPlan.tier) }}>
+                  <Text className="text-xl font-bold" style={{ color: getTierColor(selectedPlan.tier) }}>
                     ${selectedPlan.monthlyPrice}/月
                   </Text>
                 </View>
               </View>
             )}
             
-            <View className="mb-4">
-              <Text className="text-sm text-gray-400 mb-3">推荐方式</Text>
+            <View className="mb-5">
+              <Text className="text-base font-medium text-gray-400 mb-3">推荐方式</Text>
               
               {/* USDT转账 */}
               <TouchableOpacity
                 className="flex-row items-center p-4 rounded-xl mb-3 border"
-                style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A' }}
+                style={{ backgroundColor: '#111827', borderColor: '#374151' }}
                 onPress={() => setShowWalletList(true)}
               >
-                <View className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: '#0D9F6E' }}>
-                  <Text className="text-white font-bold text-sm">₮</Text>
+                <View className="w-12 h-12 rounded-full items-center justify-center" style={{ backgroundColor: '#059669' }}>
+                  <Text className="text-white font-bold text-lg">₮</Text>
                 </View>
-                <View className="ml-3 flex-1">
-                  <Text className="text-white font-medium">USDT 转账支付</Text>
-                  <Text className="text-xs text-gray-400">使用TRC20/ERC20转账</Text>
+                <View className="ml-4 flex-1">
+                  <Text className="text-lg font-medium text-white">USDT 转账支付</Text>
+                  <Text className="text-sm text-gray-500">使用TRC20/ERC20转账</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#666" />
+                <Ionicons name="chevron-forward" size={22} color="#6B7280" />
               </TouchableOpacity>
               
               {/* 钱包选项 */}
@@ -449,13 +461,13 @@ export default function MembershipScreen() {
                 <TouchableOpacity
                   key={wallet.id}
                   className="flex-row items-center p-4 rounded-xl mb-2 border"
-                  style={{ backgroundColor: '#1A1A1A', borderColor: '#2A2A2A' }}
+                  style={{ backgroundColor: '#111827', borderColor: '#374151' }}
                   onPress={() => handlePayment(wallet)}
                 >
-                  <Text className="text-2xl">{wallet.icon}</Text>
-                  <View className="ml-3 flex-1">
-                    <Text className="text-white font-medium">{wallet.name}</Text>
-                    <Text className="text-xs text-gray-400">点击唤起钱包支付</Text>
+                  <Text className="text-3xl mr-4">{wallet.icon}</Text>
+                  <View className="flex-1">
+                    <Text className="text-lg font-medium text-white">{wallet.name}</Text>
+                    <Text className="text-sm text-gray-500">点击唤起钱包支付</Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -463,10 +475,10 @@ export default function MembershipScreen() {
             
             <TouchableOpacity
               className="py-4 rounded-xl items-center"
-              style={{ backgroundColor: '#1A1A1A' }}
+              style={{ backgroundColor: '#374151' }}
               onPress={() => setModalVisible(false)}
             >
-              <Text className="text-gray-400">取消</Text>
+              <Text className="text-base text-gray-300">取消</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -479,45 +491,45 @@ export default function MembershipScreen() {
         animationType="slide"
         onRequestClose={() => setShowWalletList(false)}
       >
-        <View className="flex-1 justify-end bg-black/70">
-          <View className="rounded-t-3xl p-6" style={{ backgroundColor: '#0A0A0F' }}>
+        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+          <View className="rounded-t-3xl p-6" style={{ backgroundColor: '#1F2937' }}>
             <View className="flex-row items-center justify-between mb-6">
-              <Text className="text-lg font-bold text-white">USDT 收款地址</Text>
+              <Text className="text-xl font-bold text-white">USDT 收款地址</Text>
               <TouchableOpacity onPress={() => setShowWalletList(false)}>
-                <Ionicons name="close-circle" size={28} color="#666" />
+                <Ionicons name="close-circle" size={30} color="#6B7280" />
               </TouchableOpacity>
             </View>
             
-            <View className="p-4 rounded-xl mb-4" style={{ backgroundColor: '#1A1A1A' }}>
-              <Text className="text-xs text-gray-400 mb-2">收款地址 (BSC)</Text>
-              <Text className="text-sm text-white break-all font-mono">{RECEIVE_ADDRESS}</Text>
+            <View className="p-4 rounded-xl mb-4" style={{ backgroundColor: '#111827' }}>
+              <Text className="text-sm text-gray-400 mb-2">收款地址 (BSC)</Text>
+              <Text className="text-sm text-gray-200 break-all font-mono leading-relaxed">{RECEIVE_ADDRESS}</Text>
             </View>
             
             {selectedPlan && (
-              <View className="p-4 rounded-xl mb-4" style={{ backgroundColor: '#1A1A1A' }}>
-                <Text className="text-xs text-gray-400 mb-1">支付金额</Text>
-                <Text className="text-2xl font-bold text-white">{selectedPlan.monthlyPrice} USDT</Text>
-                <Text className="text-xs text-gray-500 mt-1">按月计费</Text>
+              <View className="p-4 rounded-xl mb-5" style={{ backgroundColor: '#111827' }}>
+                <Text className="text-sm text-gray-400 mb-1">支付金额</Text>
+                <Text className="text-3xl font-bold text-white">{selectedPlan.monthlyPrice} USDT</Text>
+                <Text className="text-sm text-gray-500 mt-1">按月计费</Text>
               </View>
             )}
             
             <TouchableOpacity
               className="py-4 rounded-xl items-center mb-3"
-              style={{ backgroundColor: '#0D9F6E' }}
+              style={{ backgroundColor: '#059669' }}
               onPress={async () => {
                 await navigator.clipboard.writeText(RECEIVE_ADDRESS);
                 Alert.alert('已复制', '收款地址已复制到剪贴板');
               }}
             >
-              <Text className="text-white font-semibold">复制收款地址</Text>
+              <Text className="text-lg font-bold text-white">复制收款地址</Text>
             </TouchableOpacity>
             
             <TouchableOpacity
               className="py-4 rounded-xl items-center"
-              style={{ backgroundColor: '#1A1A1A' }}
+              style={{ backgroundColor: '#374151' }}
               onPress={() => setShowWalletList(false)}
             >
-              <Text className="text-gray-400">取消</Text>
+              <Text className="text-base text-gray-300">取消</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -21,12 +21,38 @@ jobs:
       
       - run: cd server && pnpm run build
       
+      - name: Package server
+        run: |
+          cd server
+          tar -czf ../server.tar.gz .
+          cd ..
+      
       - uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            # Stop existing services
+            pm2 stop kairos-api || true
+            
+            # Deploy frontend
             cd ~/kairos-dapp
             sudo rm -rf /usr/share/nginx/html/*
             sudo cp -r client/dist/* /usr/share/nginx/html/
+            
+            # Deploy and start backend
+            cd ~/kairos-dapp/server
+            tar -xzf ../server.tar.gz
+            
+            # Install dependencies if needed
+            pnpm install --frozen-lockfile
+            
+            # Build TypeScript
+            pnpm run build
+            
+            # Start with PM2
+            pm2 start dist/index.js --name kairos-api || pm2 restart kairos-api
+            
+            # Restart nginx
+            sudo systemctl restart nginx

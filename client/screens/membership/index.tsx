@@ -13,43 +13,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 
-// Web复制函数 - 确保在正确的上下文中执行
-const copyToClipboard = (text: string, onSuccess?: () => void, onFail?: () => void): boolean => {
+// 复制函数 - 使用expo-clipboard
+const copyToClipboard = async (text: string, onSuccess?: () => void, onFail?: () => void): Promise<boolean> => {
   try {
-    // 创建隐藏的input元素
-    const el = document.createElement('input');
-    el.style.cssText = 'position:fixed;top:0;left:0;opacity:0;width:1px;height:1px;';
-    el.value = text;
-    el.setAttribute('readonly', '');
-    document.body.appendChild(el);
-    
-    // 尝试多种复制方法
-    let success = false;
-    
-    // 方法1: select + execCommand
-    if (el.select) {
-      el.select();
-      try {
-        success = document.execCommand('copy');
-      } catch (e) {}
-    }
-    
-    // 方法2: setSelectionRange (适用于iOS)
-    if (!success) {
-      try {
-        el.setSelectionRange(0, text.length);
-        success = document.execCommand('copy');
-      } catch (e) {}
-    }
-    
-    document.body.removeChild(el);
-    
-    if (success) {
-      onSuccess?.();
-    } else {
-      onFail?.();
-    }
-    return success;
+    await Clipboard.setStringAsync(text);
+    onSuccess?.();
+    return true;
   } catch (e) {
     console.error('Copy failed:', e);
     onFail?.();
@@ -803,16 +772,13 @@ export default function MembershipScreen() {
             <TouchableOpacity
               className="py-4 rounded-xl items-center mb-3"
               style={{ backgroundColor: '#059669' }}
-              onPress={() => {
-                const success = copyToClipboard(
+              onPress={async () => {
+                await copyToClipboard(
                   RECEIVE_ADDRESS,
                   () => setCopyToast('地址已复制到剪贴板'),
                   () => setCopyToast('复制失败，请长按地址手动复制')
                 );
-                // Web端同步调用，确保回调执行
-                if (typeof document !== 'undefined') {
-                  setTimeout(() => setCopyToast(null), 3000);
-                }
+                setTimeout(() => setCopyToast(null), 3000);
               }}
             >
               <Text className="text-lg font-bold text-white">复制收款地址</Text>

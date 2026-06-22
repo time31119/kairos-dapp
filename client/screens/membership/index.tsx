@@ -14,14 +14,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 
-// 复制函数 - 使用 navigator.clipboard (Web标准API)
+// 复制函数 - 使用 expo-clipboard
 const copyToClipboard = async (text: string): Promise<boolean> => {
   try {
-    await navigator.clipboard.writeText(text);
+    await Clipboard.setStringAsync(text);
     Alert.alert('复制成功', '地址已复制到剪贴板');
     return true;
   } catch (e) {
-    Alert.alert('复制失败', '请手动复制地址: ' + text.substring(0, 10) + '...');
+    Alert.alert('复制失败', '请手动复制: ' + text);
     return false;
   }
 };

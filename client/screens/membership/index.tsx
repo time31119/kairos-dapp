@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   ScrollView,
   Modal,
-  Alert,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,40 +13,37 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 
-// Web复制函数 - 使用textarea选中复制
-const webCopyToClipboard = (text: string) => {
-  if (typeof document !== 'undefined') {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
-    try {
-      document.execCommand('copy');
-      Alert.alert('复制成功', '地址已复制到剪贴板');
-      return true;
-    } catch (e) {
-      Alert.alert('复制失败', '请手动复制');
-      return false;
-    } finally {
-      document.body.removeChild(textarea);
-    }
-  }
-  return false;
-};
-
-// 复制函数 - expo-clipboard + Web fallback
-const copyToClipboard = async (text: string): Promise<boolean> => {
-  if (Platform.OS === 'web') {
-    return webCopyToClipboard(text);
-  }
+// 复制函数 - 通用方式
+const copyToClipboard = async (text: string, onSuccess?: () => void, onFail?: () => void): Promise<boolean> => {
   try {
-    await Clipboard.setStringAsync(text);
-    Alert.alert('复制成功', '地址已复制到剪贴板');
-    return true;
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      // Web: 使用 textarea + execCommand
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      textarea.style.top = '0';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const success = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      if (success) {
+        onSuccess?.();
+      } else {
+        onFail?.();
+      }
+      return success;
+    } else {
+      // Native: 使用 expo-clipboard
+      await Clipboard.setStringAsync(text);
+      onSuccess?.();
+      return true;
+    }
   } catch (e) {
-    Alert.alert('复制失败', '请手动复制: ' + text);
+    console.error('Copy failed:', e);
+    onFail?.();
     return false;
   }
 };
@@ -281,6 +277,7 @@ export default function MembershipScreen() {
   const [inviteCode, setInviteCode] = useState('');
   const [copied, setCopied] = useState(false);
   const [userWalletAddress, setUserWalletAddress] = useState('');
+  const [copyToast, setCopyToast] = useState<string | null>(null);
 
   const getTierColor = (tier: string) => {
     switch (tier) {
@@ -672,6 +669,13 @@ export default function MembershipScreen() {
         </View>
       </ScrollView>
 
+      {/* Toast 提示 */}
+      {copyToast && (
+        <View className="absolute bottom-24 left-4 right-4 p-4 rounded-xl items-center" style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}>
+          <Text className="text-white text-base">{copyToast}</Text>
+        </View>
+      )}
+
       {/* 钱包选择弹窗 */}
       <Modal
         visible={modalVisible}
@@ -782,7 +786,14 @@ export default function MembershipScreen() {
             <TouchableOpacity
               className="py-4 rounded-xl items-center mb-3"
               style={{ backgroundColor: '#059669' }}
-              onPress={() => copyToClipboard(RECEIVE_ADDRESS)}
+              onPress={() => {
+                copyToClipboard(
+                  RECEIVE_ADDRESS,
+                  () => setCopyToast('地址已复制到剪贴板'),
+                  () => setCopyToast('复制失败，请长按地址手动复制')
+                );
+                setTimeout(() => setCopyToast(null), 3000);
+              }}
             >
               <Text className="text-lg font-bold text-white">复制收款地址</Text>
             </TouchableOpacity>

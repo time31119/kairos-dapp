@@ -14,25 +14,47 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 
-// Web平台兼容性复制函数
+// Web平台兼容性复制函数 - 使用多种方式确保复制成功
 const copyToClipboard = async (text: string): Promise<boolean> => {
+  // 方法1: expo-clipboard
   try {
-    // 首先尝试 expo-clipboard
-    if (Clipboard.setStringAsync) {
+    if (Clipboard && typeof Clipboard.setStringAsync === 'function') {
       await Clipboard.setStringAsync(text);
       return true;
     }
   } catch (e1) {
-    // expo-clipboard 失败，尝试 Web API
-    try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-        return true;
-      }
-    } catch (e2) {
-      // Web API 也失败
-    }
+    console.log('expo-clipboard failed:', e1);
   }
+  
+  // 方法2: Web Navigator Clipboard API
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e2) {
+    console.log('navigator.clipboard failed:', e2);
+  }
+  
+  // 方法3: 传统的 textarea + execCommand 方式 (Web Fallback)
+  try {
+    if (typeof document !== 'undefined') {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const result = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (result) return true;
+    }
+  } catch (e3) {
+    console.log('textarea fallback failed:', e3);
+  }
+  
   return false;
 };
 

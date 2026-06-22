@@ -108,17 +108,17 @@ function calculateAmount(amount: number): string {
   return usdtAmount.toString();
 }
 
-// 构建TP Wallet DeepLink (USDT精度6位)
+// 构建TP Wallet DeepLink (BSC链USDT转账)
 function buildTPWalletDeepLink(toAddress: string, amountUsdt: string): string {
+  // TokenPocket 支持的格式：直接传递金额和地址
   const params = {
-    action: 'transfer',
-    symbol: 'USDT',
-    contract: USDT_CONTRACT,
     to: toAddress,
     amount: amountUsdt,
-    decimal: '6',
+    contract: USDT_CONTRACT,
+    symbol: 'USDT',
+    chain: 'bsc',
   };
-  return `tokenpocket://wallet/transfer?param=${encodeURIComponent(JSON.stringify(params))}`;
+  return `tokenpocket://wallet/transfer?${new URLSearchParams(params).toString()}`;
 }
 
 // 构建OKX Wallet DeepLink - BSC链USDT转账
@@ -414,13 +414,13 @@ export default function MembershipScreen() {
     // Web3失败或非Web端，使用DeepLink唤起钱包
     switch (wallet.id) {
       case 'tp':
-        deepLink = buildTPWalletDeepLink(RECEIVE_ADDRESS, amountWei);
+        deepLink = buildTPWalletDeepLink(RECEIVE_ADDRESS, price.toString());
         break;
       case 'okx':
         deepLink = buildOKXDeepLink(RECEIVE_ADDRESS, amountWei);
         break;
       case 'binance':
-        deepLink = buildBinanceDeepLink(RECEIVE_ADDRESS, amountWei);
+        deepLink = buildBinanceDeepLink(RECEIVE_ADDRESS, price.toString());
         break;
     }
     

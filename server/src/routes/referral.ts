@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { body, query, validationResult } from 'express-validator';
+import { query } from 'express-validator';
+import { supabase } from '../services/supabase';
 
 const router = Router();
 
-// 模拟数据存储
+// 模拟数据存储（仅用于推荐记录）
 const referralRecords: Array<{
   id: string;
   referrerId: string;
@@ -18,7 +19,8 @@ const referralRecords: Array<{
   settledAt?: string;
 }> = [];
 
-const userReferrals: Record<string, {
+// 缓存用户邀请数据（仅用于内存缓存）
+const userReferralsCache: Record<string, {
   inviteCode?: string;
   totalReward: number;
   directReward: number;
@@ -26,55 +28,97 @@ const userReferrals: Record<string, {
   monthlyStats: Record<string, { totalSubscription: number; extraReward: number }>;
 }> = {};
 
+// 基于用户ID生成固定的邀请码
+function generateInviteCode(userId: string): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    const char = userId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  let code = 'KAI-';
+  for (let i = 0; i < 6; i++) {
+    hash = ((hash << 5) - hash) + i;
+    code += chars.charAt(Math.abs(hash) % chars.length);
+  }
+  return code;
+}
+
+// 从Supabase获取用户邀请码
+async function getInviteCodeFromDB(userId: string): Promise<string | null> {
+  try {
+    if (supabase) {
+      const { data } = await supabase
+        .from('users')
+        .select('invite_code')
+        .eq('id', userId)
+        .single();
+      return data?.invite_code || null;
+    }
+  } catch (error) {
+    console.error('Error fetching invite code from DB:', error);
+  }
+  return null;
+}
+
+// 保存邀请码到Supabase
+async function saveInviteCodeToDB(userId: string, inviteCode: string): Promise<boolean> {
+  try {
+    if (supabase) {
+      const { error } = await supabase
+        .from('users')
+        .update({ invite_code: inviteCode })
+        .eq('id', userId);
+      if (error) {
+        console.error('Error saving invite code:', error);
+        return false;
+      }
+      return true;
+    }
+  } catch (error) {
+    console.error('Error saving invite code to DB:', error);
+  }
+  return false;
+}
+
 // 获取用户邀请信息
-router.get('/info', (req, res) => {
+router.get('/info', async (req, res) => {
   const { userId } = req.query;
   
   if (!userId) {
     return res.status(400).json({ error: 'userId is required' });
   }
+
+  // 优先从数据库获取邀请码
+  let inviteCode = await getInviteCodeFromDB(userId as string);
   
-  const userData = userReferrals[userId as string] || {
-    totalReward: 0,
-    directReward: 0,
-    monthlySupportReward: 0,
-    monthlyStats: {}
-  };
-  
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const monthlyStat = userData.monthlyStats[currentMonth] || { totalSubscription: 0, extraReward: 0 };
-  
-  // 生成唯一的邀请码：KAI- + 6位大写字母数字
-  // 生成唯一的邀请码：基于用户ID的固定哈希值
-  const generateInviteCode = (userId: string) => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    // 基于userId生成固定哈希
-    let hash = 0;
-    for (let i = 0; i < userId.length; i++) {
-      const char = userId.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    let code = 'KAI-';
-    for (let i = 0; i < 6; i++) {
-      hash = ((hash << 5) - hash) + i;
-      code += chars.charAt(Math.abs(hash) % chars.length);
-    }
-    return code;
-  };
-  
-  // 检查是否已有邀请码，没有则基于userId生成
-  const storedCode = userData.inviteCode || generateInviteCode(userId as string);
-  if (!userData.inviteCode) {
-    userData.inviteCode = storedCode;
+  // 如果数据库没有邀请码，生成并保存
+  if (!inviteCode) {
+    inviteCode = generateInviteCode(userId as string);
+    await saveInviteCodeToDB(userId as string, inviteCode);
   }
+
+  // 更新内存缓存
+  if (!userReferralsCache[userId as string]) {
+    userReferralsCache[userId as string] = {
+      totalReward: 0,
+      directReward: 0,
+      monthlySupportReward: 0,
+      monthlyStats: {}
+    };
+  }
+  userReferralsCache[userId as string].inviteCode = inviteCode;
+
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const monthlyStat = userReferralsCache[userId as string].monthlyStats[currentMonth] || { totalSubscription: 0, extraReward: 0 };
   
   res.json({
     success: true,
     data: {
-      inviteCode: storedCode,
-      totalReward: userData.totalReward,
-      directReward: userData.directReward,
+      inviteCode: inviteCode,
+      totalReward: userReferralsCache[userId as string].totalReward,
+      directReward: userReferralsCache[userId as string].directReward,
       monthlySupportReward: monthlyStat.extraReward,
       monthlyTotalSubscription: monthlyStat.totalSubscription,
       totalReferrals: referralRecords.filter(r => r.referrerId === userId).length,
@@ -118,127 +162,23 @@ router.get('/records', (req, res) => {
   });
 });
 
-// 订阅时自动分佣
-router.post('/subscribe-reward',
-  body('userId').isString().notEmpty(),
-  body('userPackage').isString().isIn(['basic', 'pro', 'vip']),
-  body('subscriptionAmount').isNumeric(),
-  body('refereeWallet').optional().isString(),
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    
-    const { userId, userPackage, subscriptionAmount, refereeWallet } = req.body;
-    
-    // 如果有推荐人，计算并分发奖励
-    if (refereeWallet && refereeWallet !== '0x0000000000000000000000000000000000000000') {
-      // 查找推荐人的奖励比例（根据推荐人的套餐等级）
-      // 这里简化处理，默认使用15%基础比例
-      const rewardPercentage = 0.15;
-      const rewardAmount = subscriptionAmount * rewardPercentage;
-      
-      // 创建推荐记录
-      const record = {
-        id: `ref_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        referrerId: refereeWallet,
-        refereeId: userId,
-        refereeWallet: userId,
-        packageType: userPackage,
-        packagePrice: subscriptionAmount,
-        rewardAmount,
-        rewardPercentage,
-        status: 'paid' as const,
-        createdAt: new Date().toISOString(),
-        settledAt: new Date().toISOString(),
-      };
-      
-      referralRecords.push(record);
-      
-      // 更新推荐人统计
-      if (!userReferrals[refereeWallet]) {
-        userReferrals[refereeWallet] = {
-          totalReward: 0,
-          directReward: 0,
-          monthlySupportReward: 0,
-          monthlyStats: {}
-        };
-      }
-      
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      if (!userReferrals[refereeWallet].monthlyStats[currentMonth]) {
-        userReferrals[refereeWallet].monthlyStats[currentMonth] = { totalSubscription: 0, extraReward: 0 };
-      }
-      
-      userReferrals[refereeWallet].totalReward += rewardAmount;
-      userReferrals[refereeWallet].directReward += rewardAmount;
-      userReferrals[refereeWallet].monthlyStats[currentMonth].totalSubscription += subscriptionAmount;
-      
-      // 计算月度推广支持奖励
-      const monthlyTotal = userReferrals[refereeWallet].monthlyStats[currentMonth].totalSubscription;
-      let extraPercentage = 0;
-      if (monthlyTotal >= 150000) extraPercentage = 0.10;
-      else if (monthlyTotal >= 50000) extraPercentage = 0.08;
-      else if (monthlyTotal >= 15000) extraPercentage = 0.06;
-      else if (monthlyTotal >= 5000) extraPercentage = 0.04;
-      else if (monthlyTotal >= 2000) extraPercentage = 0.02;
-      
-      const extraReward = (monthlyTotal * extraPercentage) - userReferrals[refereeWallet].directReward;
-      if (extraReward > 0) {
-        userReferrals[refereeWallet].monthlySupportReward += extraReward;
-        userReferrals[refereeWallet].monthlyStats[currentMonth].extraReward = extraReward;
-      }
-      
-      return res.json({
-        success: true,
-        data: {
-          rewardDistributed: true,
-          rewardAmount,
-          rewardPercentage,
-          referrer: refereeWallet.slice(0, 6) + '...' + refereeWallet.slice(-4),
-        }
-      });
-    }
-    
-    res.json({
-      success: true,
-      data: {
-        rewardDistributed: false,
-        rewardAmount: 0,
-      }
-    });
-  }
-);
-
-// 月底结算推广支持奖励（定时任务调用）
-router.post('/settle-monthly-rewards', async (req, res) => {
-  const currentMonth = new Date().toISOString().slice(0, 7);
+// 获取邀请链接
+router.get('/link', (req, res) => {
+  const { userId } = req.query;
   
-  let totalSettled = 0;
-  
-  for (const userId in userReferrals) {
-    const monthlyStat = userReferrals[userId].monthlyStats[currentMonth];
-    if (monthlyStat && monthlyStat.extraReward > 0) {
-      totalSettled += monthlyStat.extraReward;
-      
-      // 标记为已结算
-      const userRecords = referralRecords.filter(r => r.referrerId === userId);
-      userRecords.forEach(r => {
-        if (r.status === 'pending') {
-          r.status = 'settled';
-          r.settledAt = new Date().toISOString();
-        }
-      });
-    }
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
   }
+  
+  // 使用用户ID生成固定的邀请码
+  const inviteCode = generateInviteCode(userId as string);
+  const inviteLink = `https://kairosdapp.com/register?code=${inviteCode}`;
   
   res.json({
     success: true,
     data: {
-      settledUsers: Object.keys(userReferrals).length,
-      totalSettled,
-      month: currentMonth,
+      inviteCode,
+      inviteLink,
     }
   });
 });

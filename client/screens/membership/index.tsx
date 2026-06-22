@@ -14,21 +14,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 
-// 简化复制函数
-const copyToClipboard = (text: string): void => {
-  if (typeof document !== 'undefined') {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
-    document.body.appendChild(textArea);
-    textArea.select();
-    try {
-      document.execCommand('copy');
-      Alert.alert('复制成功', '地址已复制到剪贴板');
-    } catch (e) {
-      Alert.alert('复制失败', '请手动复制地址');
-    }
-    document.body.removeChild(textArea);
+// 复制函数 - 使用 navigator.clipboard (Web标准API)
+const copyToClipboard = async (text: string): Promise<boolean> => {
+  try {
+    await navigator.clipboard.writeText(text);
+    Alert.alert('复制成功', '地址已复制到剪贴板');
+    return true;
+  } catch (e) {
+    Alert.alert('复制失败', '请手动复制地址: ' + text.substring(0, 10) + '...');
+    return false;
   }
 };
 
@@ -438,15 +432,7 @@ export default function MembershipScreen() {
       `请向以下地址转账 ${price} USDT (BEP20)\n\n${RECEIVE_ADDRESS}\n\n转账完成后，系统将自动开通VIP权限。`,
       [
         { text: '查看支付状态', onPress: () => router.push(`/payment-confirm?orderId=${localOrderId}&walletAddress=${RECEIVE_ADDRESS}&amount=${price}&tier=${selectedPlan.name}`) },
-        { text: '复制地址', onPress: async () => {
-          try {
-            copyToClipboard(RECEIVE_ADDRESS);
-            Alert.alert('复制成功', '收款地址已复制到剪贴板');
-          } catch (error) {
-            console.log('Copy failed:', error);
-            Alert.alert('复制失败', '请手动复制地址: ' + RECEIVE_ADDRESS);
-          }
-        }},
+        { text: '复制地址', onPress: () => copyToClipboard(RECEIVE_ADDRESS) },
       ]
     );
     

@@ -470,17 +470,31 @@ export default function HomeScreen() {
     try {
       const response = await fetch(API_URL + '/api/v1/screener/analysis/realtime');
       const result = await response.json();
-      if (result.success) {
-        setTechData(result.data);
-        setTechStats(result.stats);
+      if (result.success && result.data) {
+        // 将API数据转换为UI期望的格式
+        const transformedData = result.data.slice(0, TECHNICAL_SCENARIOS.length).map((item: any, index: number) => {
+          const scenario = TECHNICAL_SCENARIOS[index % TECHNICAL_SCENARIOS.length];
+          return {
+            ...scenario,
+            symbol: item.symbol,
+            name: item.name,
+            price: item.price,
+            change: item.change,
+            rsi: item.indicators?.rsi,
+            macd: item.indicators?.macd,
+          };
+        });
+        setTechData(transformedData.length > 0 ? transformedData : TECHNICAL_SCENARIOS);
+        setTechStats(result.stats || {});
         setLastUpdate(new Date());
-        
-        // 触发闪烁效果
-        setUpdateFlash(true);
-        setTimeout(() => setUpdateFlash(false), 500);
+      } else {
+        // API返回失败时使用静态数据
+        setTechData(TECHNICAL_SCENARIOS);
       }
     } catch (error) {
       console.error('Failed to fetch tech data:', error);
+      // 网络错误时使用静态数据
+      setTechData(TECHNICAL_SCENARIOS);
     } finally {
       setTechLoading(false);
     }
@@ -506,7 +520,7 @@ export default function HomeScreen() {
     fetchTechData();
     const techInterval = setInterval(() => {
       fetchTechData();
-    }, 5000); // 每5秒更新一次
+    }, 30000); // 每30秒更新一次
     return () => clearInterval(techInterval);
   }, [fetchTechData]);
 
@@ -535,7 +549,7 @@ export default function HomeScreen() {
     fetchFeaturedData();
     const featuredInterval = setInterval(() => {
       fetchFeaturedData();
-    }, 5000); // 每5秒更新一次
+    }, 30000); // 每30秒更新一次
     return () => clearInterval(featuredInterval);
   }, [fetchFeaturedData]);
 
@@ -604,7 +618,7 @@ export default function HomeScreen() {
     fetchCategoryData();
     const categoryInterval = setInterval(() => {
       fetchCategoryData();
-    }, 5000); // 每5秒更新一次
+    }, 30000); // 每30秒更新一次
     return () => clearInterval(categoryInterval);
   }, [fetchCategoryData]);
 

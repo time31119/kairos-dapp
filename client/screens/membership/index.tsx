@@ -13,44 +13,40 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 
-// 检测是否为Web环境
-const isWeb = typeof window !== 'undefined' && typeof navigator !== 'undefined';
+// Web复制函数 - 使用input元素
+const webCopy = (text: string, onSuccess?: () => void, onFail?: () => void) => {
+  try {
+    const input = document.createElement('input');
+    input.setAttribute('readonly', 'readonly');
+    input.setAttribute('value', text);
+    input.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;';
+    document.body.appendChild(input);
+    input.setSelectionRange(0, 9999);
+    const success = document.execCommand('copy');
+    document.body.removeChild(input);
+    if (success) {
+      onSuccess?.();
+    } else {
+      onFail?.();
+    }
+    return success;
+  } catch (e) {
+    onFail?.();
+    return false;
+  }
+};
 
-// 复制函数 - 通用方式
+// 复制函数
 const copyToClipboard = async (text: string, onSuccess?: () => void, onFail?: () => void): Promise<boolean> => {
   try {
-    if (isWeb) {
-      // Web环境: 优先使用Clipboard API
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-        console.log('Copy success via navigator.clipboard');
-        onSuccess?.();
-        return true;
-      }
-      // Fallback: 使用 textarea + execCommand
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
-      document.body.appendChild(textarea);
-      textarea.focus();
-      textarea.select();
-      const success = document.execCommand('copy');
-      document.body.removeChild(textarea);
-      if (success) {
-        console.log('Copy success via execCommand');
-        onSuccess?.();
-      } else {
-        console.log('Copy failed via execCommand');
-        onFail?.();
-      }
-      return success;
-    } else {
-      // Native环境: 使用 expo-clipboard
-      await Clipboard.setStringAsync(text);
-      console.log('Copy success via expo-clipboard');
-      onSuccess?.();
-      return true;
+    // Web环境
+    if (typeof document !== 'undefined') {
+      return webCopy(text, onSuccess, onFail);
     }
+    // Native环境
+    await Clipboard.setStringAsync(text);
+    onSuccess?.();
+    return true;
   } catch (e) {
     console.error('Copy error:', e);
     onFail?.();

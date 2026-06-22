@@ -365,7 +365,7 @@ export default function CopytradingScreen() {
             />
           }
         >
-          {filteredTraders.map((trader, index) => (
+          {filteredTraders.slice(0, 10).map((trader, index) => (
             <TouchableOpacity
               key={trader.id || index}
               style={styles.traderCard}

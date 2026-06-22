@@ -568,13 +568,17 @@ export default function HomeScreen() {
     try {
       const response = await fetch(API_URL + '/api/v1/screener/scenarios/realtime');
       const result = await response.json();
-      if (result.success) {
+      if (result.success && result.data) {
+        // 后端返回 result.data.gainers / result.data.losers
+        const gainers = result.data.gainers || [];
+        const losers = result.data.losers || [];
+        
         // 数据去重处理，确保涨跌幅榜没有重复
-        const uniqueGainers = (result.globalGainers || []).filter(
+        const uniqueGainers = gainers.filter(
           (token: any, index: number, self: any[]) =>
             index === self.findIndex((t: any) => t.symbol === token.symbol)
         );
-        const uniqueLosers = (result.globalLosers || []).filter(
+        const uniqueLosers = losers.filter(
           (token: any, index: number, self: any[]) =>
             index === self.findIndex((t: any) => t.symbol === token.symbol)
         );

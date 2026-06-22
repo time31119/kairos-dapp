@@ -14,43 +14,37 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 
-// Web平台兼容性复制函数 - 使用多种方式确保复制成功
+// Web平台兼容性复制函数
 const copyToClipboard = async (text: string): Promise<boolean> => {
-  // 方法1: Web Navigator Clipboard API (优先，因为最可靠)
-  try {
-    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+  // Web Navigator Clipboard API (最可靠)
+  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+    try {
       await navigator.clipboard.writeText(text);
       return true;
+    } catch (e) {
+      console.log('navigator.clipboard failed:', e);
     }
-  } catch (e1) {
-    console.log('navigator.clipboard failed:', e1);
   }
   
-  // 方法2: expo-clipboard (RN 环境)
-  try {
-    if (typeof Clipboard !== 'undefined' && Clipboard.setStringAsync) {
-      await Clipboard.setStringAsync(text);
-      return true;
-    }
-  } catch (e2) {
-    console.log('expo-clipboard failed:', e2);
-  }
-  
-  // 方法3: 传统的 textarea + execCommand 方式 (Web Fallback)
-  try {
-    if (typeof document !== 'undefined') {
+  // Fallback: document.execCommand
+  if (typeof document !== 'undefined') {
+    try {
       const textArea = document.createElement('textarea');
       textArea.value = text;
-      textArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-9999px';
+      textArea.style.top = '0';
+      textArea.style.opacity = '0';
+      textArea.style.zIndex = '-1';
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();
       const result = document.execCommand('copy');
       document.body.removeChild(textArea);
       if (result) return true;
+    } catch (e) {
+      console.log('document.execCommand failed:', e);
     }
-  } catch (e3) {
-    console.log('textarea fallback failed:', e3);
   }
   
   return false;
@@ -795,12 +789,11 @@ export default function MembershipScreen() {
               className="py-4 rounded-xl items-center mb-3"
               style={{ backgroundColor: '#059669' }}
               onPress={async () => {
-                try {
-                  await copyToClipboard(RECEIVE_ADDRESS);
+                const success = await copyToClipboard(RECEIVE_ADDRESS);
+                if (success) {
                   Alert.alert('复制成功', '收款地址已复制到剪贴板');
-                } catch (error) {
-                  console.log('Copy failed:', error);
-                  Alert.alert('复制失败', '请手动复制地址: ' + RECEIVE_ADDRESS);
+                } else {
+                  Alert.alert('复制失败', '请手动复制: ' + RECEIVE_ADDRESS);
                 }
               }}
             >

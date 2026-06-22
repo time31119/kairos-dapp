@@ -149,7 +149,7 @@ export default function MembershipScreen() {
           }
         }
         
-        // 后端没有邀请码，使用本地保存的
+        // 后端没有邀请码，优先使用本地保存的（确保同一账号使用固定邀请码）
         const walletAddr = (await AsyncStorage.getItem('wallet_address')) || '';
         setUserWalletAddress(walletAddr);
         const savedCode = await AsyncStorage.getItem('invite_code');
@@ -158,10 +158,24 @@ export default function MembershipScreen() {
           return;
         }
         
-        // 生成新的固定邀请码
-        const newCode = generateFixedInviteCode(walletAddr || Date.now().toString());
-        setInviteCode(newCode);
-        await AsyncStorage.setItem('invite_code', newCode);
+        // 本地也没有，调用API生成邀请码（后端会确保每个用户只有固定邀请码）
+        if (userId) {
+          try {
+            const createResponse = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/referral/generate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId }),
+            });
+            const createData = await createResponse.json();
+            if (createData.success && createData.data?.inviteCode) {
+              setInviteCode(createData.data.inviteCode);
+              await AsyncStorage.setItem('invite_code', createData.data.inviteCode);
+              return;
+            }
+          } catch (e) {
+            console.log('Failed to generate invite code');
+          }
+        }
       } catch (error) {
         console.log('Error initializing invite code:', error);
       }

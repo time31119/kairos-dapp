@@ -68,17 +68,14 @@ except Exception as e:
   }
 }
 
-function getSupabaseCredentials(): SupabaseCredentials {
+function getSupabaseCredentials(): SupabaseCredentials | null {
   loadEnv();
 
   const url = process.env.COZE_SUPABASE_URL;
   const anonKey = process.env.COZE_SUPABASE_ANON_KEY;
 
-  if (!url) {
-    return null; // COZE_SUPABASE_URL not set;
-  }
-  if (!anonKey) {
-    return null; // ANON_KEY not set;
+  if (!url || !anonKey) {
+    return null; // 返回null而不是抛出错误
   }
 
   return { url, anonKey };
@@ -92,7 +89,7 @@ function getSupabaseServiceRoleKey(): string | undefined {
 function getSupabaseClient(token?: string): SupabaseClient | null {
   const creds = getSupabaseCredentials();
   if (!creds) {
-    return null;
+    return null; // 没有凭证时返回null
   }
   const { url, anonKey } = creds;
 

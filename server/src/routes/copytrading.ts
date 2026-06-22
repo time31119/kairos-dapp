@@ -129,7 +129,7 @@ router.get('/traders', async (req, res) => {
     // 从 DeFiLlama 获取真实数据
     const protocols = await fetchDeFiLlamaData();
     
-    let traders = [];
+    let traders: any[] = [];
     let stats = {
       totalTraders: 0,
       totalFollowers: 0,
@@ -184,10 +184,10 @@ router.get('/traders', async (req, res) => {
         totalTraders: protocols.length,
         totalFollowers: traders.reduce((sum: number, t: any) => sum + t.followers, 0),
         avgWinRate: traders.length > 0 
-          ? (traders.reduce((sum: number, t: any) => sum + t.winRate, 0) / traders.length).toFixed(1)
+          ? Number((traders.reduce((sum: number, t: any) => sum + t.winRate, 0) / traders.length).toFixed(1))
           : 0,
         avgReturns: traders.length > 0 
-          ? (traders.reduce((sum: number, t: any) => sum + t.returns, 0) / traders.length).toFixed(1)
+          ? Number((traders.reduce((sum: number, t: any) => sum + t.returns, 0) / traders.length).toFixed(1))
           : 0,
       };
     } else {
@@ -309,9 +309,9 @@ router.get('/market', async (req, res) => {
   try {
     // 获取主流加密货币价格
     const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'ADAUSDT', 'DOGEUSDT', 'XRPUSDT', 'DOTUSDT'];
-    const prices = await fetchCryptoPrices(symbols);
+    const pricesRaw = await fetchCryptoPrices(symbols);
     
-    if (!prices) {
+    if (!pricesRaw) {
       return res.json({
         success: true,
         data: {
@@ -324,6 +324,7 @@ router.get('/market', async (req, res) => {
       });
     }
     
+    const prices = pricesRaw as any[];
     const btcData = prices.find((p: any) => p.symbol === 'BTCUSDT');
     const ethData = prices.find((p: any) => p.symbol === 'ETHUSDT');
     

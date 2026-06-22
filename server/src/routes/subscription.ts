@@ -129,12 +129,8 @@ router.post('/create', async (req, res) => {
       return res.status(400).json({ success: false, message: '无效的订阅方案' });
     }
     
-    const order = await createSubscription({
-      userId: walletAddress,
-      walletAddress,
-      tier,
-      paymentMethod,
-    });
+    // 注意：txHash需要在支付完成后由客户端调用 confirm-payment 接口确认
+    const order = await createSubscription(walletAddress, tier as SubscriptionTier, '');
     
     res.json({
       success: true,
@@ -156,13 +152,13 @@ router.post('/create', async (req, res) => {
  */
 router.post('/confirm', async (req, res) => {
   try {
-    const { orderId, txHash } = req.body;
+    const { txHash } = req.body;
     
-    if (!orderId) {
-      return res.status(400).json({ success: false, message: '缺少订单ID' });
+    if (!txHash) {
+      return res.status(400).json({ success: false, message: '缺少交易哈希' });
     }
     
-    const result = await confirmSubscription(orderId, txHash);
+    const result = await confirmSubscription(txHash);
     res.json({ success: true, data: result });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -174,17 +170,13 @@ router.post('/confirm', async (req, res) => {
  */
 router.post('/monitor', async (req, res) => {
   try {
-    const { orderId, walletAddress, expectedAmount } = req.body;
+    const { txHash } = req.body;
     
-    if (!orderId || !walletAddress || !expectedAmount) {
-      return res.status(400).json({ success: false, message: '参数不完整' });
+    if (!txHash) {
+      return res.status(400).json({ success: false, message: '缺少交易哈希' });
     }
     
-    const result = await monitorPayment({
-      orderId,
-      walletAddress,
-      expectedAmount,
-    });
+    const result = await monitorPayment(txHash);
     
     res.json({ success: true, data: result });
   } catch (error: any) {
@@ -215,17 +207,22 @@ router.post('/cancel', async (req, res) => {
  */
 router.post('/upgrade', async (req, res) => {
   try {
-    const { orderId, newTier } = req.body;
+    const walletAddress = req.headers['x-wallet-address'] as string;
+    if (!walletAddress) {
+      return res.status(401).json({ success: false, message: '缺少钱包地址' });
+    }
     
-    if (!orderId || !newTier) {
-      return res.status(400).json({ success: false, message: '参数不完整' });
+    const { newTier } = req.body;
+    
+    if (!newTier) {
+      return res.status(400).json({ success: false, message: '缺少新订阅方案' });
     }
     
     if (!Object.values(SubscriptionTier).includes(newTier)) {
       return res.status(400).json({ success: false, message: '无效的订阅方案' });
     }
     
-    const result = await upgradeSubscription(orderId, newTier);
+    const result = await upgradeSubscription(walletAddress, newTier, '');
     res.json({ success: true, data: result });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

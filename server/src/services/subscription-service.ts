@@ -1,24 +1,43 @@
 /**
- * Subscription Service - 使用 Supabase 数据库
+ * Subscription Service - 支持无Supabase运行（使用mock数据）
  */
-import { getSupabaseClient } from '../storage/database/supabase-client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
-const supabase = getSupabaseClient();
+// 懒加载Supabase客户端
+let supabase: SupabaseClient | null = null;
+let supabaseInitialized = false;
+
+function getSupabase(): SupabaseClient | null {
+  if (supabaseInitialized) return supabase;
+  
+  try {
+    // 动态导入避免循环依赖
+    const { getSupabaseClient } = require('../storage/database/supabase-client');
+    supabase = getSupabaseClient();
+  } catch (e) {
+    console.log('[Subscription] Supabase not configured, using mock data');
+    supabase = null;
+  }
+  supabaseInitialized = true;
+  return supabase;
+}
 
 // 订阅方案枚举
-export enum SubscriptionTier {
-  SILVER = 'silver',     // 白银版 $99/月
-  GOLD = 'gold',         // 黄金版 $199/月
-  DIAMOND = 'diamond',    // 钻石版 $299/月
-}
+export const SubscriptionTier = {
+  SILVER: 'silver',
+  GOLD: 'gold',
+  DIAMOND: 'diamond',
+} as const;
+export type SubscriptionTier = typeof SubscriptionTier[keyof typeof SubscriptionTier];
 
 // 订阅状态枚举
-export enum SubscriptionStatus {
-  ACTIVE = 'active',
-  EXPIRED = 'expired',
-  CANCELLED = 'cancelled',
-  PENDING = 'pending',    // 待支付
-}
+export const SubscriptionStatus = {
+  ACTIVE: 'active',
+  EXPIRED: 'expired',
+  CANCELLED: 'cancelled',
+  PENDING: 'pending',
+} as const;
+export type SubscriptionStatus = typeof SubscriptionStatus[keyof typeof SubscriptionStatus];
 
 // USDT 收款地址
 export const PAYMENT_ADDRESS = 'TxxxxWalletAddress'; // TODO: 替换为实际地址
@@ -67,13 +86,22 @@ export const BENEFITS: Record<SubscriptionTier, { name: string; items: string[] 
   },
 };
 
+// Mock数据存储
+const mockSubscriptions = new Map<string, any>();
+const mockOrders = new Map<string, any[]>();
+
 // ==================== 数据库操作 ====================
 
 /**
  * 获取用户订阅信息
  */
 export async function getUserSubscription(userId: string) {
-  const { data, error } = await supabase
+  const client = getSupabase();
+  if (!client) {
+    return mockSubscriptions.get(userId) || null;
+  }
+  
+  const { data, error } = await client
     .from('subscriptions')
     .select('*')
     .eq('user_id', userId)
@@ -88,7 +116,12 @@ export async function getUserSubscription(userId: string) {
  * 获取用户所有订单
  */
 export async function getUserOrders(userId: string) {
-  const { data, error } = await supabase
+  const client = getSupabase();
+  if (!client) {
+    return mockOrders.get(userId) || [];
+  }
+  
+  const { data, error } = await client
     .from('subscriptions')
     .select('*')
     .eq('user_id', userId)
@@ -99,51 +132,125 @@ export async function getUserOrders(userId: string) {
 }
 
 /**
- * 创建新订阅/订单
+ * 创建订阅订单
  */
-export async function createSubscription(params: {
-  userId: string;
-  walletAddress: string;
-  tier: SubscriptionTier;
-  paymentMethod?: string;
-}) {
-  const { data, error } = await supabase
+export async function createSubscription(userId: string, tier: SubscriptionTier, txHash: string) {
+  const client = getSupabase();
+  const order = {
+    id: `order_${Date.now()}`,
+    user_id: userId,
+    tier,
+    status: SubscriptionStatus.PENDING,
+    tx_hash: txHash,
+    created_at: new Date().toISOString(),
+    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+  };
+
+  if (!client) {
+    mockOrders.set(userId, [...(mockOrders.get(userId) || []), order]);
+    return order;
+  }
+
+  const { data, error } = await client
     .from('subscriptions')
-    .insert({
-      user_id: params.userId,
-      wallet_address: params.walletAddress,
-      tier: params.tier,
-      price: PRICING[params.tier],
-      status: SubscriptionStatus.PENDING,
-      payment_method: params.paymentMethod || 'USDT',
-    })
+    .insert(order)
     .select()
-    .single();
-  
-  if (error) throw new Error(`创建订单失败: ${error.message}`);
+    .maybeSingle();
+
+  if (error) throw new Error(`创建订阅失败: ${error.message}`);
   return data;
 }
 
 /**
- * 确认支付成功
+ * 激活订阅
  */
-export async function confirmSubscription(orderId: string, txHash?: string) {
-  // 计算到期时间
-  const now = new Date();
-  const expireAt = new Date(now.setMonth(now.getMonth() + 1));
-  
-  const { data, error } = await supabase
+export async function activateSubscription(userId: string, txHash: string) {
+  const client = getSupabase();
+  if (!client) {
+    const orders = mockOrders.get(userId) || [];
+    const order = orders.find(o => o.tx_hash === txHash);
+    if (order) {
+      order.status = SubscriptionStatus.ACTIVE;
+    }
+    mockSubscriptions.set(userId, order);
+    return order;
+  }
+
+  const { data, error } = await client
     .from('subscriptions')
-    .update({
-      status: SubscriptionStatus.ACTIVE,
-      tx_hash: txHash,
-      activated_at: new Date().toISOString(),
-      expire_at: expireAt.toISOString(),
-    })
-    .eq('id', orderId)
+    .update({ status: SubscriptionStatus.ACTIVE })
+    .eq('tx_hash', txHash)
+    .eq('user_id', userId)
     .select()
-    .single();
+    .maybeSingle();
+
+  if (error) throw new Error(`激活订阅失败: ${error.message}`);
+  return data;
+}
+
+/**
+ * 验证订阅状态
+ */
+export async function checkSubscriptionStatus(userId: string): Promise<{
+  isActive: boolean;
+  tier: SubscriptionTier | null;
+  expiresAt: string | null;
+}> {
+  const subscription = await getUserSubscription(userId);
   
+  if (!subscription) {
+    return { isActive: false, tier: null, expiresAt: null };
+  }
+
+  if (subscription.status !== SubscriptionStatus.ACTIVE) {
+    return { isActive: false, tier: null, expiresAt: null };
+  }
+
+  const now = new Date();
+  const expiresAt = new Date(subscription.expires_at);
+  
+  if (expiresAt < now) {
+    return { isActive: false, tier: null, expiresAt: null };
+  }
+
+  return {
+    isActive: true,
+    tier: subscription.tier,
+    expiresAt: subscription.expires_at,
+  };
+}
+
+/**
+ * 确认订阅（管理员操作）
+ */
+export async function confirmSubscription(txHash: string) {
+  const client = getSupabase();
+  if (!client) {
+    // 在mock中查找并激活
+    for (const [userId, orders] of mockOrders.entries()) {
+      const order = orders.find((o: any) => o.tx_hash === txHash);
+      if (order) {
+        order.status = SubscriptionStatus.ACTIVE;
+        order.confirmed_at = new Date().toISOString();
+        order.expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        mockSubscriptions.set(userId, order);
+        return order;
+      }
+    }
+    return null;
+  }
+
+  const { data, error } = await client
+    .from('subscriptions')
+    .update({ 
+      status: SubscriptionStatus.ACTIVE,
+      confirmed_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    })
+    .eq('tx_hash', txHash)
+    .select()
+    .maybeSingle();
+
   if (error) throw new Error(`确认订阅失败: ${error.message}`);
   return data;
 }
@@ -151,17 +258,24 @@ export async function confirmSubscription(orderId: string, txHash?: string) {
 /**
  * 取消订阅
  */
-export async function cancelSubscription(orderId: string) {
-  const { data, error } = await supabase
+export async function cancelSubscription(userId: string) {
+  const client = getSupabase();
+  if (!client) {
+    const subscription = mockSubscriptions.get(userId);
+    if (subscription) {
+      subscription.status = SubscriptionStatus.CANCELLED;
+    }
+    return subscription;
+  }
+
+  const { data, error } = await client
     .from('subscriptions')
-    .update({
-      status: SubscriptionStatus.CANCELLED,
-      cancelled_at: new Date().toISOString(),
-    })
-    .eq('id', orderId)
+    .update({ status: SubscriptionStatus.CANCELLED })
+    .eq('user_id', userId)
+    .eq('status', SubscriptionStatus.ACTIVE)
     .select()
-    .single();
-  
+    .maybeSingle();
+
   if (error) throw new Error(`取消订阅失败: ${error.message}`);
   return data;
 }
@@ -169,106 +283,70 @@ export async function cancelSubscription(orderId: string) {
 /**
  * 升级订阅
  */
-export async function upgradeSubscription(orderId: string, newTier: SubscriptionTier) {
-  const { data: current, error: fetchError } = await supabase
+export async function upgradeSubscription(userId: string, newTier: SubscriptionTier, txHash: string) {
+  const client = getSupabase();
+  // 先取消旧订阅
+  await cancelSubscription(userId);
+  
+  // 创建新订阅
+  return createSubscription(userId, newTier, txHash);
+}
+
+/**
+ * 监控支付（轮询查询）
+ */
+export async function monitorPayment(txHash: string): Promise<{
+  status: SubscriptionStatus | null;
+  order: any;
+}> {
+  const client = getSupabase();
+  if (!client) {
+    for (const [userId, orders] of mockOrders.entries()) {
+      const order = orders.find((o: any) => o.tx_hash === txHash);
+      if (order) {
+        return { status: order.status, order };
+      }
+    }
+    return { status: null, order: null };
+  }
+
+  const { data, error } = await client
     .from('subscriptions')
     .select('*')
-    .eq('id', orderId)
+    .eq('tx_hash', txHash)
     .maybeSingle();
-  
-  if (fetchError) throw new Error(`获取订阅失败: ${fetchError.message}`);
-  if (!current) throw new Error('订阅不存在');
-  
-  // 计算差价
-  const priceDiff = PRICING[newTier] - current.price;
-  const now = new Date();
-  const expireAt = new Date(now.setMonth(now.getMonth() + 1));
-  
-  const { data, error } = await supabase
-    .from('subscriptions')
-    .update({
-      tier: newTier,
-      price: PRICING[newTier],
-      status: SubscriptionStatus.ACTIVE,
-      upgraded_from: current.tier,
-      upgraded_at: new Date().toISOString(),
-      expire_at: expireAt.toISOString(),
-    })
-    .eq('id', orderId)
-    .select()
-    .single();
-  
-  if (error) throw new Error(`升级订阅失败: ${error.message}`);
-  return { subscription: data, priceDiff };
-}
 
-/**
- * 查询链上交易 (模拟 - 实际需要第三方API如 TRONSCAN)
- */
-export async function checkOnChainTransaction(walletAddress: string, expectedAmount: number) {
-  // TODO: 接入 TRONSCAN API 或其他链上数据源
-  // 这里返回模拟数据，实际需要调用第三方API
-  
-  // 模拟返回
-  return {
-    found: false,
-    txHash: null,
-    amount: 0,
-    timestamp: null,
-  };
-}
-
-/**
- * 监听钱包地址交易 (后台任务)
- */
-export async function monitorPayment(params: {
-  orderId: string;
-  walletAddress: string;
-  expectedAmount: number;
-}) {
-  const { data, error } = await supabase
-    .from('subscriptions')
-    .select('status')
-    .eq('id', params.orderId)
-    .maybeSingle();
-  
-  if (error) throw new Error(`查询订单失败: ${error.message}`);
-  if (!data) throw new Error('订单不存在');
-  if (data.status === SubscriptionStatus.ACTIVE) {
-    return { success: true, message: '订单已激活' };
-  }
-  
-  // 查询链上交易
-  const txResult = await checkOnChainTransaction(params.walletAddress, params.expectedAmount);
-  
-  if (txResult.found && txResult.amount >= params.expectedAmount) {
-    // 确认支付
-    await confirmSubscription(params.orderId, txResult.txHash || undefined);
-    return { success: true, message: '支付确认成功' };
-  }
-  
-  return { success: false, message: '等待链上确认...' };
+  if (error) throw new Error(`监控支付失败: ${error.message}`);
+  return { status: data?.status || null, order: data };
 }
 
 /**
  * 获取订阅统计数据
  */
 export async function getSubscriptionStats() {
-  const { data: total, error: totalError } = await supabase
+  const client = getSupabase();
+  if (!client) {
+    const totalOrders = Array.from(mockOrders.values()).flat().length;
+    const activeOrders = Array.from(mockOrders.values()).flat()
+      .filter((o: any) => o.status === SubscriptionStatus.ACTIVE).length;
+    return {
+      totalSubscriptions: totalOrders,
+      activeSubscriptions: activeOrders,
+      revenue: totalOrders * 99, // mock计算
+    };
+  }
+
+  const { data, error } = await client
     .from('subscriptions')
-    .select('*', { count: 'exact', head: true });
+    .select('tier, status');
+
+  if (error) throw new Error(`获取统计失败: ${error.message}`);
   
-  if (totalError) throw new Error(`统计失败: ${totalError.message}`);
-  
-  const { data: active, error: activeError } = await supabase
-    .from('subscriptions')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', SubscriptionStatus.ACTIVE);
-  
-  if (activeError) throw new Error(`统计失败: ${activeError.message}`);
+  const activeCount = data?.filter((s: any) => s.status === SubscriptionStatus.ACTIVE).length || 0;
   
   return {
-    totalSubscriptions: total || 0,
-    activeSubscriptions: active || 0,
+    totalSubscriptions: data?.length || 0,
+    activeSubscriptions: activeCount,
+    revenue: data?.reduce((sum: number, s: any) => sum + (PRICING[s.tier as SubscriptionTier] || 0), 0) || 0,
   };
 }

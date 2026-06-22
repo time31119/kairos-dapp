@@ -781,7 +781,15 @@ export default function MembershipScreen() {
             
             <View className="p-4 rounded-xl mb-4" style={{ backgroundColor: '#111827' }}>
               <Text className="text-sm text-gray-400 mb-2">收款地址 (BSC)</Text>
-              <Text className="text-sm text-gray-200 break-all font-mono leading-relaxed">{RECEIVE_ADDRESS}</Text>
+              <View className="flex-row items-center justify-between">
+                <Text 
+                  className="text-sm text-gray-200 font-mono flex-1" 
+                  selectable={true}
+                >
+                  {RECEIVE_ADDRESS}
+                </Text>
+                <Text className="text-xs text-gray-500 ml-2">长按复制</Text>
+              </View>
             </View>
             
             {selectedPlan && (

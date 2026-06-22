@@ -647,7 +647,7 @@ export default function SignalScreen() {
       </View>
       
       <View style={styles.timeline}>
-        {institutions.map((item, index) => (
+        {institutions.slice(0, 10).map((item, index) => (
           <View key={item.id} style={styles.timelineItem}>
             <View style={styles.timelineDot} />
             {index < institutions.length - 1 && <View style={styles.timelineLine} />}

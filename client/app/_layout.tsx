@@ -140,6 +140,7 @@ export default function RootLayout() {
             <Stack.Screen name="follow" />
             <Stack.Screen name="notifications" />
             <Stack.Screen name="screener" />
+            <Stack.Screen name="ai-strategy" />
           </Stack>
           <Toast />
         </SubscriptionProvider>

@@ -129,7 +129,7 @@ export default function AIStrategy() {
     <Screen>
       <ScrollView style={styles.container}>
         {/* 返回按钮 */}
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.navigate('/')}>
           <Ionicons name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
 

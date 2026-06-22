@@ -770,14 +770,7 @@ export default function MembershipScreen() {
             <TouchableOpacity
               className="py-4 rounded-xl items-center mb-3"
               style={{ backgroundColor: '#059669' }}
-              onPress={async () => {
-                const success = copyToClipboard(RECEIVE_ADDRESS);
-                if (success) {
-                  Alert.alert('复制成功', '收款地址已复制到剪贴板');
-                } else {
-                  Alert.alert('复制失败', '请手动复制: ' + RECEIVE_ADDRESS);
-                }
-              }}
+              onPress={() => copyToClipboard(RECEIVE_ADDRESS)}
             >
               <Text className="text-lg font-bold text-white">复制收款地址</Text>
             </TouchableOpacity>

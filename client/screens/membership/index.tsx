@@ -237,6 +237,8 @@ async function tpWalletWeb3Transfer(toAddress: string, amount: string): Promise<
     }
     const accounts = await tpProvider.request({ method: 'eth_requestAccounts' });
     if (!accounts || accounts.length === 0) return false;
+    
+    // USDT转账需要的gaslimit大约是60000
     const txHash = await tpProvider.request({
       method: 'eth_sendTransaction',
       params: [{
@@ -244,6 +246,8 @@ async function tpWalletWeb3Transfer(toAddress: string, amount: string): Promise<
         to: USDT_CONTRACT,
         data: buildUSDTTransferData(toAddress, amount),
         value: '0x0',
+        gas: '0xEA60', // 60000 in hex
+        gasPrice: '0x4A817C800', // ~20 Gwei in hex
       }],
     });
     return !!txHash;

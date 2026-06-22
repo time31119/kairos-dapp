@@ -14,6 +14,28 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 
+// Web平台兼容性复制函数
+const copyToClipboard = async (text: string): Promise<boolean> => {
+  try {
+    // 首先尝试 expo-clipboard
+    if (Clipboard.setStringAsync) {
+      await Clipboard.setStringAsync(text);
+      return true;
+    }
+  } catch (e1) {
+    // expo-clipboard 失败，尝试 Web API
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (e2) {
+      // Web API 也失败
+    }
+  }
+  return false;
+};
+
 // BSC USDT 收款地址
 const RECEIVE_ADDRESS = '0x769ecB24694F56d75d6eaaD5F634d99eF12c407d';
 // BSC USDT 合约地址 (BEP20)
@@ -320,7 +342,7 @@ export default function MembershipScreen() {
   // 复制邀请码
   const handleCopyCode = async () => {
     try {
-      await Clipboard.setStringAsync(inviteCode);
+      await copyToClipboard(inviteCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
@@ -332,7 +354,7 @@ export default function MembershipScreen() {
   const handleCopyInviteLink = async () => {
     const link = `https://kairosdapp.com/membership?invite=${inviteCode}`;
     try {
-      await Clipboard.setStringAsync(link);
+      await copyToClipboard(link);
       Alert.alert('成功', '邀请链接已复制');
     } catch (error) {
       console.log('Copy failed:', error);
@@ -418,7 +440,7 @@ export default function MembershipScreen() {
         { text: '查看支付状态', onPress: () => router.push(`/payment-confirm?orderId=${localOrderId}&walletAddress=${RECEIVE_ADDRESS}&amount=${price}&tier=${selectedPlan.name}`) },
         { text: '复制地址', onPress: async () => {
           try {
-            await Clipboard.setStringAsync(RECEIVE_ADDRESS);
+            await copyToClipboard(RECEIVE_ADDRESS);
             Alert.alert('复制成功', '收款地址已复制到剪贴板');
           } catch (error) {
             console.log('Copy failed:', error);
@@ -750,7 +772,7 @@ export default function MembershipScreen() {
               style={{ backgroundColor: '#059669' }}
               onPress={async () => {
                 try {
-                  await Clipboard.setStringAsync(RECEIVE_ADDRESS);
+                  await copyToClipboard(RECEIVE_ADDRESS);
                   Alert.alert('复制成功', '收款地址已复制到剪贴板');
                 } catch (error) {
                   console.log('Copy failed:', error);

@@ -286,7 +286,7 @@ export default function MembershipScreen() {
         // 如果有userId，优先从后端获取邀请码
         if (userId) {
           try {
-            const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/referral/stats?userId=${userId}`);
+            const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_BASE_URL}/api/v1/referral/info?userId=${userId}`);
             const data = await response.json();
             if (data.success && data.data.inviteCode) {
               setInviteCode(data.data.inviteCode);

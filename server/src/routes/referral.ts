@@ -45,17 +45,26 @@ router.get('/info', (req, res) => {
   const monthlyStat = userData.monthlyStats[currentMonth] || { totalSubscription: 0, extraReward: 0 };
   
   // 生成唯一的邀请码：KAI- + 6位大写字母数字
-  const generateInviteCode = () => {
+  // 生成唯一的邀请码：基于用户ID的固定哈希值
+  const generateInviteCode = (userId: string) => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    // 基于userId生成固定哈希
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      const char = userId.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
     let code = 'KAI-';
     for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
+      hash = ((hash << 5) - hash) + i;
+      code += chars.charAt(Math.abs(hash) % chars.length);
     }
     return code;
   };
   
-  // 检查是否已有邀请码，没有则生成新的
-  const storedCode = userData.inviteCode || generateInviteCode();
+  // 检查是否已有邀请码，没有则基于userId生成
+  const storedCode = userData.inviteCode || generateInviteCode(userId as string);
   if (!userData.inviteCode) {
     userData.inviteCode = storedCode;
   }

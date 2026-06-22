@@ -14,40 +14,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 
-// Web平台兼容性复制函数
-const copyToClipboard = async (text: string): Promise<boolean> => {
-  // Web Navigator Clipboard API (最可靠)
-  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch (e) {
-      console.log('navigator.clipboard failed:', e);
-    }
-  }
-  
-  // Fallback: document.execCommand
+// 简化复制函数
+const copyToClipboard = (text: string): void => {
   if (typeof document !== 'undefined') {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
+    document.body.appendChild(textArea);
+    textArea.select();
     try {
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-9999px';
-      textArea.style.top = '0';
-      textArea.style.opacity = '0';
-      textArea.style.zIndex = '-1';
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      const result = document.execCommand('copy');
-      document.body.removeChild(textArea);
-      if (result) return true;
+      document.execCommand('copy');
+      Alert.alert('复制成功', '地址已复制到剪贴板');
     } catch (e) {
-      console.log('document.execCommand failed:', e);
+      Alert.alert('复制失败', '请手动复制地址');
     }
+    document.body.removeChild(textArea);
   }
-  
-  return false;
 };
 
 // BSC USDT 收款地址
@@ -360,7 +342,7 @@ export default function MembershipScreen() {
   // 复制邀请码
   const handleCopyCode = async () => {
     try {
-      await copyToClipboard(inviteCode);
+      copyToClipboard(inviteCode);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
@@ -372,7 +354,7 @@ export default function MembershipScreen() {
   const handleCopyInviteLink = async () => {
     const link = `https://kairosdapp.com/membership?invite=${inviteCode}`;
     try {
-      await copyToClipboard(link);
+      copyToClipboard(link);
       Alert.alert('成功', '邀请链接已复制');
     } catch (error) {
       console.log('Copy failed:', error);
@@ -458,7 +440,7 @@ export default function MembershipScreen() {
         { text: '查看支付状态', onPress: () => router.push(`/payment-confirm?orderId=${localOrderId}&walletAddress=${RECEIVE_ADDRESS}&amount=${price}&tier=${selectedPlan.name}`) },
         { text: '复制地址', onPress: async () => {
           try {
-            await copyToClipboard(RECEIVE_ADDRESS);
+            copyToClipboard(RECEIVE_ADDRESS);
             Alert.alert('复制成功', '收款地址已复制到剪贴板');
           } catch (error) {
             console.log('Copy failed:', error);
@@ -789,7 +771,7 @@ export default function MembershipScreen() {
               className="py-4 rounded-xl items-center mb-3"
               style={{ backgroundColor: '#059669' }}
               onPress={async () => {
-                const success = await copyToClipboard(RECEIVE_ADDRESS);
+                const success = copyToClipboard(RECEIVE_ADDRESS);
                 if (success) {
                   Alert.alert('复制成功', '收款地址已复制到剪贴板');
                 } else {

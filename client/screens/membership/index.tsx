@@ -216,7 +216,14 @@ export default function MembershipScreen() {
 
   const API_BASE = process.env.EXPO_PUBLIC_BACKEND_BASE_URL || 'http://localhost:9091';
 
-  const handlePayment = async (wallet: typeof WALLETS[0]) => {
+  const handlePayment = async () => {
+    if (!selectedPlan) return;
+    
+    const price = selectedPlan.monthlyPrice;
+    
+    // 直接显示USDT转账支付弹窗
+    setUsdtPaymentVisible(true);
+  };
     if (!selectedPlan) return;
     
     const price = selectedPlan.monthlyPrice;
@@ -544,7 +551,7 @@ export default function MembershipScreen() {
             <View className="mb-5">
               <Text className="text-base font-medium text-gray-400 mb-3">推荐方式</Text>
               
-              {/* USDT转账 */}
+              {/* USDT转账 - 直接显示收款地址 */}
               <TouchableOpacity
                 className="flex-row items-center p-4 rounded-xl mb-3 border"
                 style={{ backgroundColor: '#111827', borderColor: '#374151' }}
@@ -555,26 +562,10 @@ export default function MembershipScreen() {
                 </View>
                 <View className="ml-4 flex-1">
                   <Text className="text-lg font-medium text-white">USDT 转账支付</Text>
-                  <Text className="text-sm text-gray-500">使用TRC20/ERC20转账</Text>
+                  <Text className="text-sm text-gray-500">点击查看收款地址</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={22} color="#6B7280" />
               </TouchableOpacity>
-              
-              {/* 钱包选项 */}
-              {WALLETS.map((wallet) => (
-                <TouchableOpacity
-                  key={wallet.id}
-                  className="flex-row items-center p-4 rounded-xl mb-2 border"
-                  style={{ backgroundColor: '#111827', borderColor: '#374151' }}
-                  onPress={() => handlePayment(wallet)}
-                >
-                  <Text className="text-3xl mr-4">{wallet.icon}</Text>
-                  <View className="flex-1">
-                    <Text className="text-lg font-medium text-white">{wallet.name}</Text>
-                    <Text className="text-sm text-gray-500">点击唤起钱包支付</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
             </View>
             
             <TouchableOpacity

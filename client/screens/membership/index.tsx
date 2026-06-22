@@ -16,24 +16,24 @@ import { useSafeRouter } from '@/hooks/useSafeRouter';
 
 // Web平台兼容性复制函数 - 使用多种方式确保复制成功
 const copyToClipboard = async (text: string): Promise<boolean> => {
-  // 方法1: expo-clipboard
-  try {
-    if (Clipboard && typeof Clipboard.setStringAsync === 'function') {
-      await Clipboard.setStringAsync(text);
-      return true;
-    }
-  } catch (e1) {
-    console.log('expo-clipboard failed:', e1);
-  }
-  
-  // 方法2: Web Navigator Clipboard API
+  // 方法1: Web Navigator Clipboard API (优先，因为最可靠)
   try {
     if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(text);
       return true;
     }
+  } catch (e1) {
+    console.log('navigator.clipboard failed:', e1);
+  }
+  
+  // 方法2: expo-clipboard (RN 环境)
+  try {
+    if (typeof Clipboard !== 'undefined' && Clipboard.setStringAsync) {
+      await Clipboard.setStringAsync(text);
+      return true;
+    }
   } catch (e2) {
-    console.log('navigator.clipboard failed:', e2);
+    console.log('expo-clipboard failed:', e2);
   }
   
   // 方法3: 传统的 textarea + execCommand 方式 (Web Fallback)
@@ -41,9 +41,7 @@ const copyToClipboard = async (text: string): Promise<boolean> => {
     if (typeof document !== 'undefined') {
       const textArea = document.createElement('textarea');
       textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
+      textArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
       document.body.appendChild(textArea);
       textArea.focus();
       textArea.select();

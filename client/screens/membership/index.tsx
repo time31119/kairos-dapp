@@ -752,8 +752,10 @@ export default function MembershipScreen() {
               <Text className="text-sm text-gray-400 mb-2">收款地址 (BSC)</Text>
               <View className="flex-row items-center justify-between">
                 <Text 
-                  className="text-sm text-gray-200 font-mono flex-1" 
+                  className="text-xs text-gray-200 font-mono flex-1" 
                   selectable={true}
+                  numberOfLines={2}
+                  style={{ lineHeight: 18 }}
                 >
                   {RECEIVE_ADDRESS}
                 </Text>

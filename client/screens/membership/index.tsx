@@ -13,36 +13,46 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 
+// 检测是否为Web环境
+const isWeb = typeof window !== 'undefined' && typeof navigator !== 'undefined';
+
 // 复制函数 - 通用方式
 const copyToClipboard = async (text: string, onSuccess?: () => void, onFail?: () => void): Promise<boolean> => {
   try {
-    if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      // Web: 使用 textarea + execCommand
+    if (isWeb) {
+      // Web环境: 优先使用Clipboard API
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        console.log('Copy success via navigator.clipboard');
+        onSuccess?.();
+        return true;
+      }
+      // Fallback: 使用 textarea + execCommand
       const textarea = document.createElement('textarea');
       textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.left = '-9999px';
-      textarea.style.top = '0';
-      textarea.style.opacity = '0';
+      textarea.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;';
       document.body.appendChild(textarea);
       textarea.focus();
       textarea.select();
       const success = document.execCommand('copy');
       document.body.removeChild(textarea);
       if (success) {
+        console.log('Copy success via execCommand');
         onSuccess?.();
       } else {
+        console.log('Copy failed via execCommand');
         onFail?.();
       }
       return success;
     } else {
-      // Native: 使用 expo-clipboard
+      // Native环境: 使用 expo-clipboard
       await Clipboard.setStringAsync(text);
+      console.log('Copy success via expo-clipboard');
       onSuccess?.();
       return true;
     }
   } catch (e) {
-    console.error('Copy failed:', e);
+    console.error('Copy error:', e);
     onFail?.();
     return false;
   }

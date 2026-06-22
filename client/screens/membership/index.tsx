@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,8 +14,34 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Screen } from '@/components/Screen';
 import { useSafeRouter } from '@/hooks/useSafeRouter';
 
-// 复制函数 - 使用 expo-clipboard
+// Web复制函数 - 使用textarea选中复制
+const webCopyToClipboard = (text: string) => {
+  if (typeof document !== 'undefined') {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      Alert.alert('复制成功', '地址已复制到剪贴板');
+      return true;
+    } catch (e) {
+      Alert.alert('复制失败', '请手动复制');
+      return false;
+    } finally {
+      document.body.removeChild(textarea);
+    }
+  }
+  return false;
+};
+
+// 复制函数 - expo-clipboard + Web fallback
 const copyToClipboard = async (text: string): Promise<boolean> => {
+  if (Platform.OS === 'web') {
+    return webCopyToClipboard(text);
+  }
   try {
     await Clipboard.setStringAsync(text);
     Alert.alert('复制成功', '地址已复制到剪贴板');

@@ -75,10 +75,10 @@ function getSupabaseCredentials(): SupabaseCredentials {
   const anonKey = process.env.COZE_SUPABASE_ANON_KEY;
 
   if (!url) {
-    throw new Error('COZE_SUPABASE_URL is not set');
+    return null; // COZE_SUPABASE_URL not set;
   }
   if (!anonKey) {
-    throw new Error('COZE_SUPABASE_ANON_KEY is not set');
+    return null; // ANON_KEY not set;
   }
 
   return { url, anonKey };
@@ -89,8 +89,12 @@ function getSupabaseServiceRoleKey(): string | undefined {
   return process.env.COZE_SUPABASE_SERVICE_ROLE_KEY;
 }
 
-function getSupabaseClient(token?: string): SupabaseClient {
-  const { url, anonKey } = getSupabaseCredentials();
+function getSupabaseClient(token?: string): SupabaseClient | null {
+  const creds = getSupabaseCredentials();
+  if (!creds) {
+    return null;
+  }
+  const { url, anonKey } = creds;
 
   let key: string;
   if (token) {

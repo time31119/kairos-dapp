@@ -92,161 +92,17 @@ const STATS = [
   { value: '24/7', label: '客服支持' },
 ];
 
-// 钱包类型
+// 钱包类型 - 移除TP/OKX/Binance，仅保留USDT转账支付
 type WalletType = 'tp' | 'okx' | 'binance';
 
-// 钱包信息
-const WALLETS: { id: WalletType; name: string; icon: string; deeplink: string }[] = [
-  { id: 'tp', name: 'TokenPocket', icon: '💰', deeplink: 'tokenpocket://' },
-  { id: 'okx', name: 'OKX Wallet', icon: '🌐', deeplink: 'okx://' },
-  { id: 'binance', name: 'Binance Web3', icon: '🟡', deeplink: 'bnbwallet://' },
-];
+// 钱包信息 - 暂时保留类型定义但不使用
 
 // 计算USDT金额 (精度6位)
 function calculateAmount(amount: number): string {
   const usdtAmount = Math.round(amount * 1e6);
   return usdtAmount.toString();
 }
-
-// 构建TP Wallet DeepLink (BSC链USDT转账)
-function buildTPWalletDeepLink(toAddress: string, amountUsdt: string): string {
-  // TokenPocket 标准DApp协议格式
-  const params = {
-    symbol: 'USDT',
-    contract: USDT_CONTRACT,
-    to: toAddress,
-    amount: amountUsdt,
-    chain: 'bsc',
-  };
-  return `tokenpocket://wallet/transfer?${new URLSearchParams(params).toString()}`;
-}
-
-// 构建OKX Wallet DeepLink - BSC链USDT转账
-function buildOKXDeepLink(toAddress: string, amount: string): string {
-  const params = new URLSearchParams({
-    to: toAddress,
-    value: amount,
-    token: USDT_CONTRACT,
-    chainId: '56', // BSC chainId
-  });
-  return `okxwallet://wallet/send?${params.toString()}`;
-}
-
-// OKX Wallet Web3转账
-async function okxWalletWeb3Transfer(toAddress: string, amountWei: string): Promise<boolean> {
-  try {
-    if (typeof window === 'undefined' || !(window as any).okxwallet) {
-      return false;
-    }
-    const accounts = await (window as any).okxwallet.request({ method: 'eth_requestAccounts' });
-    if (!accounts || accounts.length === 0) return false;
     
-    const txHash = await (window as any).okxwallet.request({
-      method: 'eth_sendTransaction',
-      params: [{
-        from: accounts[0],
-        to: USDT_CONTRACT,
-        value: '0x0',
-        data: buildUSDTTransferData(toAddress, amountWei),
-        gas: '0x50000',
-      }],
-    });
-    console.log('[OKX] Transaction sent:', txHash);
-    return true;
-  } catch (error) {
-    console.log('[OKX] Web3 transfer failed:', error);
-    return false;
-  }
-}
-
-// Binance Web3 转账
-async function handleBinanceWeb3(toAddress: string, amount: string, amountWei: string): Promise<boolean> {
-  try {
-    if (typeof window === 'undefined' || !(window as any).BinanceChain) {
-      return false;
-    }
-    const accounts = await (window as any).BinanceChain.request({ method: 'eth_requestAccounts' });
-    if (!accounts || accounts.length === 0) return false;
-    
-    const txHash = await (window as any).BinanceChain.request({
-      method: 'eth_sendTransaction',
-      params: [{
-        from: accounts[0],
-        to: USDT_CONTRACT,
-        value: '0x0',
-        data: buildUSDTTransferData(toAddress, amountWei),
-        gas: '0x50000',
-      }],
-    });
-    console.log('[Binance] Transaction sent:', txHash);
-    return true;
-  } catch (error) {
-    console.log('[Binance] Web3 transfer failed:', error);
-    return false;
-  }
-}
-
-// 构建Binance Web3 DeepLink (USDT转账)
-function buildBinanceDeepLink(toAddress: string, amount: string): string {
-  // Binance Web3 钱包 USDT 转账 DeepLink
-  return `bnbswapwallet://wallet/send?address=${toAddress}&asset=USDT&amount=${amount}&chain=BSC`;
-}
-
-// 构建 USDT 转账数据
-function buildUSDTTransferData(toAddress: string, amount: string): string {
-  const methodId = '0xa9059cbb';
-  const paddedAddress = toAddress.slice(2).padStart(64, '0');
-  const paddedAmount = BigInt(amount).toString(16).padStart(64, '0');
-  return '0x' + methodId + paddedAddress + paddedAmount;
-}
-
-// iframe 方式尝试打开 Deep Link (仅Web端)
-function tryIframeDeepLink(url: string): void {
-  if (Platform.OS !== 'web') return;
-  if (typeof document === 'undefined') return;
-  try {
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = url;
-    document.body.appendChild(iframe);
-    setTimeout(() => {
-      document.body.removeChild(iframe);
-    }, 1000);
-  } catch (error) {
-    console.log('[iframe] Failed:', error);
-  }
-}
-
-// TP 钱包 Web3 Provider 转账 (仅Web端)
-async function tpWalletWeb3Transfer(toAddress: string, amount: string): Promise<boolean> {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
-  try {
-    const tpProvider = (window as any).ethereum;
-    if (!tpProvider || tpProvider.isTokenPocket !== true) {
-      return false;
-    }
-    const accounts = await tpProvider.request({ method: 'eth_requestAccounts' });
-    if (!accounts || accounts.length === 0) return false;
-    
-    // USDT转账需要的gaslimit大约是60000
-    const txHash = await tpProvider.request({
-      method: 'eth_sendTransaction',
-      params: [{
-        from: accounts[0],
-        to: USDT_CONTRACT,
-        data: buildUSDTTransferData(toAddress, amount),
-        value: '0x0',
-        gas: '0xEA60', // 60000 in hex
-        gasPrice: '0x4A817C800', // ~20 Gwei in hex
-      }],
-    });
-    return !!txHash;
-  } catch (error) {
-    console.log('[TP Web3] Transfer failed:', error);
-    return false;
-  }
-}
-
 export default function MembershipScreen() {
   const router = useSafeRouter();
   const [selectedPlan, setSelectedPlan] = useState<typeof PLANS[0] | null>(null);

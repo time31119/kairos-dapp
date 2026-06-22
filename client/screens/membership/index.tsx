@@ -110,12 +110,12 @@ function calculateAmount(amount: number): string {
 
 // 构建TP Wallet DeepLink (BSC链USDT转账)
 function buildTPWalletDeepLink(toAddress: string, amountUsdt: string): string {
-  // TokenPocket 支持的格式：直接传递金额和地址
+  // TokenPocket 标准DApp协议格式
   const params = {
+    symbol: 'USDT',
+    contract: USDT_CONTRACT,
     to: toAddress,
     amount: amountUsdt,
-    contract: USDT_CONTRACT,
-    symbol: 'USDT',
     chain: 'bsc',
   };
   return `tokenpocket://wallet/transfer?${new URLSearchParams(params).toString()}`;
